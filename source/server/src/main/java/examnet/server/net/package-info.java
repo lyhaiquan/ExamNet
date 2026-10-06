@@ -1,8 +1,8 @@
 /**
- * Tầng mạng phía server: vòng {@code accept()}, thread pool, mỗi kết nối một luồng
- * ghi riêng với hàng đợi có giới hạn (backpressure), chuyển thông điệp tới đúng hàm
- * xử lý, đặt tường minh các tùy chọn socket.
+ * S16 Quản lý nhiều client đồng thời: vòng {@code accept()}, thread pool, mỗi kết nối một
+ * luồng ghi riêng với hàng đợi có giới hạn (backpressure), router chuyển lệnh tới module đã
+ * đăng ký.
  *
- * <p>Phụ trách: Người 2 (tùy chọn socket: Người 3). Spec §9, §9.1, §9.2. Thí nghiệm 4, 5, 8 (thí nghiệm 7: Người 3).
+ * <p>Chủ: Người 2 (leader) — Kết nối và tài khoản. Spec §9, §9.1. Thí nghiệm 4, 5, 8.
  */
 package examnet.server.net;

@@ -1,7 +1,7 @@
 /**
- * Harness sinh hàng trăm máy thi và giám thị ảo, chạy thí nghiệm, ghi CSV vào
- * {@code statics/results/}. Mỗi người tự viết kịch bản cho thí nghiệm của mình.
+ * Khung harness: sinh hàng trăm máy thi và giám thị ảo, đo, ghi CSV vào
+ * {@code statics/results/}.
  *
- * <p>Phụ trách: Người 4. Spec §12.
+ * <p>Chủ: Người 4 — Thông báo và giám sát. Spec §12.
  */
 package examnet.bench;

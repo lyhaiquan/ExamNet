@@ -1,7 +1,6 @@
 /**
- * ★ĐG2 phía máy thi — ước lượng độ lệch đồng hồ kiểu NTP, giữ mẫu có RTT nhỏ nhất,
- * hiển thị thời gian còn lại theo đồng hồ server.
+ * ★ĐG2 phía máy thi — ước lượng độ lệch đồng hồ kiểu NTP; C7 panel thời gian còn lại.
  *
- * <p>Phụ trách: Người 3. Spec §11 ĐG2. Thí nghiệm 2.
+ * <p>Chủ: Người 3 — Kỳ thi và thời gian. Spec §11 ĐG2. Thí nghiệm 2.
  */
 package examnet.client.clock;

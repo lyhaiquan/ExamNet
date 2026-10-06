@@ -1,7 +1,7 @@
 /**
- * WebSocket tự viết (bắt tay RFC 6455, đóng gói frame) cho dashboard giám thị chạy
- * trên trình duyệt.
+ * S7 Theo dõi trạng thái client: WebSocket tự viết (RFC 6455) cho dashboard giám thị, đẩy
+ * trạng thái máy thi và nhật ký lên trình duyệt. Trang web ở {@code src/main/resources/dashboard/}.
  *
- * <p>Phụ trách: Người 4. Spec §6.2.
+ * <p>Chủ: Người 4 — Thông báo và giám sát. Spec §6.2.
  */
 package examnet.server.ws;

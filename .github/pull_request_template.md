@@ -4,9 +4,10 @@
 
 ## Thuộc phần nào
 
-- Người phụ trách / đóng góp: <!-- ĐG1 · ĐG2 · ĐG3 · ĐG4 · mạng nền · không thuộc ĐG nào -->
+- Nhóm chức năng: <!-- Người 1 làm bài · Người 2 kết nối và tài khoản · Người 3 kỳ thi và thời gian · Người 4 thông báo và giám sát -->
 - Phase trong spec §16: <!-- 0–10 -->
 - Thông điệp protocol liên quan: <!-- ví dụ ANSWER_DELTA, ANSWER_ACK — hoặc "không" -->
+- [ ] Chỉ sửa package của mình; nếu chạm phần người khác, chủ phần đó đã được nhờ duyệt
 
 ## Đã kiểm tra
 

@@ -1,7 +1,7 @@
 /**
- * ★ĐG4 phía server — phát {@code NOTICE} qua UDP multicast, đánh seq, gửi bù qua TCP khi
- * nhận NACK. Thông báo mức CRITICAL luôn đi kèm TCP.
+ * ★ĐG4 — S15 Gửi thông báo: UDP multicast, đánh seq, gửi bù qua TCP khi nhận
+ * {@code NOTICE_NACK}. Thông báo mức CRITICAL luôn đi kèm TCP.
  *
- * <p>Phụ trách: Người 4. Spec §9.4, §11 ĐG4. Thí nghiệm 9.
+ * <p>Chủ: Người 4 — Thông báo và giám sát. Spec §9.4, §11 ĐG4. Thí nghiệm 9.
  */
 package examnet.server.notice;

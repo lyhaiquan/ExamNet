@@ -1,8 +1,10 @@
 /**
- * Protocol EXP/1.0: khung 13 byte (MAGIC, VER, TYPE, FLAGS, SEQ, LEN), danh sách
- * {@code MessageType}, {@code ErrorCode}, và codec chuyển frame ⇄ byte (đọc lặp cho
- * đủ byte, kiểm LEN trước khi cấp phát bộ nhớ).
+ * Khung EXP/1.0 ({@code Frame}), codec ({@code FrameCodec}, {@code PayloadReader},
+ * {@code PayloadWriter}) và danh sách mã lệnh.
  *
- * <p>Phụ trách: Người 1. Spec §8, §9.3. Thí nghiệm 6, 10.
+ * <p>Riêng {@code MessageType}, {@code ErrorCode}, {@code Priority} là file dùng chung: leader điền
+ * đủ một lần theo spec §8.2, mỗi người dùng đúng dải mã của mình, không đánh số lại.
+ *
+ * <p>Chủ: Người 1 — Làm bài và không mất bài. Spec §8, §9.3. Thí nghiệm 6, 10.
  */
 package examnet.common.protocol;

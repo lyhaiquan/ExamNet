@@ -544,27 +544,28 @@ ExamNet/
 │   └── results/                      CSV của 11 thí nghiệm
 ├── deploy/  Dockerfile, compose.yaml
 └── source/                           Maven multi-module, chạy bằng ./mvnw
-    ├── common/   protocol/ (frame, codec, MessageType, ErrorCode), model/, tls/
-    ├── server/   net/, session/, app/, clock/, liveness/, journal/, notice/, ws/, ops/
-    ├── service/  dao/, db/, grade/, auth/, model/ + resources/schema.sql
-    ├── client/   (ExamClient), wal/, clock/, notice/, ui/, admin/
-    └── bench/    harness sinh client ảo
+    ├── common/   protocol/ (frame, codec, MessageType, ErrorCode), model/, transport/ (socket options, TLS)
+    ├── server/   net/, session/, account/, liveness/, journal/, exam/, clock/, notice/, ws/, app/, ops/
+    │             + resources/dashboard/
+    ├── service/  db/, account/, answer/, exam/, audit/ + resources/schema.sql
+    ├── client/   net/, account/, answer/, wal/, exam/, clock/, notice/, ui/
+    └── bench/    khung harness + exp/ (mỗi thí nghiệm một file)
 ```
 
-Phụ thuộc giữa các module: `client` và `bench` chỉ phụ thuộc `common`; `server` phụ thuộc `common` và `service`. Máy thi không chứa code database hay code chấm điểm.
+Trong mỗi module, package chia **theo chức năng**, mỗi package có đúng một chủ (§15). Phụ thuộc giữa các module: `client` và `bench` chỉ phụ thuộc `common`; `server` phụ thuộc `common` và `service`. Máy thi không chứa code database hay code chấm điểm.
 
 ---
 
 ## 15. Phân công 4 người
 
-Mỗi người giữ **đúng một** đóng góp ★ (phần Novelty), cộng một mảng mạng nền và các thí nghiệm đi kèm. Chi tiết package và thông điệp protocol của từng người ở `docs/PHAN-CONG.md`.
+Chia **theo chức năng** của `Topics.md` §4.6: mỗi người nhận trọn một nhóm chức năng, làm từ giao diện tới server và database, giữ **đúng một** đóng góp ★. Mỗi chức năng là một package có một chủ; chỗ hai chức năng gặp nhau được chốt bằng một hàm. Chi tiết package, lệnh protocol, bảng và chỗ giao nhau ở `docs/PHAN-CONG.md`.
 
-| Người | Đóng góp ★ | Mạng nền | Thí nghiệm |
+| Người | Nhóm chức năng | Đóng góp ★ | Thí nghiệm |
 |---|---|---|---|
-| 1 | ĐG1 — `AnswerJournal` + `LocalWal` + resume | Protocol EXP/1.0, frame, codec | 1, 6, 10 |
-| 2 | ĐG3 — `LivenessMonitor` | Server core: accept loop, thread pool, `ClientConnection`, backpressure | 3, 4, 5, 8 |
-| 3 | ĐG2 — `ExamClock` + `ClockSync` | Tùy chọn socket, TLS, DB, kiểm quyền, chấm điểm | 2, 7, 11 |
-| 4 | ĐG4 — `NoticeBroadcaster` + bên nhận multicast | WebSocket dashboard, bench harness | 9 |
+| 1 | Làm bài và không mất bài — hiển thị, trả lời, lưu, gửi, nộp, khôi phục; protocol và codec | ĐG1 | 1, 6, 10 |
+| 2 (leader) | Kết nối và tài khoản — đăng nhập, phân quyền, thí sinh, nhiều client đồng thời, phát hiện mất kết nối | ĐG3 | 3, 4, 5, 8 |
+| 3 | Kỳ thi và thời gian — kỳ thi, câu hỏi, phát đề, thời gian, thu bài, chấm điểm, TLS | ĐG2 | 2, 7, 11 |
+| 4 | Thông báo và giám sát — thông báo, dashboard giám thị, nhật ký; bench harness | ĐG4 | 9 |
 
 **GUI chia đều, không giao cho một người.** Mỗi thành viên tự làm phần giao diện cho tính năng mình phụ trách (phase 8). Lý do: gom hết GUI vào một người thì người đó thành nút thắt ở cuối kỳ, đúng lúc cần chạy thí nghiệm — và người đó cũng là người duy nhất không có đóng góp kỹ thuật để trình bày khi bảo vệ, trong khi `Instruction.md` §16 yêu cầu mỗi sinh viên chứng minh được phần đóng góp thực tế của mình.
 
