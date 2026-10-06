@@ -136,7 +136,7 @@ Mỗi package có `package-info.java` mô tả nhiệm vụ và người phụ t
 # 8. Requirements
 
 * **JDK 17** trở lên
-* **Node.js 20+** — chỉ để chạy hook kiểm commit (husky)
+* **Node.js 22.12+** — chỉ để chạy hook kiểm commit (husky + commitlint)
 * Docker — tuỳ chọn, để chạy giống hệt bản trên VPS
 * Không cần cài Maven (đã có `./mvnw`) và không cần cài database (SQLite là một file)
 

@@ -118,7 +118,7 @@ jobs:
       - name: Xác nhận VPS đang chạy đúng commit
         run: |
           got=""
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             got=$(curl -fsS --max-time 3 "http://$VPS_HOST:8080/version" | jq -r .commit 2>/dev/null || true)
             if [ "$got" = "$GITHUB_SHA" ]; then
               echo "VPS đang chạy commit $got"

@@ -265,7 +265,7 @@ Trả lời §4.7.6 và §4.7.7. Đây là **protocol tự thiết kế**, khôn
 - `LEN` — độ dài payload, giải quyết bài toán TCP là dòng byte không có ranh giới thông điệp.
 - `FLAGS` — bit 0 `COMPRESSED`, bit 1 `REQUIRES_ACK`.
 
-**Data format:** payload nhị phân, các trường độ dài thay đổi mã hóa kiểu `[len:2][utf8 bytes]`. Chọn nhị phân thay vì JSON để giảm số byte trên đường truyền và có số liệu so sánh thật ở §11.
+**Data format:** payload nhị phân, các trường độ dài thay đổi mã hóa kiểu `[len:2][utf8 bytes]`. Chọn nhị phân thay vì JSON để giảm số byte trên đường truyền và có số liệu so sánh thật ở thí nghiệm 6 (§12).
 
 ### 8.2. Message types
 
@@ -279,7 +279,9 @@ Trả lời §4.7.6 và §4.7.7. Đây là **protocol tự thiết kế**, khôn
 | Liveness | `HEARTBEAT`, `HEARTBEAT_ACK` |
 | Nộp bài | `SUBMIT_REQ`, `SUBMIT_ACK`, `FORCE_SUBMIT` |
 | Khôi phục | `RESUME_REQ`, `RESUME_STATE` |
-| Thông báo | `NOTICE` |
+| Thông báo | `NOTICE`, `NOTICE_NACK` (máy thi báo thiếu seq, đi qua TCP — §9.4) |
+| Quản trị | `ADMIN_EXAM_CREATE`, `ADMIN_EXAM_OPEN`, `ADMIN_EXAM_CLOSE`, `ADMIN_CANDIDATE_IMPORT`, `ADMIN_QUESTION_UPSERT`, `ADMIN_QUESTION_DELETE`, `ADMIN_RESULT_EXPORT`, `ADMIN_OK` (§6.3) |
+| Giám thị | `PROCTOR_SUBSCRIBE`, `PROCTOR_STATE`, `PROCTOR_NOTICE_SEND` (dashboard qua WebSocket — §6.2) |
 | Lỗi | `ERROR(code, message)` |
 | Kết thúc | `BYE` |
 
@@ -307,8 +309,11 @@ Client                              Server
   |<--- RESUME_STATE(ackedSeq) --------|  client replay delta chưa được ACK
   |                                    |
   |<--- FORCE_SUBMIT ------------------|  hết giờ, server tự thu bài
-  |---- SUBMIT_ACK(score) ------------>|
+  |---- SUBMIT_REQ ------------------->|  máy thi nộp ngay khi nhận lệnh
+  |<--- SUBMIT_ACK(score) -------------|  server chấm và trả điểm
 ```
+
+Máy thi không còn sống để gửi `SUBMIT_REQ` thì server vẫn tự chấm từ dữ liệu đã có — xem §16 "Hai yêu cầu dễ bị sót".
 
 ---
 
@@ -501,20 +506,23 @@ Thí nghiệm 7, 8, 10 là loại số liệu chỉ có được khi tự viết
 ## 13. Database schema
 
 Thiết kế theo bốn bước của giáo trình; mọi câu SQL có dữ liệu người dùng đi qua `PreparedStatement`.
+Bản chuẩn là file [`source/service/src/main/resources/schema.sql`](../../source/service/src/main/resources/schema.sql) — sửa lược đồ thì sửa file đó và cập nhật tóm tắt dưới đây.
 
 ```text
-users(id, username, password_hash, salt, role, created_at)
-exams(id, title, state, duration_sec, scheduled_start, created_by)
-questions(id, exam_id, type, content, points, topic, difficulty)
-options(id, question_id, content, is_correct)          ← đáp án đúng chỉ nằm ở server
-candidates(id, user_id, exam_id, seat_no)
-sessions(id, candidate_id, exam_id, token, state, started_at, last_seq, clock_offset_ms)
-answers(session_id, question_id, seq, option_ids, updated_at)   PK(session_id, question_id)
-results(session_id, score, max_score, graded_at)
+users(id, username, password_hash, salt, iterations, full_name, role, created_at)
+exams(id, title, state, duration_sec, scheduled_start, started_at, deadline_at,
+      shuffle, created_by, created_at)                  ← mốc giờ theo đồng hồ SERVER
+questions(id, exam_id, type, content, points, topic, difficulty, ord)
+options(id, question_id, content, is_correct, ord)     ← đáp án đúng chỉ nằm ở server
+candidates(id, user_id, exam_id, seat_no)              ← bảng trung gian n-n users–exams
+sessions(id, token, user_id, exam_id, state, started_at, last_seq,
+         clock_offset_ms, submitted_at)
+answers(session_id, question_id, option_ids, seq, updated_at)   PK(session_id, question_id)
+results(session_id, score, max_score, correct, total, graded_at)
 audit_log(id, ts, actor, action, detail)
 ```
 
-Quan hệ `questions`–`options` là 1-n nên khóa ngoại nằm ở phía `options`. Bảng `answers` dùng khóa chính tổ hợp `(session_id, question_id)` với cột `seq` để khử trùng — đây chính là cơ chế idempotent của ĐG1.
+Quan hệ `questions`–`options` là 1-n nên khóa ngoại nằm ở phía `options`. Bảng `answers` dùng khóa chính tổ hợp `(session_id, question_id)` với cột `seq` để khử trùng: chỉ ghi đè khi `seq` mới lớn hơn `seq` đang lưu, nên gói gửi lại không ghi hai lần và gói cũ đến muộn không đè đáp án mới — đây chính là cơ chế idempotent của ĐG1.
 
 ---
 
@@ -595,7 +603,7 @@ Cả hai đều xuất phát từ nguyên tắc *server là trọng tài* (§7):
 
 ## 17. Giới hạn đã biết
 
-1. TLS dùng chứng chỉ self-signed, chỉ phù hợp môi trường demo trong phòng thi nội bộ. Repo công khai nên **khoá riêng không bao giờ được commit** — mỗi máy tự sinh keystore theo hướng dẫn trong README.
+1. TLS dùng chứng chỉ self-signed, chỉ phù hợp môi trường demo trong phòng thi nội bộ. Repo công khai nên **khoá riêng không bao giờ được commit** — mỗi máy tự sinh keystore bằng `keytool`; lệnh cụ thể được viết vào README ở phase 10.
 2. Chỉ có một server; server chết là cả kỳ thi dừng. Fault tolerance ở đây bảo vệ trước lỗi client và lỗi mạng, không bảo vệ trước lỗi server.
 3. Không chống được gian lận ở mức hệ điều hành.
 4. `ExamClock` chống được việc chỉnh giờ máy client, nhưng không chống được client bị sửa mã nguồn để bỏ qua deadline — dù vậy server vẫn từ chối mọi `ANSWER_DELTA` gửi sau deadline, nên tác hại bị chặn ở server.

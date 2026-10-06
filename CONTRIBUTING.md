@@ -11,7 +11,7 @@ Bốn quy tắc, máy móc kiểm hết, không cần nhớ:
 
 ## Cài đặt lần đầu (mỗi người)
 
-Cần: **JDK 17**, **Git**, **Node.js 20+** (chỉ để chạy hook kiểm commit). Docker là tuỳ chọn.
+Cần: **JDK 17**, **Git**, **Node.js 22.12 trở lên** (chỉ để chạy hook kiểm commit — commitlint không chạy trên Node 20). Docker là tuỳ chọn.
 
 ```bash
 git clone https://github.com/<chủ-repo>/examnet.git
