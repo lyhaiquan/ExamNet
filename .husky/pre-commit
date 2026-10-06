@@ -1,0 +1,10 @@
+# Chỉ kiểm định dạng khi có file Java trong lần commit này, để commit tài liệu
+# không phải chờ Maven khởi động.
+if git diff --cached --name-only --diff-filter=ACMR | grep -q '\.java$'; then
+  if ! (cd source && ./mvnw -q -ntp spotless:check); then
+    echo ""
+    echo "Code Java chưa đúng định dạng. Sửa tự động rồi commit lại:"
+    echo "    cd source && ./mvnw spotless:apply && cd .. && git add -u"
+    exit 1
+  fi
+fi

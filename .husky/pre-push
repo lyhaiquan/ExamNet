@@ -1,0 +1,4 @@
+# Build + test + kiểm định dạng trước khi đẩy lên — giống hệt bước CI chạy, để
+# không phải đợi GitHub báo đỏ mới biết.
+echo "pre-push: đang chạy ./mvnw verify ..."
+cd source && ./mvnw -q -ntp verify

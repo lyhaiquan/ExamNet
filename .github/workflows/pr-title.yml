@@ -1,0 +1,36 @@
+# Repo chỉ cho squash merge, nên TIÊU ĐỀ PR trở thành commit nằm lại trên main.
+# Kiểm nó bằng đúng bộ luật commitlint mà hook husky dùng trên máy mỗi người.
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    name: pr-title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Cài commitlint
+        run: npm ci --ignore-scripts
+
+      # Tiêu đề đi qua biến môi trường, không nhét thẳng vào lệnh shell,
+      # để một tiêu đề chứa dấu ` hay $( ) không chạy được lệnh trên runner
+      - name: Kiểm tiêu đề theo Conventional Commits
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$TITLE" | npx --no-install commitlint || {
+            echo "::error::Tiêu đề PR phải có dạng <type>(<scope>): <mô tả>, ví dụ: feat(server): thêm vòng accept. Xem CONTRIBUTING.md"
+            exit 1
+          }

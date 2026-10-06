@@ -1,0 +1,14 @@
+# Nhóm code trên Windows nhưng CI và VPS chạy Linux. Ép LF cho mọi file văn
+# bản, nếu không script shell (mvnw, hook husky) sẽ hỏng với lỗi "\r: command
+# not found" ngay khi chạy trên GitHub Actions.
+* text=auto eol=lf
+
+# Script dành riêng cho Windows giữ CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.jar binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.p12 binary

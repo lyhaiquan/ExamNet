@@ -1,0 +1,130 @@
+# Mỗi lần main thay đổi (tức là mỗi PR được merge):
+#   1. build   — test lại, đóng image cho cả amd64 lẫn arm64, đẩy lên GHCR
+#                với tag là mã commit và tag latest
+#   2. deploy  — SSH vào VPS, kéo image đúng mã commit đó, khởi động lại,
+#                rồi gọi http://<VPS>:8080/version để xác nhận đúng commit đang chạy
+#
+# Bước deploy tự bỏ qua cho tới khi đặt biến VPS_HOST (xem docs/deploy/VPS-SETUP.md),
+# nên trước khi có VPS, mỗi lần merge vẫn đẩy image lên GHCR bình thường.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Không bao giờ chạy hai lần deploy chồng lên nhau; lần sau xếp hàng chờ lần trước
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: build-image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.name.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build, test, kiểm định dạng
+        working-directory: source
+        run: ./mvnw -B -ntp verify
+
+      # Tên image trên GHCR bắt buộc viết thường, còn tên tài khoản GitHub thì không
+      - name: Đặt tên image
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/examnet-server" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Đóng và đẩy image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: GIT_SHA=${{ github.sha }}
+          tags: |
+            ${{ steps.name.outputs.image }}:${{ github.sha }}
+            ${{ steps.name.outputs.image }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  deploy:
+    name: deploy
+    needs: build
+    # VPS_HOST là biến cấp repo (Settings → Secrets and variables → Actions → Variables).
+    # Chưa đặt thì bỏ qua job này thay vì báo đỏ.
+    if: vars.VPS_HOST != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: http://${{ vars.VPS_HOST }}:8080/version
+    env:
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Khoá và known_hosts đi qua biến môi trường rồi ghi ra file, không nhét
+      # thẳng vào dòng lệnh. known_hosts được ghim sẵn: KHÔNG dùng
+      # StrictHostKeyChecking=no, nếu không ai chen giữa cũng nhận được lệnh deploy.
+      - name: Nạp khoá SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Chép compose.yaml và ghi phiên bản cần chạy
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+        run: |
+          owner="${IMAGE#ghcr.io/}"; owner="${owner%%/*}"
+          ssh "$VPS_USER@$VPS_HOST" 'mkdir -p ~/examnet'
+          scp deploy/compose.yaml "$VPS_USER@$VPS_HOST:examnet/compose.yaml"
+          printf 'GHCR_OWNER=%s\nIMAGE_TAG=%s\n' "$owner" "$GITHUB_SHA" \
+            | ssh "$VPS_USER@$VPS_HOST" 'cat > ~/examnet/.env'
+
+      - name: Kéo image mới và khởi động lại
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            'cd ~/examnet && docker compose pull --quiet && docker compose up -d --remove-orphans && docker image prune -f'
+
+      # Bằng chứng deploy thành công: VPS phải trả về đúng mã commit vừa merge
+      - name: Xác nhận VPS đang chạy đúng commit
+        run: |
+          got=""
+          for i in $(seq 1 30); do
+            got=$(curl -fsS --max-time 3 "http://$VPS_HOST:8080/version" | jq -r .commit 2>/dev/null || true)
+            if [ "$got" = "$GITHUB_SHA" ]; then
+              echo "VPS đang chạy commit $got"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::VPS trả về commit '$got', mong đợi $GITHUB_SHA. Xem log: ssh vào VPS, chạy 'cd ~/examnet && docker compose logs --tail 100'"
+          exit 1

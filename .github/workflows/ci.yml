@@ -1,0 +1,37 @@
+# Chạy cho mọi PR vào main. Hai check `build` và `pr-title` (file pr-title.yml)
+# được đặt là BẮT BUỘC trong luật bảo vệ nhánh — đỏ thì không merge được.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # verify = biên dịch + test + kiểm định dạng (spotless gắn vào phase verify)
+      - name: Build, test, kiểm định dạng
+        working-directory: source
+        run: ./mvnw -B -ntp verify
+
+      # Đảm bảo Dockerfile vẫn đóng được image trước khi merge, để bước deploy
+      # sau khi merge không hỏng vì một thay đổi ở deploy/
+      - name: Thử đóng Docker image
+        run: docker build -f deploy/Dockerfile --build-arg GIT_SHA=${{ github.sha }} -t examnet-server:pr .

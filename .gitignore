@@ -1,0 +1,34 @@
+# Maven
+target/
+dependency-reduced-pom.xml
+
+# Dữ liệu chạy thử — database và file WAL của máy thi không bao giờ commit
+*.db
+*.db-shm
+*.db-wal
+*.wal
+
+# Khoá và chứng chỉ: repo công khai, KHÔNG BAO GIỜ commit khoá riêng
+*.p12
+*.jks
+*.pem
+*.key
+examnet-deploy*
+
+# Node (chỉ dùng cho husky + commitlint)
+node_modules/
+
+# IDE và hệ điều hành
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+nbproject/
+out/
+.DS_Store
+Thumbs.db
+
+# Công cụ AI
+.claude/

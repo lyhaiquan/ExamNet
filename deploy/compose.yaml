@@ -1,0 +1,30 @@
+# Chạy máy chủ ExamNet trên VPS.
+#
+# Bước deploy của CI chép file này lên ~/examnet/ trên VPS và ghi file .env bên
+# cạnh với hai biến GHCR_OWNER và IMAGE_TAG (mã commit), rồi chạy
+#   docker compose pull && docker compose up -d
+#
+# Quay về một bản cũ: sửa IMAGE_TAG trong ~/examnet/.env thành mã commit cũ rồi
+# chạy lại `docker compose up -d`. Xem docs/deploy/VPS-SETUP.md.
+
+services:
+  server:
+    image: ghcr.io/${GHCR_OWNER:?thiếu GHCR_OWNER}/examnet-server:${IMAGE_TAG:-latest}
+    container_name: examnet-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000" # EXP/1.0 cho máy thi và Admin (có từ phase 2)
+      - "5001:5001" # dashboard giám thị qua WebSocket (có từ phase 8)
+      - "8080:8080" # /version — bước deploy dùng để xác nhận đúng commit
+    # UDP multicast 5002 không đi qua Internet nên không mở ở đây. Trên VPS mọi
+    # thông báo đi bằng TCP — đúng cơ chế tự lùi về TCP của ĐG4 (spec §9.4).
+    volumes:
+      - examnet-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  examnet-data:
