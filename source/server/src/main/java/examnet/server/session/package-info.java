@@ -1,6 +1,6 @@
 /**
- * Phiên đăng nhập: token, trạng thái phiên, kiểm quyền theo vai trò ở tầng xử lý lệnh.
+ * Phiên đăng nhập và token; giữ phiên khi máy thi mất kết nối để chờ khôi phục.
  *
- * <p>Phụ trách: Người 2 (kiểm quyền: Người 3). Spec §5 dòng 3, §10.
+ * <p>Chủ: Người 2 (leader) — Kết nối và tài khoản. Spec §7.
  */
 package examnet.server.session;

@@ -111,6 +111,15 @@ cd source && ./mvnw spotless:apply
 - Có code nào nằm sai module không, ví dụ client gọi thẳng database (vi phạm spec §0 R1)?
 - Có khoá, mật khẩu hay file `.db` lọt vào không? **Repo công khai**, lọt là lộ vĩnh viễn trong lịch sử git.
 
+## Ranh giới: chỉ sửa phần của mình
+
+Mỗi package có đúng một chủ, ghi trong `package-info.java` và bảng ở [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md).
+
+- Chỉ sửa file trong package của mình. Cần đổi gì ở phần người khác thì nhắn chủ, hoặc mở PR để chính chủ duyệt.
+- Gọi phần của người khác qua các hàm đã chốt ở mục "Chỗ giao nhau" trong `PHAN-CONG.md`, không sửa thẳng vào code của họ.
+- File dùng chung (`MessageType`, `ErrorCode`, `pom.xml`, `.github/`, `deploy/`, `README.md`…) thuộc leader, sửa qua PR có leader duyệt.
+- Mỗi ngày chạy `git pull --rebase origin main` trên nhánh của mình để bắt kịp phần của người khác sớm, đừng để dồn tới cuối.
+
 ## Không được làm
 
 - Commit khoá riêng, keystore (`.p12`, `.jks`), mật khẩu, file `.db`. `.gitignore` đã chặn các đuôi phổ biến, nhưng vẫn phải tự để ý.

@@ -3,6 +3,9 @@
 -- Thiết kế theo bốn bước của giáo trình: trích thực thể → xét quan hệ
 -- (1-1 gộp, 1-n giữ nguyên, n-n đẻ bảng trung gian) → bảng phía n giữ khóa
 -- ngoại → rà soát thuộc tính.
+--
+-- Mỗi nhóm bảng ghi rõ chủ (docs/PHAN-CONG.md). Đổi bảng của ai thì người đó
+-- duyệt PR. Người 3 giữ phần mở kết nối và chạy file này (service.db).
 
 PRAGMA foreign_keys = ON;
 
@@ -12,7 +15,7 @@ PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
 
 -- ---------------------------------------------------------------------
--- Tài khoản
+-- Tài khoản — chủ: Người 2
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
 
 -- ---------------------------------------------------------------------
--- Kỳ thi
+-- Kỳ thi — chủ: Người 3
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS exams (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +51,7 @@ CREATE TABLE IF NOT EXISTS exams (
 );
 
 -- ---------------------------------------------------------------------
--- Ngân hàng câu hỏi
+-- Ngân hàng câu hỏi — chủ: Người 3
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS questions (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,7 +82,7 @@ CREATE TABLE IF NOT EXISTS options (
 CREATE INDEX IF NOT EXISTS idx_options_question ON options (question_id);
 
 -- ---------------------------------------------------------------------
--- Thí sinh dự thi — bảng trung gian của quan hệ n-n giữa users và exams
+-- Thí sinh dự thi — bảng trung gian n-n giữa users và exams — chủ: Người 2
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidates (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,7 +93,7 @@ CREATE TABLE IF NOT EXISTS candidates (
 );
 
 -- ---------------------------------------------------------------------
--- Phiên thi
+-- Phiên thi — chủ: Người 2
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sessions (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,7 +109,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 -- ---------------------------------------------------------------------
--- Bài làm — trung tâm của ĐG1
+-- Bài làm — trung tâm của ĐG1 — chủ: Người 1
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS answers (
     session_id INTEGER NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
@@ -124,7 +127,7 @@ CREATE TABLE IF NOT EXISTS answers (
 );
 
 -- ---------------------------------------------------------------------
--- Kết quả
+-- Kết quả — chủ: Người 3
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS results (
     session_id INTEGER PRIMARY KEY REFERENCES sessions (id) ON DELETE CASCADE,
@@ -136,7 +139,7 @@ CREATE TABLE IF NOT EXISTS results (
 );
 
 -- ---------------------------------------------------------------------
--- Nhật ký hoạt động — yêu cầu "Ghi log hoạt động" và "Centralized Logging"
+-- Nhật ký hoạt động — "Ghi log hoạt động", "Centralized Logging" — chủ: Người 4
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS audit_log (
     id     INTEGER PRIMARY KEY AUTOINCREMENT,

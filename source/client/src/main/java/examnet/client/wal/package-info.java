@@ -1,7 +1,6 @@
 /**
- * ★ĐG1 phía máy thi — ghi đáp án xuống đĩa TRƯỚC khi gửi, phát lại phần chưa được ACK
- * sau khi kết nối lại.
+ * ★ĐG1 phía máy thi — C5 ghi đáp án xuống đĩa TRƯỚC khi gửi.
  *
- * <p>Phụ trách: Người 1. Spec §11 ĐG1. Thí nghiệm 1.
+ * <p>Chủ: Người 1 — Làm bài và không mất bài. Spec §11 ĐG1. Thí nghiệm 1.
  */
 package examnet.client.wal;

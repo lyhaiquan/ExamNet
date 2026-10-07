@@ -24,13 +24,13 @@ Các mục ghi *(phase N)* sẽ được điền khi làm tới phase đó.
 
 | No. | Student ID | Full Name | Email | Main Responsibility | Contribution |
 | --- | ---------- | --------- | ----- | ------------------- | -----------: |
-| 1 | | | | ĐG1 ghi đáp án + khôi phục · protocol EXP/1.0, codec | % |
-| 2 | | | | ĐG3 heartbeat thích nghi · server core, thread pool, backpressure | % |
-| 3 | | | | ĐG2 đồng hồ server · tùy chọn socket, TLS, DB, chấm điểm | % |
-| 4 | | | | ĐG4 multicast tin cậy · WebSocket dashboard, bench harness | % |
+| 1 | | | | Làm bài và không mất bài (★ĐG1) · protocol EXP/1.0, codec | % |
+| 2 | | | | Leader · Kết nối và tài khoản (★ĐG3) · server core, đăng nhập, thí sinh | % |
+| 3 | | | | Kỳ thi và thời gian (★ĐG2) · đề thi, thu bài, chấm điểm, TLS | % |
+| 4 | | | | Thông báo và giám sát (★ĐG4) · dashboard WebSocket, nhật ký, bench | % |
 | | | | | **Total** | **100%** |
 
-Chi tiết phân công: [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md). Cột Contribution điền theo thực tế, khớp với lịch sử Pull Request.
+Chia theo chức năng, mỗi chức năng một package có đúng một chủ: [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md). Cột Contribution điền theo thực tế, khớp với lịch sử Pull Request.
 
 ## 1.4. Instructor
 
@@ -121,15 +121,16 @@ ExamNet/
 ├── deploy/          Dockerfile, compose.yaml
 ├── .github/         CI/CD, mẫu Pull Request
 ├── .husky/          hook kiểm commit
-└── source/          Maven multi-module
-    ├── common/      protocol EXP/1.0, codec, model, tls
-    ├── server/      net, session, app, clock, liveness, journal, notice, ws, ops
-    ├── service/     dao, db, grade, auth, model + schema.sql
-    ├── client/      kết nối, wal, clock, notice, ui, admin
-    └── bench/       harness đo hiệu năng
+└── source/          Maven multi-module, trong mỗi module chia package theo chức năng
+    ├── common/      protocol (EXP/1.0, codec), model, transport (tùy chọn socket, TLS)
+    ├── server/      net, session, account, liveness · journal · exam, clock · notice, ws · app, ops
+    │                + resources/dashboard/ (trang web giám thị)
+    ├── service/     db · account · answer · exam · audit  + schema.sql
+    ├── client/      net, account · answer, wal · exam, clock · notice · ui (khung cửa sổ)
+    └── bench/       khung harness + exp/ (mỗi thí nghiệm một file)
 ```
 
-Mỗi package có `package-info.java` mô tả nhiệm vụ và người phụ trách. `client` chỉ phụ thuộc `common`: máy thi không chứa code database hay code chấm điểm.
+Mỗi package có `package-info.java` ghi chức năng và **chủ** của nó (bảng đầy đủ ở [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md)). `client` chỉ phụ thuộc `common`: máy thi không chứa code database hay code chấm điểm.
 
 ---
 
