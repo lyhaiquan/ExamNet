@@ -30,7 +30,7 @@
 | --- | --- | --- |
 | Gửi đề xuất một trang (spec §0) cho thầy, kèm sơ đồ kiến trúc §5.1 | 2 | Thầy trả lời |
 | Xin đề cương hai môn DSA, SQL và hệ quản trị SQL môn học dùng | 2 | Chốt giả định A1, A2 |
-| **Thử multicast trong phòng máy thật:** hai máy gửi/nhận một gói multicast, một máy có card mạng ảo | 4 | Biết phòng máy có chặn multicast không, tường lửa có hỏi quyền không |
+| **Thử multicast trong phòng máy thật:** hai máy gửi/nhận một gói multicast. Máy **gửi** phải có cài Docker Desktop (có card vEthernet), máy nhận có card mạng ảo | 4 | Biết phòng máy có chặn multicast không, tường lửa có hỏi quyền không |
 | **Thử Docker sandbox:** chạy một đoạn Python với đủ cờ ở spec §8.1 trên Windows (Docker Desktop) | 3 | Đo được thời gian khởi động một container |
 | **Thử JavaFX đóng gói:** app "Hello" có một animation trượt, đóng thành `.msi` bằng `jpackage` | 2 | Cài được trên một máy không có Java |
 | Đọc spec, cài JDK 17, Docker, Python 3.12, Node 22.12+ | Tất cả | — |
@@ -66,8 +66,8 @@ Ba việc thử trước chỉ là code nháp, không đưa vào repo. Mục đ�
 | Người | Việc |
 | --- | --- |
 | 2 | `Frame`, `FrameCodec`, `PayloadWriter/Reader`, `MessageType`, `ErrorCode`. Server: vòng accept, luồng đọc/ghi riêng mỗi kết nối, hàng đợi ghi có giới hạn, `router.on(...)`. App: `client.send` / `client.on`. `HELLO`, `AUTH` (PBKDF2), bảng `users`, `sessions`. Nhập danh sách lớp từ CSV. `DISCOVER` / `DISCOVER_REPLY`. Màn đăng nhập có danh sách lớp tìm thấy |
-| 4 | `common.trace` (đọc trace JSON từng dòng, keyframe). `client.player`: chạy, dừng, tua tới bước k qua keyframe, đổi tốc độ. Bộ vẽ `mang`. `TIME_SYNC` hai phía và `Clock.serverNow()` |
-| 3 | `runner/`: `viz.Mang`, tracer, `run.py` đọc công việc từ stdin, in trace ra stdout. `server.run`: chạy một container, đọc trace, gửi `TRACE_CHUNK` và `RUN_RESULT`. `server.lesson` nạp `lesson.yaml`. Bài mẫu **nổi bọt** đầy đủ thư mục |
+| 4 | `common.trace` (đọc trace JSON từng dòng, keyframe). `client.player`: chạy, dừng, tua tới bước k qua keyframe, đổi tốc độ. Bộ vẽ `mang` |
+| 3 | `runner/`: `viz.Mang`, tracer, `run.py` đọc công việc từ stdin, in trace ra stdout. `server.run`: chạy một container, đọc trace, gửi `TRACE_CHUNK` và `RUN_RESULT`. `server.lesson` nạp `lesson.yaml`. Bài mẫu **nổi bọt** đầy đủ thư mục. `TIME_SYNC` hai phía, giữ mẫu RTT nhỏ nhất, `Clock.serverNow()` bản đầu |
 | 1 | `client.editor` (RichTextFX, tô màu Python). `CODE_DELTA` / `CODE_ACK` (chưa có nhật ký trên máy). `server.journal`: lưu delta, dựng lại code, `CodeStore.current(...)` |
 
 **M1 — nghiệm thu (demo trên 2 máy cắm dây):**
@@ -83,10 +83,10 @@ Ba việc thử trước chỉ là code nháp, không đưa vào repo. Mục đ�
 
 | Người | Việc | Đóng góp |
 | --- | --- | --- |
-| 4 | `server.cast`: phát multicast, giãn nhịp, chia khúc ≤ 1387 B. `client.cast`: tham gia nhóm **trên card mạng của kết nối TCP**, phát hiện thiếu `SEQ`. `CAST_CONTROL` hẹn giờ theo `Clock`. `client.presenter` cho giáo viên. Bộ vẽ `ngan-xep`, `dslk`, `bam`. Bài mẫu **trung tố → hậu tố** | ĐG1 |
+| 4 | `server.cast`: phát multicast, giãn nhịp, chia khúc ≤ 1387 B. `client.cast`: tham gia nhóm **trên card mạng của kết nối TCP**, phát hiện thiếu `SEQ`. Server phát trên **card LAN** đã chọn. `CAST_CONTROL` hẹn giờ theo `Clock` của Người 3. `client.presenter` cho giáo viên. Bộ vẽ `ngan-xep`, `dslk`, `bam`. Bài mẫu **trung tố → hậu tố** | ĐG1 |
 | 1 | Nhật ký thay đổi trên máy (ghi trước khi gửi, xoá khi có ACK). Tự gửi bù khi nối lại (`RESUME_*`). Bỏ trùng phía server. Mốc lưu, dòng thời gian, so sánh hai mốc, khôi phục. Đổi máy làm tiếp (`CHECKPOINT_FETCH`). Bộ vẽ `cay` | ĐG2 |
-| 3 | Chấm: test xem, test chấm, test lớn ẩn, kiểm hàm cấm, `luat.py`. Đề biến thể sinh sẵn, mã dùng một lần. Bậc dự đoán. Thời gian chờ, thành thạo, mở bài. Giới hạn tốc độ theo người ở tầng nhận frame. Hàng đợi chạy công bằng. `SqlEngine` bản SQLite: chạy, chấm, tách bước FROM/JOIN/WHERE. Bộ vẽ `bang-sql` | ĐG3 |
-| 2 | Heartbeat thích nghi (SRTT/RTTVAR/RTO), `Presence.srtt(...)`, trạng thái có mặt. Sơ đồ lớp (`CLASS_STATE`, `ClassEvents.publish`). Giao bài (`LESSON_PUSH`). Câu hỏi nhanh với bù độ trễ. Lắp màn bài học: danh sách bài có khoá, các tab bậc học | ĐG4 |
+| 3 | Đồng hồ: đồng bộ lại mỗi 60 s, bù trôi, chỉnh dần. Chấm: test xem, test chấm, test lớn ẩn, kiểm hàm cấm, `luat.py`. Đề biến thể sinh sẵn theo lô, mã dùng một lần. Bậc dự đoán. Thời gian chờ, thành thạo, mở bài. Giới hạn tốc độ theo người qua `FramePolicy`. Hàng đợi chạy công bằng. `SqlEngine` bản SQLite: chạy, chấm, tách bước FROM/JOIN/WHERE. Bộ vẽ `bang-sql` | ĐG3 |
+| 2 | Heartbeat thích nghi (SRTT/RTTVAR/RTO), `Presence.srtt(...)`, trạng thái có mặt, trường mở rộng của `HEARTBEAT` và `presence.onHeartbeat(...)`. Giao diện `FramePolicy` và chỗ gọi trong `router`. Chọn card LAN phía server, `DISCOVER_REPLY` quảng bá đúng địa chỉ. Sơ đồ lớp (`CLASS_STATE`, `ClassEvents.publish`). Giao bài (`LESSON_PUSH`). Câu hỏi nhanh với bù độ trễ. Lắp màn bài học: danh sách bài có khoá, các tab bậc học | ĐG4 |
 
 **M2 — nghiệm thu (buổi học mini trên 3 máy cắm dây):**
 
@@ -103,8 +103,8 @@ Ba việc thử trước chỉ là code nháp, không đưa vào repo. Mục đ�
 | Người | Việc |
 | --- | --- |
 | 1 | Giơ tay và hàng chờ trợ giúp. Phản chiếu (`MIRROR_*`) có gộp thay đổi khi giáo viên chậm. Bình luận theo dòng. Phiên xem chung (`VIEW_*`). Đánh dấu "dán khối lớn". Bộ vẽ `cay-goi`, `do-thi`. Bài mẫu **N-Queens n = 4** (cùng Người 3 cho phần `luoi`) |
-| 4 | `CAST_NACK` / `CAST_REPAIR`; phát lại qua multicast khi nhiều máy cùng thiếu. `CAST_KEYFRAME` cho máy vào muộn. Tự chuyển máy sang TCP khi `HEARTBEAT` báo `lastCastSeq` tụt lại. Chiếu bài học viên đã ẩn tên |
-| 3 | SQL đủ các bước ở spec §7.6, chấm DML. Bậc tự mô phỏng cho `mang` và `ngan-xep`. Tìm phản ví dụ nhỏ. Chế độ chạy từng dòng. Bộ vẽ `luoi`, `code-bien`. Bài mẫu **LCS** và **SQL GROUP BY**. Kiểm nội dung trên CI: lời giải mẫu qua hết test, trace không vượt trần |
+| 4 | `CAST_NACK` / `CAST_REPAIR`; phát lại qua multicast khi nhiều máy cùng thiếu. `CAST_KEYFRAME` cho máy vào muộn. Tự chuyển máy sang TCP khi `HEARTBEAT` báo `lastCastSeq` tụt lại. Chiếu bài học viên đã ẩn tên. Bộ vẽ `code-bien` |
+| 3 | SQL đủ các bước ở spec §7.6, chấm DML. Bậc tự mô phỏng cho `mang` và `ngan-xep`. Tìm phản ví dụ nhỏ. Tracer cho chế độ chạy từng dòng. Bộ vẽ `luoi`. Bài mẫu **LCS** và **SQL GROUP BY**. Kiểm nội dung trên CI: lời giải mẫu qua hết test, trace không vượt trần |
 | 2 | TLS tuỳ chọn và ghim vân tay chứng chỉ. Hoàn thiện bảng xử lý lỗi spec §12. Xuất tiến độ ra CSV. Bộ cài `.msi`, bản chạy thẳng, script mở tường lửa. `audit_log` |
 
 **M3 — nghiệm thu (buổi học đủ 6 giai đoạn trên ≥ 4 máy cắm dây):**
@@ -125,9 +125,9 @@ Mỗi người chạy thí nghiệm của mình theo spec §14, ghi CSV vào `st
 
 | Người | Thí nghiệm | Cần chuẩn bị |
 | --- | --- | --- |
-| 4 | 1 băng thông chiếu · 2 độ lệch màn hình · 3 mất gói và vào muộn | `ffmpeg` để đo bitrate video; 4–5 máy cắm dây; `clumsy` hoặc `tc netem` |
+| 4 | 1 băng thông chiếu · 3 mất gói và vào muộn | `ffmpeg` để đo bitrate video; 4–5 máy cắm dây; `clumsy` hoặc `tc netem` |
 | 1 | 4 mất code khi sự cố · 5 độ trễ phản chiếu | Bot gõ văn bản biết trước; học viên ảo trong `bench` |
-| 3 | 6 ảnh hưởng của spam · 7 chạy thử dồn tải | Script spam; máy server ≥ 4 nhân |
+| 3 | 2 đồng hồ và độ lệch màn hình · 6 ảnh hưởng của spam · 7 chạy thử dồn tải | Cấy độ lệch, độ trôi, độ trễ giả vào app; script spam; máy server ≥ 4 nhân |
 | 2 | 8 công bằng câu hỏi nhanh · (9) phát hiện máy rớt · (10) chi phí TLS | `DelayInjector` trong `bench` |
 
 ### Nội dung
@@ -170,9 +170,9 @@ Mỗi bài phải qua kiểm nội dung trên CI. genAI được dùng để so�
 1. Mở app trên các máy: tự thấy lớp, không gõ IP. *(tìm server bằng UDP broadcast)*
 2. Giáo viên chiếu bài nổi bọt, dừng ở bước 37: mọi máy cùng dừng. Mở Wireshark cho thấy gói chiếu chỉ vài chục byte. *(ĐG1)*
 3. Một học viên tách ra tua lại, bấm "theo giáo viên" để về đúng chỗ. Bật một máy giữa chừng: máy đó bắt kịp ngay.
-4. Câu hỏi nhanh; một máy đang bị làm chậm 200 ms vẫn được tính đúng giờ. *(ĐG4)*
-5. Giao bài; học viên nộp sai; sơ đồ lớp đỏ; thời gian chờ tăng dần. *(ĐG3)*
-6. Chạy script gửi lại gói trả lời cũ và script spam: server từ chối, các máy khác không chậm. *(ĐG3)*
+4. Chỉnh giờ một máy học viên lệch 2 phút rồi chiếu lại: máy đó vẫn chạy khớp cả lớp. *(ĐG3)*
+5. Câu hỏi nhanh; một máy đang bị làm chậm 200 ms vẫn được tính đúng giờ. *(ĐG4)*
+6. Giao bài; học viên nộp sai; sơ đồ lớp đỏ; thời gian chờ tăng dần. Chạy script gửi lại gói trả lời cũ và script spam: server từ chối, các máy khác không chậm. *(server trọng tài)*
 7. Học viên giơ tay; giáo viên phản chiếu, xem dòng thời gian, bình luận; học viên sửa và qua bài. *(ĐG2)*
 8. Rút dây máy học viên giữa lúc gõ, cắm lại: không mất chữ. Đăng nhập sang máy khác: làm tiếp đúng chỗ. *(ĐG2)*
 9. Animation SQL GROUP BY và bài quay lui N-Queens.
@@ -184,8 +184,8 @@ Mỗi bài phải qua kiểm nội dung trên CI. genAI được dùng để so�
 | --- | --- |
 | 1 | Vì sao ghi nhật ký **trước** khi gửi? Delta trùng hoặc thiếu thì server làm gì? "At-least-once trên dây, exactly-once về trạng thái" nghĩa là gì? Gộp thay đổi khi giáo viên chậm hoạt động ra sao, vì sao không làm server chậm? |
 | 2 | Vì sao cần `LEN` và `MAGIC`, vì sao `read` phải đọc lặp? Vì sao mỗi socket chỉ một luồng được ghi? Hàng đợi ghi đầy thì xử lý thế nào? Công thức SRTT/RTTVAR/RTO? Vì sao bù độ trễ phải có trần, và vì sao không tin giờ máy học viên? |
-| 3 | Vì sao không chấm trên máy học viên? Mã dùng một lần chặn tấn công gửi lại gói như thế nào? Thùng token hoạt động ra sao? Sandbox chặn những gì, cờ nào chặn cái nào? Vì sao không lấy được bảng GROUP BY bằng cách cắt câu SQL? |
-| 4 | Vì sao phát sự kiện thay vì phát hình? Đồng bộ đồng hồ kiểu NTP tính độ lệch thế nào, vì sao giữ mẫu RTT nhỏ nhất? Vì sao datagram ≤ 1400 byte? Vì sao phải chọn card mạng khi tham gia multicast? NACK, keyframe, chuyển sang TCP giải quyết những trường hợp nào? |
+| 3 | Đồng bộ đồng hồ kiểu NTP tính độ lệch thế nào, vì sao giữ mẫu RTT nhỏ nhất? Bù trôi và chỉnh dần để làm gì? Vì sao không chấm trên máy học viên? Mã dùng một lần chặn tấn công gửi lại gói như thế nào? Thùng token hoạt động ra sao? Sandbox chặn những gì, cờ nào chặn cái nào? Vì sao không lấy được bảng GROUP BY bằng cách cắt câu SQL? |
+| 4 | Vì sao phát sự kiện thay vì phát hình? Phát hẹn giờ hoạt động thế nào? Vì sao datagram ≤ 1400 byte? Vì sao phải chọn card mạng khi phát và khi nghe multicast? NACK, keyframe, chuyển sang TCP giải quyết những trường hợp nào? |
 
 ---
 

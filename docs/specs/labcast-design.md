@@ -22,7 +22,7 @@ Spec mô tả **thiết kế**. Mọi con số ở §3 là **mục tiêu cần k
 | **Network Communication** | TCP với protocol tự thiết kế **LCP/1.0** cho phiên làm việc. UDP multicast để chiếu animation cho cả phòng. UDP broadcast để app tự tìm server. TLS tuỳ chọn |
 | **Main Functions** | Chiếu animation hẹn giờ · câu hỏi nhanh tính giờ · luyện tập 4 bậc (xem, dự đoán, tự mô phỏng, viết code) · chạy code thành animation · chấm bằng test ẩn · sơ đồ lớp thời gian thực · giơ tay, phản chiếu code, bình luận · dòng thời gian code, đổi máy làm tiếp |
 | **Technology** | Java 17 (`java.net`, `javax.net.ssl`, `java.util.concurrent`), JavaFX 21, RichTextFX, SQLite (`sqlite-jdbc`), JSqlParser, Python 3.12 trong Docker, Maven, GitHub Actions |
-| **Expected Novelty** | ĐG1 chiếu animation bằng *sự kiện* qua multicast tin cậy, phát hẹn giờ theo đồng hồ đồng bộ · ĐG2 dòng code tin cậy theo thời gian thực: không mất, đổi máy làm tiếp, phản chiếu có gộp thay đổi · ĐG3 server làm trọng tài cho luyện tập: đề dùng một lần, giới hạn tốc độ theo người, hàng đợi chạy công bằng · ĐG4 câu hỏi nhanh công bằng nhờ bù độ trễ có trần |
+| **Expected Novelty** | ĐG1 chiếu animation bằng *sự kiện* qua multicast tin cậy, phát hẹn giờ theo đồng hồ đồng bộ · ĐG2 dòng code tin cậy theo thời gian thực: không mất, đổi máy làm tiếp, phản chiếu có gộp thay đổi · ĐG3 đồng bộ đồng hồ kiểu NTP có bù trôi và chỉnh dần, nền cho mọi thứ "hẹn giờ" · ĐG4 câu hỏi nhanh công bằng nhờ bù độ trễ có trần |
 | **Evaluation Plan** | 8 thí nghiệm bắt buộc và 2 tuỳ chọn (§14): băng thông chiếu so với chiếu màn hình video, độ lệch giữa các màn hình, mất gói và vào lớp muộn, mất code khi sự cố, độ trễ phản chiếu, ảnh hưởng của spam, chạy thử dồn tải, công bằng của câu hỏi nhanh |
 
 ---
@@ -43,8 +43,9 @@ Một tính năng chỉ được tính là phần mạng nếu thay bằng REST 
 | --- | --- | --- |
 | Chiếu animation cho cả phòng | a, b, e | ĐG1 |
 | Dòng code, đổi máy, phản chiếu, phiên xem chung | a, c, d | ĐG2 |
-| Đề dùng một lần, giới hạn tốc độ, hàng đợi chạy công bằng | d | ĐG3 — đặt ở tầng protocol, áp cho mọi thông điệp |
+| Đồng bộ đồng hồ giữa các máy | e | ĐG3 — nền cho chiếu hẹn giờ và câu hỏi nhanh |
 | Câu hỏi nhanh tính giờ | a, e | ĐG4 |
+| Đề dùng một lần, giới hạn tốc độ, hàng đợi chạy công bằng | — | Hạ tầng bảo mật. REST cũng làm được, **không tính là đóng góp mạng** |
 | Sơ đồ lớp thời gian thực | a | Hạ tầng |
 | Tự tìm server | — | Chưa biết địa chỉ server thì không gọi HTTP được |
 | Nộp bài, xem kết quả chấm | — | Hỏi–đáp, REST là đủ. Đi chung kết nối TCP cho thống nhất, **không tính là đóng góp mạng** |
@@ -55,7 +56,7 @@ Máy học viên do học viên kiểm soát: sửa được app, gửi được
 
 - Đáp án, test ẩn, trạng thái mở khoá bài và điểm **chỉ nằm trên server**.
 - Client chỉ hiển thị và gửi *hành động* (câu trả lời, code, lệnh chạy). Mọi quyết định "đúng", "qua", "mở bài" do server đưa ra.
-- Chạy thử và xem animation không giới hạn lượt, vì không tính điểm. Mọi thứ tính điểm đều qua luật của ĐG3.
+- Chạy thử và xem animation không giới hạn lượt, vì không tính điểm. Mọi thứ tính điểm đều qua luật ở §8.3–§8.4.
 
 ### R4 — Nội dung là dữ liệu, không phải code
 
@@ -113,7 +114,7 @@ Vấn đề 1 và 2 là lý do có hệ thống. Vấn đề 3, 4, 5 là **bài 
 | VisuAlgo, Python Tutor | Animation thuật toán, chạy từng dòng | Chạy trên một máy, không có lớp học, không chấm khắt khe |
 | Online judge (CodePTIT…) | Chấm code bằng test | Không có animation, không giảng dạy thời gian thực |
 
-LabCast kết hợp cả ba vai trò cho một buổi học. Phần mới về kỹ thuật nằm ở cách truyền: phát **sự kiện** thay vì hình ảnh, đồng bộ theo đồng hồ chung, dòng code không mất, và server làm trọng tài.
+LabCast kết hợp cả ba vai trò cho một buổi học. Phần mới về kỹ thuật nằm ở cách truyền: phát **sự kiện** thay vì hình ảnh, hẹn giờ theo một đồng hồ chung có bù trôi, dòng code không mất, và công bằng khi mỗi máy có độ trễ khác nhau.
 
 ---
 
@@ -191,10 +192,10 @@ Mục tiêu đo được, kiểm chứng ở §14:
 | `classroom` | Sơ đồ lớp, giao bài, danh sách lớp, xuất tiến độ | Người 2 |
 | `quiz` | Câu hỏi nhanh, bù độ trễ (ĐG4) | Người 2 |
 | `store`, `ops` | Mở SQLite, chạy `schema.sql`; `/version` cho bản chạy trên VPS của nhóm | Người 2 |
-| `sync` | Trả lời `TIME_SYNC` | Người 4 |
 | `cast` | Phát multicast, nhận NACK, sửa gói, keyframe, chuyển máy sang TCP (ĐG1) | Người 4 |
+| `sync` | Trả lời `TIME_SYNC` (ĐG3) | Người 3 |
 | `lesson` | Nạp và kiểm thư mục bài học, sinh sẵn đề biến thể và test ẩn | Người 3 |
-| `practice` | Bậc học, thành thạo, mã dùng một lần, giới hạn tốc độ (ĐG3) | Người 3 |
+| `practice` | Bậc học, thành thạo, mã dùng một lần, giới hạn tốc độ | Người 3 |
 | `run` | Hàng đợi chạy, Docker sandbox, đọc trace | Người 3 |
 | `grade` | Chấm test, luật trace, tìm phản ví dụ | Người 3 |
 | `sqlviz` | `SqlEngine`, tách bước câu SQL, chấm SQL | Người 3 |
@@ -209,7 +210,7 @@ Mục tiêu đo được, kiểm chứng ở §14:
 | `net` | Kết nối TCP, tự kết nối lại, `client.send` / `client.on` | Người 2 |
 | `ui` | Lắp các màn hình: đăng nhập, danh sách bài, màn bài học, sơ đồ lớp | Người 2 |
 | `quiz` | Hiện câu hỏi đúng giờ, khoá ô trả lời khi hết giờ | Người 2 |
-| `clock` | Đồng bộ đồng hồ với server, `Clock.serverNow()` | Người 4 |
+| `clock` | Đồng bộ đồng hồ với server, bù trôi, `Clock.serverNow()` (ĐG3) | Người 3 |
 | `cast` | Nghe multicast trên đúng card mạng, phát hiện thiếu gói, gửi NACK | Người 4 |
 | `player` | Trình phát trace: chạy, dừng, tua, tốc độ, phát hẹn giờ | Người 4 |
 | `presenter` | Bảng điều khiển chiếu của giáo viên | Người 4 |
@@ -343,7 +344,7 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | `do-thi` | Đỉnh, cạnh, trọng số, nhãn | Người 1 |
 | `luoi` | Bảng 2 chiều có mũi tên phụ thuộc: quy hoạch động, Floyd, bàn cờ | Người 3 |
 | `bang-sql` | Bảng dữ liệu cho animation SQL | Người 3 |
-| `code-bien` | Code với dòng đang chạy được tô sáng, bảng biến | Người 3 |
+| `code-bien` | Code với dòng đang chạy được tô sáng, bảng biến | Người 4 |
 
 Giao diện chung do Người 4 định nghĩa trong `client.player`:
 
@@ -478,6 +479,7 @@ SUBMIT_REQ(codeSeq) ─► hàng đợi ưu tiên cao ─► chạy toàn bộ t
 ### 8.3. Đề biến thể và mã dùng một lần
 
 - Khi nạp bài, server sinh sẵn 200 đề biến thể cho bậc dự đoán và bậc tự mô phỏng (chạy `du_doan.py` trong sandbox), kèm đáp án. Đáp án chỉ ở server.
+- Đề biến thể, output của test ẩn và trace lời giải mẫu của một bài được sinh **trong một lần chạy sandbox duy nhất** cho bài đó, rồi lưu đệm theo `content_hash`. Lần khởi động sau chỉ sinh lại bài có nội dung đổi, nên không phải khởi động hàng nghìn container.
 - Mỗi lần học viên xin đề, server cấp một đề chưa dùng kèm **mã đề (nonce) 128 bit, hết hạn sau 10 phút, dùng một lần**. Câu trả lời phải kèm mã đề.
 - Gửi lại câu trả lời cũ (kể cả gói tin bắt được của lần trước) bị từ chối vì mã đề đã dùng.
 - Đề tự mô phỏng kiểm từng bước bằng trace của **lời giải mẫu** chạy trên đúng input của đề đó. Bước học viên chọn phải khớp bước kế tiếp trong trace.
@@ -515,7 +517,8 @@ Trả lời `Topics.md` §4.7.5 và §5.4.
 | HTTP | 8080 | `/version` — chỉ bật khi chạy server trên VPS để nhóm thử TCP từ xa | Người 2 |
 
 - **Thiết lập kết nối:** app gửi `DISCOVER` tới địa chỉ broadcast của từng card mạng; server trả tên lớp, cổng TCP, chế độ TLS và vân tay chứng chỉ. Không tìm được thì cho nhập IP.
-- **Chọn card mạng cho multicast:** sau khi kết nối TCP, app lấy `socket.getLocalAddress()`, tìm `NetworkInterface` chứa địa chỉ đó và tham gia nhóm multicast **trên đúng card đó**. Cách này tránh lỗi nghe nhầm card mạng ảo (VirtualBox, VMware, Hyper-V).
+- **Chọn card mạng cho multicast phía app:** sau khi kết nối TCP, app lấy `socket.getLocalAddress()`, tìm `NetworkInterface` chứa địa chỉ đó và tham gia nhóm multicast **trên đúng card đó**. Cách này tránh lỗi nghe nhầm card mạng ảo (VirtualBox, VMware, Hyper-V).
+- **Chọn card mạng phía server:** máy server có Docker Desktop nên có thêm card ảo (vEthernet của WSL2). Server chọn **card LAN** theo cấu hình; mặc định là card có IPv4 riêng và không phải card ảo, hiện trên màn giáo viên để kiểm. Server phát multicast bằng `setNetworkInterface(card LAN)` và `DISCOVER_REPLY` quảng bá **địa chỉ của card LAN**, không phải địa chỉ card ảo.
 - **Một kết nối TCP suốt buổi** cho mỗi app. Rớt thì tự kết nối lại và khôi phục (§10.4e).
 
 ---
@@ -555,7 +558,7 @@ Frame UDP dùng đúng định dạng này, mỗi datagram một frame, đọc b
 | Tìm server (UDP) | `DISCOVER`, `DISCOVER_REPLY` | 2 |
 | Bắt tay | `HELLO`, `HELLO_ACK` | 2 |
 | Xác thực | `AUTH`, `AUTH_OK`, `AUTH_FAIL` | 2 |
-| Đồng bộ giờ | `TIME_SYNC_REQ`, `TIME_SYNC_RESP` | 4 |
+| Đồng bộ giờ | `TIME_SYNC_REQ`, `TIME_SYNC_RESP` | 3 |
 | Liveness | `HEARTBEAT`, `HEARTBEAT_ACK` | 2 |
 | Khôi phục | `RESUME_REQ`, `RESUME_STATE` | 2 (phiên), 1 (code) |
 | Lớp học | `CLASS_JOIN`, `CLASS_STATE`, `LESSON_PUSH` | 2 |
@@ -749,9 +752,9 @@ Mỗi đóng góp có một chủ (§17) và ít nhất một thí nghiệm (§1
 ### ĐG1 — Chiếu animation bằng sự kiện, phát hẹn giờ qua multicast tin cậy (Người 4)
 
 - **Phát sự kiện, không phát hình.** Server phát lệnh điều khiển và dữ liệu trace; mỗi máy tự vẽ. Băng thông độc lập với độ phân giải màn hình, chữ luôn nét, học viên tách ra tự tua được.
-- **Phát hẹn giờ.** `CAST_CONTROL` mang thời điểm `at` theo **đồng hồ server** (thường là `now + 300 ms`). Mỗi máy đổi `at` sang giờ máy mình bằng độ lệch đo được qua `TIME_SYNC` (kiểu NTP, giữ mẫu có RTT nhỏ nhất, đo lại mỗi 60 s). Mọi máy bắt đầu cùng lúc bất kể gói đến sớm hay muộn.
+- **Phát hẹn giờ.** `CAST_CONTROL` mang thời điểm `at` theo **đồng hồ server** (thường là `now + 300 ms`). Mỗi máy đổi `at` sang giờ máy mình bằng `Clock` của ĐG3. Mọi máy bắt đầu cùng lúc bất kể gói đến sớm hay muộn.
 - **Tin cậy trên UDP.** Số thứ tự liên tục; thiếu thì NACK qua TCP; nhiều máy cùng thiếu thì phát lại qua multicast; `CAST_KEYFRAME` mỗi 2 s cho máy vào muộn; máy không nhận được multicast tự chuyển sang TCP.
-- **Đo:** TN1, TN2, TN3.
+- **Đo:** TN1, TN3. Độ lệch giữa các màn hình (TN2) đo chung với ĐG3.
 
 ### ĐG2 — Dòng code tin cậy theo thời gian thực (Người 1)
 
@@ -762,16 +765,19 @@ Mỗi đóng góp có một chủ (§17) và ít nhất một thí nghiệm (§1
 - **Phiên xem chung:** giáo viên và học viên cùng xem một trace; lệnh điều khiển từ hai phía được server đánh số và phát lại cho cả hai theo cùng một thứ tự.
 - **Đo:** TN4, TN5.
 
-### ĐG3 — Server làm trọng tài cho luyện tập (Người 3)
+### ĐG3 — Đồng bộ đồng hồ kiểu NTP, có bù trôi và chỉnh dần (Người 3)
 
-- Đáp án và test ẩn chỉ ở server. Đề biến thể có **mã dùng một lần** (§8.3): chép đáp án hay gửi lại gói tin cũ đều vô dụng.
-- **Giới hạn tốc độ theo người**, đặt ở tầng nhận frame: thùng token cho từng loại thông điệp (ví dụ `RUN_REQ` 6 lượt/phút, `PREDICT_ANSWER` 1 lượt/3 s), cộng thời gian chờ tăng dần khi nộp sai (§8.4). Một máy spam chỉ tự chặn chính nó.
-- **Hàng đợi chạy công bằng:** mỗi người tối đa một lượt chạy thử đang chờ, lượt mới thay lượt cũ; lượt nộp ưu tiên hơn.
-- **Đo:** TN6, TN7.
+Mọi thứ "hẹn giờ" trong hệ thống — chiếu animation (ĐG1), hiện và đóng câu hỏi nhanh (ĐG4) — dựa vào một đồng hồ chung. Đồng hồ máy học viên thì không tin được: lệch vài giây, có khi bị chỉnh tay.
+
+- **Đo độ lệch.** Mỗi lần đồng bộ gửi 5 cặp `TIME_SYNC_REQ(t1)` / `TIME_SYNC_RESP(t2, t3)`, ghi `t4` khi nhận. Độ lệch `θ = ((t2 − t1) + (t3 − t4)) / 2`, độ trễ `δ = (t4 − t1) − (t3 − t2)`. **Giữ mẫu có `δ` nhỏ nhất**, vì mẫu đó ít bị hàng đợi mạng làm méo nhất.
+- **Bù trôi.** Đồng bộ lại mỗi 60 s. Từ các độ lệch gần nhất, ước lượng tốc độ trôi của đồng hồ máy (hồi quy tuyến tính), để giữa hai lần đồng bộ vẫn dự đoán được độ lệch.
+- **Chỉnh dần.** Độ lệch mới được áp dần trong vài trăm mili giây, không nhảy một lần, để animation đang chạy không giật lùi hay nhảy cóc.
+- **Một giao diện cho mọi người dùng:** `Clock.serverNow()`.
+- **Đo:** TN2.
 
 ### ĐG4 — Câu hỏi nhanh công bằng nhờ bù độ trễ (Người 2)
 
-- `QUIZ_OPEN` gửi qua TCP trước ít nhất 500 ms, mang `opensAt` và `closesAt` theo giờ server. Mọi máy hiện câu hỏi **cùng lúc** nhờ đồng hồ đồng bộ (dùng `Clock` của ĐG1).
+- `QUIZ_OPEN` gửi qua TCP trước ít nhất 500 ms, mang `opensAt` và `closesAt` theo giờ server. Mọi máy hiện câu hỏi **cùng lúc** nhờ `Clock` của ĐG3.
 - Server ước lượng thời điểm gửi của câu trả lời: `tGửi = tĐến − min(SRTT/2, 150 ms)`, với SRTT do **server tự đo** qua heartbeat thích nghi (SRTT/RTTVAR/RTO). Nhận nếu `tGửi ≤ closesAt`. Không tin giờ do máy học viên gửi lên.
 - **Trần 150 ms** giới hạn lợi ích của máy cố tình làm chậm heartbeat để được thêm giờ.
 - **Đo:** TN8.
@@ -779,6 +785,13 @@ Mỗi đóng góp có một chủ (§17) và ít nhất một thí nghiệm (§1
 ### Hạ tầng (không tính là đóng góp chính)
 
 Protocol LCP/1.0, hàng đợi ghi có ưu tiên, heartbeat thích nghi, tìm server bằng UDP broadcast, TLS tuỳ chọn, sandbox, bộ máy SQL, trình phát và các bộ vẽ.
+
+**Server trọng tài cho luyện tập** (Người 3) cũng là hạ tầng, thuộc phần bảo mật, vì REST làm được tương tự:
+
+- Đề biến thể có mã dùng một lần (§8.3): chép đáp án hay gửi lại gói tin cũ đều vô dụng.
+- Giới hạn tốc độ theo người, kiểm **trước khi** thông điệp tới nghiệp vụ: thùng token cho từng loại thông điệp (ví dụ `RUN_REQ` 6 lượt/phút, `PREDICT_ANSWER` 1 lượt/3 s), cộng thời gian chờ tăng dần khi nộp sai (§8.4).
+- Hàng đợi chạy công bằng: mỗi người tối đa một lượt chạy thử đang chờ; lượt nộp ưu tiên hơn.
+- Đo ở TN6, TN7.
 
 ---
 
@@ -791,7 +804,7 @@ Trả lời §4.7.11 và `Instruction.md`. Mọi thí nghiệm ghi kết quả r
 | TN | Đo gì | Cách làm | Chủ |
 | --- | --- | --- | --- |
 | **1** | Băng thông chiếu | Đếm byte rời card mạng server khi chiếu cùng một animation 60 s, với: (a) multicast sự kiện, (b) TCP gửi riêng N máy, N = 5…50 (số byte xác định được, không cần đủ máy thật), (c) video màn hình: quay màn hình animation rồi mã hoá H.264 bằng `ffmpeg` (1080p, 15 fps) để lấy bitrate thật | 4 |
-| **2** | Độ lệch giữa các màn hình | Chạy N app trên **cùng một máy** (chung đồng hồ thật), cấy độ lệch đồng hồ giả ±2 s và độ trễ 0–200 ms vào từng app. Mỗi app ghi thời điểm vẽ bước k theo đồng hồ thật của máy. So: có đồng bộ + hẹn giờ, và phát ngay khi nhận | 4 |
+| **2** | Đồng hồ và độ lệch giữa các màn hình | Chạy N app trên **cùng một máy** (chung đồng hồ thật), cấy độ lệch đồng hồ giả ±2 s, độ trôi giả và độ trễ 0–200 ms (jitter 0–50 ms) vào từng app. (a) So độ lệch ước lượng với độ lệch đã cấy: chọn mẫu RTT nhỏ nhất so với lấy trung bình; có và không bù trôi. (b) Mỗi app ghi thời điểm vẽ bước k theo đồng hồ thật của máy: so đồng bộ + hẹn giờ với phát ngay khi nhận | 3 |
 | **3** | Mất gói và vào lớp muộn | 4–5 máy thật cắm dây; cấy mất gói 1%, 5%, 10%. Đo số NACK, thời gian sửa, tỉ lệ máy nhận đủ; thời gian máy vào muộn bắt kịp | 4 |
 | **4** | Mất code khi sự cố | Bot gõ một đoạn văn bản biết trước. Rút dây giữa chừng; tắt app bằng `taskkill /F`; đăng nhập máy khác. So code cuối trên server với văn bản gốc; đo thời gian khôi phục | 1 |
 | **5** | Độ trễ phản chiếu | 10/20/40 học viên ảo cùng gõ 5 ký tự/s; giáo viên phản chiếu một bạn. Đo p50/p95 từ lúc gõ tới lúc hiện. Thêm giáo viên đọc chậm: có và không gộp thay đổi — so độ dài hàng đợi và độ trễ của các máy khác | 1 |
@@ -873,11 +886,11 @@ Chia **theo chức năng**: mỗi package một chủ, như cách làm cũ của
 | --- | --- | --- | --- | --- |
 | **Mảng** | Làm bài và trợ giúp | Kết nối, lớp học, câu hỏi nhanh | Bài tập, chạy và chấm | Giảng và chiếu |
 | **Đóng góp** | ĐG2 | ĐG4 | ĐG3 | ĐG1 |
-| **Server** | `journal`, `mirror` | `net`, `session`, `account`, `presence`, `discovery`, `classroom`, `quiz`, `store`, `ops` | `lesson`, `practice`, `run`, `grade`, `sqlviz` | `sync`, `cast` |
-| **App** | `editor`, `journal`, `mirror` | `app`, `net`, `ui`, `quiz` | `practice` | `clock`, `cast`, `player`, `presenter` |
+| **Server** | `journal`, `mirror` | `net`, `session`, `account`, `presence`, `discovery`, `classroom`, `quiz`, `store`, `ops` | `sync`, `lesson`, `practice`, `run`, `grade`, `sqlviz` | `cast` |
+| **App** | `editor`, `journal`, `mirror` | `app`, `net`, `ui`, `quiz` | `clock`, `practice` | `cast`, `player`, `presenter` |
 | **Chung** | | `common.protocol`, `common.transport`, file chung | `runner/`, định dạng `content/` | `common.trace` |
-| **Bộ vẽ** | `cay`, `cay-goi`, `do-thi` | — | `luoi`, `bang-sql`, `code-bien` | `mang`, `ngan-xep`, `dslk`, `bam` |
-| **Thí nghiệm** | 4, 5 | 8, (9), (10) | 6, 7 | 1, 2, 3 |
+| **Bộ vẽ** | `cay`, `cay-goi`, `do-thi` | — | `luoi`, `bang-sql` | `mang`, `ngan-xep`, `dslk`, `bam`, `code-bien` |
+| **Thí nghiệm** | 4, 5 | 8, (9), (10) | 2, 6, 7 | 1, 3 |
 | **Bảng DB** | `code_deltas`, `checkpoints`, `hand_raises`, `comments` | `users`, `sessions`, `classes`, `enrollments`, `quizzes`, `quiz_answers`, `audit_log` | `lessons`, `progress`, `variants`, `submissions` | — |
 
 Leader còn giữ: `MessageType`, `ErrorCode`, các `pom.xml`, CI, đóng gói, README.
@@ -902,8 +915,10 @@ Riêng 4 bài mẫu của bộ demo tối thiểu (§1 R5) do **chủ bộ vẽ*
 | Server: `router.on(MessageType, Role…, handler)` | 2 | Tất cả |
 | App: `client.send(...)`, `client.on(MessageType, listener)` | 2 | Tất cả |
 | `Presence.srtt(userId)` | 2 | 2 (ĐG4) |
+| `FramePolicy.check(session, type)` — `router` gọi **trước** khi chuyển thông điệp cho nghiệp vụ; trả cho qua, `RATE_LIMITED` hoặc `COOLDOWN` | 2 (giao diện, chỗ gọi) | 3 (cài đặt luật giới hạn tốc độ) |
+| Trường mở rộng của `HEARTBEAT`: app `heartbeat.addField("lastCastSeq", …)`; server `presence.onHeartbeat(listener)` | 2 | 4 (phát hiện máy không nhận được multicast) |
 | `ClassEvents.publish(userId, lessonId, status)` → sơ đồ lớp | 2 | 1, 3 |
-| `Clock.serverNow()` | 4 | 2 (câu hỏi nhanh), 4 |
+| `Clock.serverNow()` | 3 | 2 (câu hỏi nhanh), 4 (phát hẹn giờ) |
 | Định dạng trace (§7.3), `TraceEvent`, `TraceReader` | 3 (sinh), 4 (đọc) | 1, 3, 4 (bộ vẽ) |
 | `View` (§7.4) | 4 | 1, 3 |
 | `CodeStore.current(userId, lessonId)` → code tại `codeSeq` | 1 | 3 (chạy, nộp) |
