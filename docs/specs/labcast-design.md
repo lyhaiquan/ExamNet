@@ -818,11 +818,11 @@ Trả lời §4.7.11 và `Instruction.md`. Mọi thí nghiệm ghi kết quả r
 
 ## 15. Database schema
 
-SQLite trên máy server, `journal_mode=WAL`. Mọi câu có dữ liệu người dùng đi qua `PreparedStatement`. Chủ của từng nhóm bảng ghi ở cột cuối.
+SQLite trên máy server, `journal_mode=WAL`. Mọi câu có dữ liệu người dùng đi qua `PreparedStatement`. Chủ của từng nhóm bảng ghi ở cột cuối. Bản chuẩn là [`source/server/src/main/resources/schema.sql`](../../source/server/src/main/resources/schema.sql); sửa lược đồ thì sửa file đó và cập nhật bảng dưới đây.
 
 | Bảng | Cột chính | Chủ |
 | --- | --- | --- |
-| `users` | `id`, `username`, `full_name`, `role` (TEACHER/STUDENT), `pwd_hash`, `salt`, `created_at` | 2 |
+| `users` | `id`, `username`, `full_name`, `role` (TEACHER/STUDENT), `pwd_hash`, `salt`, `iterations`, `created_at` | 2 |
 | `sessions` | `token`, `user_id`, `created_at`, `last_seen`, `device` | 2 |
 | `classes` | `id`, `name`, `teacher_id`, `created_at` | 2 |
 | `enrollments` | `class_id`, `user_id` | 2 |
@@ -844,7 +844,7 @@ Trạng thái chiếu không lưu xuống database: nó chỉ sống trong một
 
 ## 16. Cấu trúc thư mục
 
-Giữ hạ tầng của repo hiện tại (Maven Wrapper, husky, commitlint, CI, Docker cho VPS). Đổi tên repo và thay tài liệu sau khi giảng viên duyệt đề tài (kế hoạch, giai đoạn 0).
+Giữ hạ tầng của repo cũ (Maven Wrapper, husky, commitlint, CI, Docker cho VPS). Khung thư mục, tài liệu và `schema.sql` đã chuyển sang LabCast ngày 07/10/2026; việc còn lại của giai đoạn 0 ghi trong kế hoạch.
 
 ```text
 LabCast/
@@ -888,7 +888,7 @@ Chia **theo chức năng**: mỗi package một chủ, như cách làm cũ của
 | **Đóng góp** | ĐG2 | ĐG4 | ĐG3 | ĐG1 |
 | **Server** | `journal`, `mirror` | `net`, `session`, `account`, `presence`, `discovery`, `classroom`, `quiz`, `store`, `ops` | `sync`, `lesson`, `practice`, `run`, `grade`, `sqlviz` | `cast` |
 | **App** | `editor`, `journal`, `mirror` | `app`, `net`, `ui`, `quiz` | `clock`, `practice` | `cast`, `player`, `presenter` |
-| **Chung** | | `common.protocol`, `common.transport`, file chung | `runner/`, định dạng `content/` | `common.trace` |
+| **Chung** | | `common.protocol`, `common.transport`, file chung | `runner/`, định dạng `content/` | `common.trace`, khung `bench` |
 | **Bộ vẽ** | `cay`, `cay-goi`, `do-thi` | — | `luoi`, `bang-sql` | `mang`, `ngan-xep`, `dslk`, `bam`, `code-bien` |
 | **Thí nghiệm** | 4, 5 | 8, (9), (10) | 2, 6, 7 | 1, 3 |
 | **Bảng DB** | `code_deltas`, `checkpoints`, `hand_raises`, `comments` | `users`, `sessions`, `classes`, `enrollments`, `quizzes`, `quiz_answers`, `audit_log` | `lessons`, `progress`, `variants`, `submissions` | — |

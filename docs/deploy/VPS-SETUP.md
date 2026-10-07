@@ -1,5 +1,7 @@
 # Dựng VPS để deploy tự động
 
+Server trên VPS **chỉ để nhóm thử phần TCP từ xa** và để thấy mỗi lần merge đã lên được một máy thật. Lớp học thật chạy server trên máy giáo viên trong phòng máy (spec §5.1), vì multicast không đi qua Internet.
+
 Làm **một lần**, do một người trong nhóm làm. Sau đó, mỗi lần một PR được merge vào `main`, GitHub Actions tự:
 
 1. build + test, đóng Docker image, đẩy lên GHCR với tag là mã commit;
@@ -36,43 +38,44 @@ sudo usermod -aG docker deploy
 
 ## 3. Mở cổng
 
-Cần mở **TCP 5000, 5001, 8080** từ Internet (22 cho SSH thường đã mở sẵn).
+Cần mở **TCP 7000, 8080** từ Internet (22 cho SSH thường đã mở sẵn).
 
 | Cổng | Dùng cho |
 | --- | --- |
-| 5000 | EXP/1.0 — máy thi và Admin kết nối vào (có từ phase 2) |
-| 5001 | Dashboard giám thị qua WebSocket (có từ phase 8) |
+| 7000 | LCP/1.0 — app giáo viên và học viên kết nối vào (có từ giai đoạn 1) |
 | 8080 | `/version` — bước deploy kiểm tra đúng commit |
 
 **Firewall của nhà cung cấp — bắt buộc:**
 
-- *DigitalOcean:* Networking → Firewalls → Create Firewall → Inbound Rules thêm TCP 5000, 5001, 8080 → gán vào droplet.
-- *Oracle:* Networking → Virtual Cloud Networks → chọn VCN → Security Lists → Default Security List → Add Ingress Rules: Source CIDR `0.0.0.0/0`, IP Protocol TCP, Destination Port Range `5000,5001,8080`.
+- *DigitalOcean:* Networking → Firewalls → Create Firewall → Inbound Rules thêm TCP 7000, 8080 → gán vào droplet.
+- *Oracle:* Networking → Virtual Cloud Networks → chọn VCN → Security Lists → Default Security List → Add Ingress Rules: Source CIDR `0.0.0.0/0`, IP Protocol TCP, Destination Port Range `7000,8080`.
 
 **Firewall trong máy — chỉ khi đã mở ở trên mà vẫn không vào được.** Ảnh Ubuntu của Oracle có sẵn luật iptables chặn mọi cổng chưa khai báo, đây là chỗ hay bị kẹt nhất:
 
 ```bash
-sudo iptables -I INPUT -p tcp -m multiport --dports 5000,5001,8080 -m conntrack --ctstate NEW -j ACCEPT
+sudo iptables -I INPUT -p tcp -m multiport --dports 7000,8080 -m conntrack --ctstate NEW -j ACCEPT
 sudo netfilter-persistent save
 ```
 
-Máy bật `ufw` thì dùng: `sudo ufw allow 5000,5001,8080/tcp`.
+Máy bật `ufw` thì dùng: `sudo ufw allow 7000,8080/tcp`.
 
 ## 4. Tạo khoá SSH riêng cho GitHub Actions
 
 Trên **máy của bạn** (Git Bash), ở một thư mục **ngoài repo**:
 
 ```bash
-ssh-keygen -t ed25519 -C "github-actions-examnet" -f examnet-deploy -N ""
+ssh-keygen -t ed25519 -C "github-actions-labcast" -f labcast-deploy -N ""
 ```
 
-Được hai file: `examnet-deploy` (khoá riêng, **không bao giờ commit**) và `examnet-deploy.pub` (khoá công khai).
+Được hai file: `labcast-deploy` (khoá riêng, **không bao giờ commit**) và `labcast-deploy.pub` (khoá công khai).
+
+> Đã tạo khoá `examnet-deploy` từ hồi dự án còn tên ExamNet thì **dùng tiếp**, không cần tạo lại: tên file không ảnh hưởng gì.
 
 Đưa khoá công khai lên VPS. Trên VPS:
 
 ```bash
 sudo mkdir -p /home/deploy/.ssh
-echo "DÁN NỘI DUNG examnet-deploy.pub VÀO ĐÂY" | sudo tee -a /home/deploy/.ssh/authorized_keys
+echo "DÁN NỘI DUNG labcast-deploy.pub VÀO ĐÂY" | sudo tee -a /home/deploy/.ssh/authorized_keys
 sudo chown -R deploy:deploy /home/deploy/.ssh
 sudo chmod 700 /home/deploy/.ssh && sudo chmod 600 /home/deploy/.ssh/authorized_keys
 ```
@@ -80,7 +83,7 @@ sudo chmod 700 /home/deploy/.ssh && sudo chmod 600 /home/deploy/.ssh/authorized_
 Thử từ máy của bạn — phải chạy được mà không hỏi mật khẩu:
 
 ```bash
-ssh -i examnet-deploy deploy@<IP> docker ps
+ssh -i labcast-deploy deploy@<IP> docker ps
 ```
 
 ## 5. Lấy known_hosts
@@ -115,7 +118,7 @@ Chủ repo làm, trong **Settings** của repo:
 
 | Tên | Giá trị |
 | --- | --- |
-| `VPS_SSH_KEY` | Toàn bộ nội dung file `examnet-deploy` (khoá riêng), gồm cả dòng `-----BEGIN…` và `-----END…` |
+| `VPS_SSH_KEY` | Toàn bộ nội dung file khoá riêng (`labcast-deploy` hoặc `examnet-deploy`), gồm cả dòng `-----BEGIN…` và `-----END…` |
 | `VPS_KNOWN_HOSTS` | Dòng in ra ở bước 5 (`<IP> ssh-ed25519 AAAA…`) |
 
 Nên bật thêm trong environment `production`: *Deployment branches and tags* → *Selected branches* → `main`, để chỉ main được deploy.
@@ -125,7 +128,7 @@ Repo công khai nhưng secrets vẫn an toàn: GitHub không đưa secrets cho P
 ## 7. Lần deploy đầu tiên
 
 1. Vào tab **Actions** → workflow **Deploy** → **Run workflow** (hoặc merge một PR bất kỳ).
-2. Nếu bước *Kéo image mới* báo `denied` hoặc `unauthorized`: image trên GHCR đang để riêng tư. Vào trang cá nhân GitHub → **Packages** → `examnet-server` → **Package settings** → **Change visibility** → **Public**. Chạy lại workflow.
+2. Nếu bước *Kéo image mới* báo `denied` hoặc `unauthorized`: image trên GHCR đang để riêng tư. Vào trang cá nhân GitHub → **Packages** → `labcast-server` → **Package settings** → **Change visibility** → **Public**. Chạy lại workflow.
 3. Mở `http://<IP>:8080/version` trên trình duyệt. Trường `commit` phải trùng mã commit mới nhất trên `main`.
 
 Từ đây mỗi lần merge, trang này sẽ đổi mã commit sau khoảng vài phút.
@@ -137,7 +140,7 @@ Từ đây mỗi lần merge, trang này sẽ đổi mã commit sau khoảng và
 SSH vào VPS bằng tài khoản `deploy`, rồi:
 
 ```bash
-cd ~/examnet
+cd ~/labcast
 docker compose ps                    # đang chạy không
 docker compose logs -f --tail 100    # xem log
 cat .env                             # đang chạy commit nào
@@ -146,20 +149,22 @@ cat .env                             # đang chạy commit nào
 **Quay về bản cũ** khi bản mới hỏng:
 
 ```bash
-cd ~/examnet
+cd ~/labcast
 sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<mã commit cũ>/' .env
 docker compose pull && docker compose up -d
 ```
 
 Lần merge tiếp theo sẽ ghi đè `.env` và đưa VPS về bản mới nhất. Cách chữa bền vững là sửa lỗi bằng một PR mới.
 
-**Database** nằm trong volume Docker tên `examnet_examnet-data`, không mất khi deploy lại. Sao lưu:
+**Database** nằm trong volume Docker tên `labcast_labcast-data`, không mất khi deploy lại. Sao lưu:
 
 ```bash
-docker run --rm -v examnet_examnet-data:/data -v "$PWD":/backup alpine \
-  tar czf /backup/examnet-data.tgz -C /data .
+docker run --rm -v labcast_labcast-data:/data -v "$PWD":/backup alpine \
+  tar czf /backup/labcast-data.tgz -C /data .
 ```
 
 ## Giới hạn
 
-UDP multicast không đi qua Internet, nên bản trên VPS gửi mọi thông báo bằng TCP. Đây đúng là cơ chế tự lùi về TCP của ĐG4 (spec §9.4). Thí nghiệm 9 (multicast so với unicast) phải chạy trong **LAN thật**, ví dụ phòng máy hoặc laptop của nhóm nối chung một switch, không chạy trên VPS.
+UDP multicast (chiếu animation, cổng 7001) và tìm server bằng UDP broadcast (cổng 7002) không đi qua Internet, nên bản trên VPS gửi mọi gói chiếu bằng TCP. Đây đúng là nhánh tự chuyển sang TCP của ĐG1 (spec §12). Thí nghiệm 1 và 3 phải chạy trong **LAN thật**, ví dụ phòng máy hoặc laptop của nhóm cắm dây chung một switch.
+
+Dự án đổi tên từ ExamNet: nếu VPS còn bản cũ ở `~/examnet`, bước deploy tự dừng nó để trả lại cổng 8080. Volume dữ liệu cũ vẫn giữ; xoá khi chắc không cần bằng `docker volume rm examnet_examnet-data`.

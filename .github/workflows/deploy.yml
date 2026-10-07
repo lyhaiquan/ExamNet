@@ -1,3 +1,6 @@
+# Server trên VPS chỉ để nhóm thử phần TCP từ xa; lớp học thật chạy server trên
+# máy giáo viên trong phòng máy (spec §5.1).
+#
 # Mỗi lần main thay đổi (tức là mỗi PR được merge):
 #   1. build   — test lại, đóng image cho cả amd64 lẫn arm64, đẩy lên GHCR
 #                với tag là mã commit và tag latest
@@ -44,7 +47,7 @@ jobs:
       # Tên image trên GHCR bắt buộc viết thường, còn tên tài khoản GitHub thì không
       - name: Đặt tên image
         id: name
-        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/examnet-server" >> "$GITHUB_OUTPUT"
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/labcast-server" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -104,15 +107,22 @@ jobs:
           IMAGE: ${{ needs.build.outputs.image }}
         run: |
           owner="${IMAGE#ghcr.io/}"; owner="${owner%%/*}"
-          ssh "$VPS_USER@$VPS_HOST" 'mkdir -p ~/examnet'
-          scp deploy/compose.yaml "$VPS_USER@$VPS_HOST:examnet/compose.yaml"
+          ssh "$VPS_USER@$VPS_HOST" 'mkdir -p ~/labcast'
+          scp deploy/compose.yaml "$VPS_USER@$VPS_HOST:labcast/compose.yaml"
           printf 'GHCR_OWNER=%s\nIMAGE_TAG=%s\n' "$owner" "$GITHUB_SHA" \
-            | ssh "$VPS_USER@$VPS_HOST" 'cat > ~/examnet/.env'
+            | ssh "$VPS_USER@$VPS_HOST" 'cat > ~/labcast/.env'
+
+      # Dự án đổi tên từ ExamNet: nếu VPS còn chạy bản cũ ở ~/examnet thì dừng nó
+      # để trả lại cổng 8080. Volume dữ liệu cũ vẫn giữ nguyên.
+      - name: Dừng bản ExamNet cũ nếu còn
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            'if [ -f ~/examnet/compose.yaml ]; then cd ~/examnet && docker compose down --remove-orphans || true; fi'
 
       - name: Kéo image mới và khởi động lại
         run: |
           ssh "$VPS_USER@$VPS_HOST" \
-            'cd ~/examnet && docker compose pull --quiet && docker compose up -d --remove-orphans && docker image prune -f'
+            'cd ~/labcast && docker compose pull --quiet && docker compose up -d --remove-orphans && docker image prune -f'
 
       # Bằng chứng deploy thành công: VPS phải trả về đúng mã commit vừa merge
       - name: Xác nhận VPS đang chạy đúng commit
@@ -126,5 +136,5 @@ jobs:
             fi
             sleep 2
           done
-          echo "::error::VPS trả về commit '$got', mong đợi $GITHUB_SHA. Xem log: ssh vào VPS, chạy 'cd ~/examnet && docker compose logs --tail 100'"
+          echo "::error::VPS trả về commit '$got', mong đợi $GITHUB_SHA. Xem log: ssh vào VPS, chạy 'cd ~/labcast && docker compose logs --tail 100'"
           exit 1

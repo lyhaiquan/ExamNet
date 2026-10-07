@@ -4,10 +4,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>examnet</groupId>
-    <artifactId>examnet-parent</artifactId>
+    <groupId>labcast</groupId>
+    <artifactId>labcast-parent</artifactId>
     <version>0.1.0</version>
   </parent>
-  <artifactId>examnet-common</artifactId>
-  <description>Dùng chung cho cả hai phía: protocol EXP/1.0, codec, model, TLS</description>
+  <artifactId>labcast-common</artifactId>
+  <description>Dùng chung cho server và app: protocol LCP/1.0, định dạng trace, kênh truyền</description>
 </project>

@@ -2,7 +2,7 @@
 target/
 dependency-reduced-pom.xml
 
-# Dữ liệu chạy thử — database và file WAL của máy thi không bao giờ commit
+# Dữ liệu chạy thử — database, nhật ký code trên máy học viên không bao giờ commit
 *.db
 *.db-shm
 *.db-wal
@@ -14,9 +14,22 @@ dependency-reduced-pom.xml
 *.pem
 *.key
 examnet-deploy*
+labcast-deploy*
 
 # Node (chỉ dùng cho husky + commitlint)
 node_modules/
+
+# Python (runner/)
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Đệm sinh từ content/ (đề biến thể, output test ẩn, trace lời giải mẫu)
+.labcast-cache/
+
+# Bộ cài jpackage
+packaging/out/
 
 # IDE và hệ điều hành
 .idea/

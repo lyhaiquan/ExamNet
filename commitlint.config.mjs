@@ -7,6 +7,7 @@
 // Mẫu:  <type>(<scope>): <mô tả>
 //       feat(server): thêm vòng accept và thread pool
 //       fix(common): đọc lặp cho đủ LEN byte payload
+//       feat(content): thêm bài quay lui N-Queens
 //       docs(report): viết mục 8.9 thiết kế truyền thông
 //
 // Chi tiết và ví dụ: CONTRIBUTING.md
@@ -20,12 +21,15 @@ export default {
       2,
       "always",
       [
-        // năm module Maven
+        // bốn module Maven
         "common",
         "server",
-        "service",
         "client",
         "bench",
+        // Python chạy bài làm, nội dung bài học, bộ cài
+        "runner",
+        "content",
+        "packaging",
         // ngoài code
         "docs",
         "report",

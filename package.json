@@ -1,5 +1,5 @@
 {
-  "name": "examnet-tooling",
+  "name": "labcast-tooling",
   "private": true,
   "description": "Chỉ dùng cho husky + commitlint (luật commit). Code Java nằm trong source/.",
   "scripts": {

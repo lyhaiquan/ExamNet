@@ -1,12 +1,16 @@
-# ExamNet — Hệ thống thi qua mạng
+# LabCast — Phòng thực hành DSA và SQL có animation
 
 > **NETWORK PROGRAMMING – FINAL PROJECT** · Năm học 2026–2027
 
-Hệ thống thi trắc nghiệm trên máy theo mô hình Client/Server, viết bằng **Java 17 socket thuần, không dùng framework mạng**. Thiết kế đầy đủ ở [`docs/specs/examnet-design.md`](docs/specs/examnet-design.md).
+Hệ thống client/server cho buổi thực hành trong phòng máy: giáo viên giảng bằng animation phát đồng bộ tới mọi máy, học viên luyện tập và xem code của chính mình chạy thành animation, giáo viên theo dõi cả lớp và trợ giúp trực tiếp. Viết bằng **Java 17**, phần mạng chỉ dùng thư viện chuẩn của Java.
 
-**Trạng thái:** phase 0 — đã có khung dự án, CI/CD và luật commit. Code hệ thống do nhóm viết từ phase 1 (spec §16).
+- Thiết kế: [`docs/specs/labcast-design.md`](docs/specs/labcast-design.md)
+- Kế hoạch triển khai: [`docs/specs/labcast-ke-hoach.md`](docs/specs/labcast-ke-hoach.md)
+- Phân công: [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md)
 
-Các mục ghi *(phase N)* sẽ được điền khi làm tới phase đó.
+**Trạng thái:** giai đoạn 0 — đã có khung dự án, CI/CD và luật commit; đề tài đang chờ giảng viên xác nhận. Code hệ thống do nhóm viết từ giai đoạn 1.
+
+Các mục ghi *(giai đoạn N)* sẽ được điền khi làm tới giai đoạn đó.
 
 ---
 
@@ -14,23 +18,23 @@ Các mục ghi *(phase N)* sẽ được điền khi làm tới phase đó.
 
 ## 1.1. Project Name
 
-**ExamNet — A Resilient Client/Server Examination System**
+**LabCast — a networked classroom for visual DSA and SQL practice**
 
 ## 1.2. Topic
 
-**Chủ đề 3 – Ứng dụng mạng**, định hướng 4.6 *Hệ thống thi qua mạng*
+**Chủ đề 3 – Ứng dụng mạng** — trực quan hoá học liệu DSA và SQL cho buổi thực hành trong phòng máy
 
 ## 1.3. Group
 
 | No. | Student ID | Full Name | Email | Main Responsibility | Contribution |
 | --- | ---------- | --------- | ----- | ------------------- | -----------: |
-| 1 | | | | Làm bài và không mất bài (★ĐG1) · protocol EXP/1.0, codec | % |
-| 2 | | | | Leader · Kết nối và tài khoản (★ĐG3) · server core, đăng nhập, thí sinh | % |
-| 3 | | | | Kỳ thi và thời gian (★ĐG2) · đề thi, thu bài, chấm điểm, TLS | % |
-| 4 | | | | Thông báo và giám sát (★ĐG4) · dashboard WebSocket, nhật ký, bench | % |
+| 1 | | | | Làm bài và trợ giúp · ĐG2 dòng code tin cậy | % |
+| 2 | | | | Leader · kết nối, lớp học · ĐG4 câu hỏi nhanh công bằng | % |
+| 3 | | | | Bài tập, chạy và chấm · ĐG3 đồng bộ đồng hồ | % |
+| 4 | | | | Giảng và chiếu · ĐG1 chiếu animation qua multicast | % |
 | | | | | **Total** | **100%** |
 
-Chia theo chức năng, mỗi chức năng một package có đúng một chủ: [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md). Cột Contribution điền theo thực tế, khớp với lịch sử Pull Request.
+Cột Contribution điền theo thực tế, khớp với lịch sử Pull Request.
 
 ## 1.4. Instructor
 
@@ -42,41 +46,43 @@ Chia theo chức năng, mỗi chức năng một package có đúng một chủ:
 
 ## 2.1. Problem
 
-Các kỳ thi trên máy tính dựa trên ba giả định mà thực tế đều sai: mạng phòng máy luôn ổn định, máy thí sinh không bao giờ treo, và đồng hồ máy thí sinh đáng tin. Hệ quả là bài làm bị mất và kỳ thi mất công bằng. Đây là vấn đề về **độ tin cậy của truyền thông mạng**, không phải vấn đề giao diện. Chi tiết: spec §1.
+Trong buổi thực hành ở phòng máy, sinh viên khó hình dung thuật toán và câu truy vấn; giáo viên không biết ai đang kẹt; phần mềm chiếu màn hình truyền video nên tốn băng thông và không tương tác được; máy phòng lab hay treo, khởi động lại làm mất code; luyện tập có điểm dễ bị học đối phó. Ba vấn đề sau là **bài toán mạng**: đồng bộ trạng thái thời gian thực giữa hàng chục máy, giữ dữ liệu khi kết nối và máy gặp sự cố, giữ công bằng khi mỗi máy có độ trễ khác nhau. Chi tiết: spec §2.
 
 ## 2.2. Objectives
 
-1. **Không mất bài làm** khi máy thi mất kết nối hoặc bị tắt giữa giờ.
-2. **Thời gian thi do server quyết định**, không tin đồng hồ máy thi.
-3. **Phát hiện máy thi mất kết nối** nhanh, tốn ít băng thông hơn heartbeat chu kỳ cố định.
-4. **Phục vụ hàng trăm máy thi đồng thời**, chịu được đỉnh tải lúc cả phòng cùng nộp bài.
+1. Chiếu animation tới cả phòng: các màn hình lệch nhau ≤ 50 ms, băng thông thấp hơn chiếu màn hình video ít nhất 100 lần.
+2. Không mất code khi rớt mạng, tắt app đột ngột hay đổi máy.
+3. Giáo viên thấy code học viên đang gõ trong ≤ 200 ms khi cả lớp cùng gõ.
+4. Câu hỏi nhanh công bằng giữa máy mạng tốt và mạng chậm.
+
+Mục tiêu đo được đầy đủ: spec §3.
 
 ## 2.3. Scope
 
-Xem spec §3.
+Một lớp trong phòng máy, mạng dây, tối đa 50 máy học viên. Hai môn: DSA (bài làm viết bằng Python) và SQL, mỗi môn khoảng 100 bài. Chi tiết: spec §4.
 
 ---
 
 # 3. System Architecture
 
-*(phase 10 — xuất `statics/architecture.png`)*
+*(giai đoạn 5 — xuất `statics/architecture.png`)*
 
-Bốn transport, mỗi cái dùng đúng chỗ nó mạnh (spec §4):
+Server chạy trên máy giáo viên, kèm Docker để chạy code học viên an toàn. Một app desktop JavaFX, hai chế độ: giáo viên và học viên (spec §5).
 
-| Transport | Cổng | Dùng cho |
+| Kênh | Cổng | Dùng cho |
 | --- | --- | --- |
-| TCP — protocol tự thiết kế EXP/1.0 | 5000 | Máy thi và Admin: đăng nhập, nhận đề, gửi đáp án, heartbeat |
-| WebSocket (tự viết theo RFC 6455) | 5001 | Dashboard giám thị trên trình duyệt |
-| UDP multicast `239.255.42.1` | 5002 | Thông báo toàn phòng, có lớp tin cậy và tự lùi về TCP |
-| TLS (tùy chọn) | bọc 5000 và 5001 | Mã hoá đường truyền |
+| TCP — protocol tự thiết kế LCP/1.0 | 7000 | Phiên làm việc: đăng nhập, bài học, dòng code, chạy và nộp, câu hỏi nhanh, trợ giúp |
+| UDP multicast `239.255.70.1` | 7001 | Chiếu animation cho cả phòng, có lớp tin cậy và tự chuyển sang TCP |
+| UDP broadcast | 7002 | App tự tìm server trong phòng máy |
+| TLS (tùy chọn) | bọc 7000 | Mã hoá phiên làm việc |
 
-Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành: bước deploy gọi vào để xác nhận đúng commit.
+Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành trên VPS: bước deploy gọi vào để xác nhận đúng commit.
 
 ---
 
 # 4. Network Communication Design
 
-*(phase 1–2 — tóm tắt protocol, message format và sơ đồ tuần tự; thiết kế gốc ở spec §7–§9)*
+*(giai đoạn 1–3 — tóm tắt protocol, message format và sơ đồ tuần tự; thiết kế gốc ở spec §9–§12)*
 
 ---
 
@@ -84,11 +90,13 @@ Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành: bước depl
 
 | Thành phần | Công nghệ |
 | --- | --- |
-| Ngôn ngữ | Java 17 — `java.net`, `java.nio`, `javax.net.ssl`, `java.util.concurrent` |
-| Build | Maven (multi-module, dùng Maven Wrapper `./mvnw`) |
+| Ngôn ngữ | Java 17 — `java.net`, `javax.net.ssl`, `java.util.concurrent`; Python 3.12 cho bài làm của học viên |
+| Build | Maven (multi-module, Maven Wrapper `./mvnw`) |
+| Giao diện | JavaFX 21, RichTextFX (ô soạn code) |
 | Lưu trữ | SQLite qua `sqlite-jdbc` |
-| Giao diện | Swing (máy thi, Admin), HTML + JavaScript (dashboard giám thị) |
-| Test | JUnit 5 |
+| SQL cho bài tập | SQLite sau giao diện `SqlEngine`, JSqlParser |
+| Chạy code an toàn | Docker (`--network none`, giới hạn RAM/CPU/tiến trình) |
+| Test | JUnit 5, pytest |
 | Định dạng code | Spotless + palantir-java-format |
 | CI/CD | GitHub Actions → Docker image trên GHCR → VPS |
 | Luật commit | husky + commitlint (Conventional Commits) |
@@ -97,57 +105,62 @@ Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành: bước depl
 
 # 6. Novelty and Contributions
 
-Bốn đóng góp, mỗi cái có baseline và thí nghiệm đo được (spec §11):
+Bốn đóng góp, mỗi cái có baseline và thí nghiệm đo được (spec §13):
 
-| # | Cách làm thông thường | ExamNet |
+| # | Cách làm thông thường | LabCast |
 | --- | --- | --- |
-| ĐG1 | Bài làm giữ trong RAM, cuối giờ mới nộp | Ghi từng đáp án xuống đĩa trước khi gửi, gửi bù khi kết nối lại |
-| ĐG2 | Máy thi tự đếm giờ bằng đồng hồ của nó | Server giữ giờ, máy thi đồng bộ kiểu NTP |
-| ĐG3 | Heartbeat chu kỳ cố định hoặc TCP keepalive (mặc định 2 giờ) | Chu kỳ heartbeat co giãn theo RTT đo được |
-| ĐG4 | Gửi thông báo cho N máy bằng N lần unicast | Một gói UDP multicast, máy sót nhận bù qua TCP |
+| ĐG1 | Phần mềm phòng máy chiếu **hình ảnh** màn hình giáo viên tới từng máy | Phát **sự kiện** animation một lần qua multicast, mỗi máy tự vẽ, phát hẹn giờ; máy thiếu gói xin lại qua TCP |
+| ĐG2 | Code nằm trên máy học viên, mất khi máy treo; giáo viên phải đi tới tận máy | Mỗi thay đổi được ghi trước rồi gửi lên kèm số thứ tự; đổi máy làm tiếp; giáo viên xem code đang gõ |
+| ĐG3 | Mỗi máy tin đồng hồ của chính nó | Đồng bộ kiểu NTP, giữ mẫu RTT nhỏ nhất, bù trôi, chỉnh dần |
+| ĐG4 | Hạn chót tính theo lúc gói tin đến, máy mạng chậm bị thiệt | Bù độ trễ theo RTT do server tự đo, có trần |
 
-*(phase 9 — bảng so sánh số liệu Baseline vs Proposed)*
+*(giai đoạn 4 — bảng so sánh số liệu Baseline vs Proposed)*
 
 ---
 
 # 7. Project Structure
 
 ```text
-ExamNet/
+LabCast/
 ├── README.md, CONTRIBUTING.md, Instruction.md, Topics.md
-├── docs/            spec, phân công, hướng dẫn dựng VPS
-├── report/          report.pdf (phase 10)
+├── docs/            spec, kế hoạch, phân công, hướng dẫn dựng VPS
+├── report/          report.pdf (giai đoạn 5)
 ├── statics/         sơ đồ PNG, dataset/, results/ (CSV thí nghiệm)
-├── deploy/          Dockerfile, compose.yaml
+├── deploy/          Dockerfile, compose.yaml (server trên VPS cho nhóm thử)
+├── packaging/       bộ cài jpackage cho phòng máy
+├── runner/          Python: chạy bài làm và ghi trace, đóng thành image Docker
+├── content/         bài học và bài tập (dsa/, sql/) — dữ liệu, không phải code
 ├── .github/         CI/CD, mẫu Pull Request
 ├── .husky/          hook kiểm commit
-└── source/          Maven multi-module, trong mỗi module chia package theo chức năng
-    ├── common/      protocol (EXP/1.0, codec), model, transport (tùy chọn socket, TLS)
-    ├── server/      net, session, account, liveness · journal · exam, clock · notice, ws · app, ops
-    │                + resources/dashboard/ (trang web giám thị)
-    ├── service/     db · account · answer · exam · audit  + schema.sql
-    ├── client/      net, account · answer, wal · exam, clock · notice · ui (khung cửa sổ)
-    └── bench/       khung harness + exp/ (mỗi thí nghiệm một file)
+└── source/          Maven multi-module
+    ├── common/      protocol LCP/1.0, định dạng trace, kênh truyền
+    ├── server/      net, session, presence, discovery, classroom, quiz, cast, sync,
+    │                lesson, practice, run, grade, sqlviz, journal, mirror + schema.sql
+    ├── client/      app, net, clock, cast, player, views/*, editor, journal, mirror, …
+    └── bench/       học viên ảo, cấy độ trễ, chạy thí nghiệm
 ```
 
-Mỗi package có `package-info.java` ghi chức năng và **chủ** của nó (bảng đầy đủ ở [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md)). `client` chỉ phụ thuộc `common`: máy thi không chứa code database hay code chấm điểm.
+Mỗi package có `package-info.java` mô tả nhiệm vụ và người phụ trách. `client` chỉ phụ thuộc `common`: app trên máy học viên không chứa đáp án hay code chấm điểm.
 
 ---
 
 # 8. Requirements
 
 * **JDK 17** trở lên
+* **Docker** — máy chạy server cần có để chạy code học viên trong sandbox
+* **Python 3.12** — chỉ cần khi làm phần `runner/` hoặc soạn nội dung
 * **Node.js 22.12+** — chỉ để chạy hook kiểm commit (husky + commitlint)
-* Docker — tuỳ chọn, để chạy giống hệt bản trên VPS
 * Không cần cài Maven (đã có `./mvnw`) và không cần cài database (SQLite là một file)
+
+Máy học viên trong phòng máy **không cần cài gì**: bộ cài đã kèm Java và JavaFX (giai đoạn 3).
 
 ---
 
 # 9. Installation
 
 ```bash
-git clone https://github.com/<chủ-repo>/examnet.git
-cd examnet
+git clone https://github.com/lyhaiquan/ExamNet.git LabCast
+cd LabCast
 npm install          # bật hook kiểm commit
 cd source
 ./mvnw verify        # build + test + kiểm định dạng; Windows: mvnw.cmd verify
@@ -159,18 +172,16 @@ cd source
 
 | Biến môi trường | Mặc định | Ý nghĩa |
 | --- | --- | --- |
-| `EXAMNET_DB` | *(phase 2)* | Đường dẫn file SQLite. Trong Docker là `/data/examnet.db`, nằm trên volume |
-| `EXAMNET_COMMIT` | `dev` | Mã commit hiện ở `/version`. CI tự gài vào image |
+| `LABCAST_DB` | *(giai đoạn 1)* | Đường dẫn file SQLite. Trong Docker là `/data/labcast.db`, nằm trên volume |
+| `LABCAST_COMMIT` | `dev` | Mã commit hiện ở `/version`. CI tự gài vào image |
 
-*(phase 2 trở đi — cổng, TLS, chế độ heartbeat…)*
+*(giai đoạn 1 trở đi — cổng, card mạng LAN, TLS, đường dẫn `content/`…)*
 
 ---
 
 # 11. Database Setup
 
-Lược đồ ở [`source/service/src/main/resources/schema.sql`](source/service/src/main/resources/schema.sql) — 9 bảng, thiết kế theo bốn bước của giáo trình (spec §13).
-
-*(phase 2 — server tự tạo database và nạp dữ liệu mẫu ở lần chạy đầu)*
+Lược đồ ở [`source/server/src/main/resources/schema.sql`](source/server/src/main/resources/schema.sql) — 15 bảng, mỗi nhóm bảng ghi rõ người phụ trách (spec §15). Server tự tạo database ở lần chạy đầu *(giai đoạn 1)*.
 
 ---
 
@@ -178,87 +189,87 @@ Lược đồ ở [`source/service/src/main/resources/schema.sql`](source/servic
 
 ## 12.1. Start Server
 
-Phase 0 mới có server mẫu, chỉ mở cổng trạng thái:
+Giai đoạn 0 mới có server mẫu, chỉ mở cổng trạng thái:
 
 ```bash
 cd source && ./mvnw -q package -DskipTests
-java -jar server/target/examnet-server.jar
+java -jar server/target/labcast-server.jar
 # mở http://localhost:8080/version
 ```
 
 Chạy bằng Docker, đứng ở thư mục gốc repo, giống hệt bản trên VPS:
 
 ```bash
-docker build -f deploy/Dockerfile -t examnet-server .
-docker run --rm -p 8080:8080 examnet-server
+docker build -f deploy/Dockerfile -t labcast-server .
+docker run --rm -p 8080:8080 labcast-server
 ```
 
 ## 12.2. Start Client
 
-*(phase 2)*
+*(giai đoạn 1)*
 
 ## 12.3. Run Test
 
 ```bash
 cd source && ./mvnw verify
+python -m pytest runner
 ```
 
 ## 12.4. Bản đang chạy trên VPS
 
-`http://<IP VPS>:8080/version` — tự cập nhật mỗi lần merge vào `main`. Xem [`docs/deploy/VPS-SETUP.md`](docs/deploy/VPS-SETUP.md).
+`http://<IP VPS>:8080/version` — tự cập nhật mỗi lần merge vào `main`. Bản trên VPS chỉ để nhóm thử phần TCP; multicast phải thử trong LAN thật. Xem [`docs/deploy/VPS-SETUP.md`](docs/deploy/VPS-SETUP.md).
 
 ---
 
 # 13. Experimental Setup
 
-11 thí nghiệm, định nghĩa ở spec §12. Kết quả ghi vào `statics/results/exp<số>_<tên>.csv`.
+Định nghĩa đầy đủ ở spec §14. Kết quả ghi vào `statics/results/exp<số>_<tên>.csv`.
 
 | # | Thí nghiệm | Chứng minh | Người |
 | - | ---------- | ---------- | ----- |
-| 1 | Rút dây mạng giữa lúc gửi đáp án | ★ĐG1 — không mất bài | 1 |
-| 2 | Chỉnh lệch đồng hồ máy thi ±5 phút | ★ĐG2 — server làm chủ giờ | 3 |
-| 3 | Heartbeat thích nghi so với cố định | ★ĐG3 — phát hiện nhanh hơn, tốn ít hơn | 2 |
-| 4 | Hàng trăm máy cùng nộp bài | Chịu tải | 2 |
-| 5 | NIO so với thread-per-connection | Chọn mô hình vào/ra | 2 |
-| 6 | EXP/1.0 so với JSON | Giá trị của protocol nhị phân | 1 |
-| 7 | Bật/tắt `TCP_NODELAY` | Tác động của Nagle | 3 |
-| 8 | Một máy đọc chậm giữa nhiều máy thường | Backpressure cô lập được | 2 |
-| 9 | Multicast so với unicast (LAN thật) | ★ĐG4 — tiết kiệm băng thông | 4 |
-| 10 | Một frame lớn bị TCP chia mấy mảnh | TCP là dòng byte | 1 |
-| 11 | TLS so với TCP trần | Cái giá của mã hoá | 3 |
+| 1 | Băng thông chiếu: multicast sự kiện, TCP từng máy, video màn hình | ★ĐG1 | 4 |
+| 2 | Sai số đồng hồ và độ lệch giữa các màn hình | ★ĐG3 | 3 |
+| 3 | Mất gói multicast, NACK, máy vào lớp muộn | ★ĐG1 | 4 |
+| 4 | Rút dây, tắt app, đổi máy giữa lúc gõ | ★ĐG2 | 1 |
+| 5 | Độ trễ phản chiếu code, có và không gộp thay đổi | ★ĐG2 | 1 |
+| 6 | Một máy spam 1000 thông điệp/giây | Giới hạn tốc độ | 3 |
+| 7 | 40 lượt chạy thử dồn trong 10 giây | Hàng đợi chạy | 3 |
+| 8 | Câu hỏi nhanh với nhóm máy chậm thêm 200 ms | ★ĐG4 | 2 |
+| 9 | Heartbeat thích nghi so với cố định *(tuỳ chọn)* | Phát hiện máy rớt | 2 |
+| 10 | Chi phí TLS *(tuỳ chọn)* | Cái giá của mã hoá | 2 |
 
 ---
 
 # 14. Experimental Results
 
-*(phase 9 — chỉ số đo thật, mỗi cấu hình lặp nhiều lần, báo cáo trung bình ± độ lệch chuẩn)*
+*(giai đoạn 4 — chỉ số đo thật, mỗi cấu hình lặp nhiều lần, báo cáo trung bình ± độ lệch chuẩn)*
 
 ---
 
 # 15. Discussion
 
-*(phase 9)*
+*(giai đoạn 4)*
 
 ---
 
 # 16. Limitations
 
-Xem spec §17. *(phase 10 — cập nhật theo hệ thống thật)*
+Xem spec §19. *(giai đoạn 5 — cập nhật theo hệ thống thật)*
 
 ---
 
 # 17. Future Work
 
-*(phase 10)*
+*(giai đoạn 5)*
 
 ---
 
 # 18. References
 
 1. Nguyễn Mạnh Hùng, Nguyễn Trọng Khánh. *Lập trình mạng*. Giáo trình học phần.
-2. RFC 6455 — The WebSocket Protocol.
-3. RFC 5905 — Network Time Protocol Version 4 (ước lượng offset và delay, ĐG2).
-4. RFC 6298 — Computing TCP's Retransmission Timer (công thức SRTT/RTTVAR, ĐG3).
+2. RFC 5905 — Network Time Protocol Version 4 (ước lượng độ lệch và độ trễ, ĐG3).
+3. RFC 6298 — Computing TCP's Retransmission Timer (công thức SRTT/RTTVAR, heartbeat và ĐG4).
+4. RFC 1112 — Host Extensions for IP Multicasting.
 5. Conventional Commits 1.0.0 — https://www.conventionalcommits.org
 
 ---

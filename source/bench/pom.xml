@@ -4,16 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>examnet</groupId>
-    <artifactId>examnet-parent</artifactId>
+    <groupId>labcast</groupId>
+    <artifactId>labcast-parent</artifactId>
     <version>0.1.0</version>
   </parent>
-  <artifactId>examnet-bench</artifactId>
-  <description>Harness sinh máy thi và giám thị ảo để chạy 11 thí nghiệm</description>
+  <artifactId>labcast-bench</artifactId>
+  <description>Học viên và giáo viên ảo, cấy độ trễ, chạy các thí nghiệm ở spec §14</description>
   <dependencies>
     <dependency>
-      <groupId>examnet</groupId>
-      <artifactId>examnet-common</artifactId>
+      <groupId>labcast</groupId>
+      <artifactId>labcast-common</artifactId>
     </dependency>
   </dependencies>
 </project>

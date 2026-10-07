@@ -1,25 +1,25 @@
-# Chạy máy chủ ExamNet trên VPS.
+# Chạy server LabCast trên VPS để nhóm thử phần TCP từ xa.
 #
-# Bước deploy của CI chép file này lên ~/examnet/ trên VPS và ghi file .env bên
+# Bước deploy của CI chép file này lên ~/labcast/ trên VPS và ghi file .env bên
 # cạnh với hai biến GHCR_OWNER và IMAGE_TAG (mã commit), rồi chạy
 #   docker compose pull && docker compose up -d
 #
-# Quay về một bản cũ: sửa IMAGE_TAG trong ~/examnet/.env thành mã commit cũ rồi
+# Quay về một bản cũ: sửa IMAGE_TAG trong ~/labcast/.env thành mã commit cũ rồi
 # chạy lại `docker compose up -d`. Xem docs/deploy/VPS-SETUP.md.
 
 services:
   server:
-    image: ghcr.io/${GHCR_OWNER:?thiếu GHCR_OWNER}/examnet-server:${IMAGE_TAG:-latest}
-    container_name: examnet-server
+    image: ghcr.io/${GHCR_OWNER:?thiếu GHCR_OWNER}/labcast-server:${IMAGE_TAG:-latest}
+    container_name: labcast-server
     restart: unless-stopped
     ports:
-      - "5000:5000" # EXP/1.0 cho máy thi và Admin (có từ phase 2)
-      - "5001:5001" # dashboard giám thị qua WebSocket (có từ phase 8)
+      - "7000:7000" # LCP/1.0 cho app giáo viên và học viên (có từ giai đoạn 1)
       - "8080:8080" # /version — bước deploy dùng để xác nhận đúng commit
-    # UDP multicast 5002 không đi qua Internet nên không mở ở đây. Trên VPS mọi
-    # thông báo đi bằng TCP — đúng cơ chế tự lùi về TCP của ĐG4 (spec §9.4).
+    # UDP multicast 7001 và tìm server 7002 chỉ chạy trong LAN, không mở ở đây.
+    # Trên VPS mọi gói chiếu đi bằng TCP — đúng nhánh tự chuyển sang TCP của ĐG1
+    # (spec §12). Phần multicast phải thử trong mạng LAN thật.
     volumes:
-      - examnet-data:/data
+      - labcast-data:/data
     logging:
       driver: json-file
       options:
@@ -27,4 +27,4 @@ services:
         max-file: "3"
 
 volumes:
-  examnet-data:
+  labcast-data:

@@ -11,11 +11,11 @@ Bốn quy tắc, máy móc kiểm hết, không cần nhớ:
 
 ## Cài đặt lần đầu (mỗi người)
 
-Cần: **JDK 17**, **Git**, **Node.js 22.12 trở lên** (chỉ để chạy hook kiểm commit — commitlint không chạy trên Node 20). Docker là tuỳ chọn.
+Cần: **JDK 17**, **Git**, **Node.js 22.12 trở lên** (chỉ để chạy hook kiểm commit — commitlint không chạy trên Node 20), **Docker** (để chạy code học viên trong sandbox). Làm phần `runner/` hoặc soạn `content/` thì cần thêm **Python 3.12**.
 
 ```bash
-git clone https://github.com/<chủ-repo>/examnet.git
-cd examnet
+git clone https://github.com/lyhaiquan/ExamNet.git LabCast
+cd LabCast
 npm install                # bật hook husky — BẮT BUỘC, không có bước này hook không chạy
 cd source
 ./mvnw verify              # Windows (PowerShell/cmd): mvnw.cmd verify
@@ -45,7 +45,7 @@ Rồi lên GitHub mở Pull Request:
 
 PR nên nhỏ: một tính năng hoặc một bản sửa, lý tưởng dưới 400 dòng. PR nhỏ được review kỹ hơn và ít xung đột hơn.
 
-**Tên nhánh:** `<type>/<scope>-<mô-tả-ngắn>`, ví dụ `feat/server-accept-loop`, `fix/common-partial-read`, `test/bench-exp9-multicast`.
+**Tên nhánh:** `<type>/<scope>-<mô-tả-ngắn>`, ví dụ `feat/server-accept-loop`, `fix/common-partial-read`, `test/bench-exp3-mat-goi`, `feat/content-n-queens`.
 
 ## Luật commit
 
@@ -74,7 +74,10 @@ PR nên nhỏ: một tính năng hoặc một bản sửa, lý tưởng dưới 
 
 | scope | Phần |
 | --- | --- |
-| `common` `server` `service` `client` `bench` | Năm module trong `source/` |
+| `common` `server` `client` `bench` | Bốn module trong `source/` |
+| `runner` | Python chạy bài làm và ghi trace |
+| `content` | Bài học và bài tập trong `content/` |
+| `packaging` | Bộ cài cho phòng máy |
 | `docs` `report` | Tài liệu, báo cáo |
 | `ci` `deploy` `build` `deps` `repo` | Hạ tầng |
 
@@ -107,8 +110,10 @@ cd source && ./mvnw spotless:apply
 ## Khi review PR của bạn khác
 
 - Có test cho phần mới không? Test có thật sự kiểm điều PR nói không?
-- Đổi protocol (thêm hay sửa thông điệp) thì đã cập nhật spec §8 chưa?
-- Có code nào nằm sai module không, ví dụ client gọi thẳng database (vi phạm spec §0 R1)?
+- Đổi protocol (thêm hay sửa thông điệp) thì đã cập nhật spec §10 chưa?
+- Đổi định dạng trace thì đã có cả Người 3 và Người 4 duyệt chưa (spec §7.3)?
+- Có code nào nằm sai module không, ví dụ app học viên giữ đáp án hay tự quyết "đã qua" (vi phạm spec §1 R3)?
+- Bài mới trong `content/` đã qua kiểm nội dung trên CI chưa, người soạn đã tự chạy lại chưa?
 - Có khoá, mật khẩu hay file `.db` lọt vào không? **Repo công khai**, lọt là lộ vĩnh viễn trong lịch sử git.
 
 ## Ranh giới: chỉ sửa phần của mình
@@ -123,17 +128,16 @@ Mỗi package có đúng một chủ, ghi trong `package-info.java` và bảng �
 ## Không được làm
 
 - Commit khoá riêng, keystore (`.p12`, `.jks`), mật khẩu, file `.db`. `.gitignore` đã chặn các đuôi phổ biến, nhưng vẫn phải tự để ý.
-- Thêm thư viện hay framework cho phần mạng. Đề bài chấm network programming tự viết (spec §0). Muốn thêm dependency thì bàn với cả nhóm trước.
+- Thêm thư viện hay framework cho phần mạng. Đề bài chấm network programming tự viết (spec §1 R1). Thư viện cho phần khác đã khai báo sẵn phiên bản trong `source/pom.xml`; muốn thêm thư viện mới thì bàn với cả nhóm trước.
 - Merge PR của chính mình mà chưa ai duyệt. Luật bảo vệ nhánh chặn việc này, kể cả với chủ repo.
 
 ---
 
 ## Thiết lập GitHub lần đầu (chủ repo làm một lần)
 
-1. Tạo repo **Public** tên `examnet`, để trống (không tạo README, .gitignore hay license), rồi push:
+1. Repo đã có: `github.com/lyhaiquan/ExamNet`, **Public**. Đổi tên thành `LabCast` ở **Settings → General → Repository name** (GitHub tự chuyển hướng link cũ), rồi trên máy mỗi người:
    ```bash
-   git remote add origin https://github.com/<chủ-repo>/examnet.git
-   git push -u origin main
+   git remote set-url origin https://github.com/lyhaiquan/LabCast.git
    ```
 2. **Settings → General → Pull Requests:**
    - Chỉ tick **Allow squash merging**, bỏ tick merge commit và rebase merge.

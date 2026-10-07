@@ -37,20 +37,25 @@
 
 Ba việc thử trước chỉ là code nháp, không đưa vào repo. Mục đích là phát hiện sớm rủi ro phòng máy.
 
-### Sau khi thầy duyệt (tuần 1)
+### Đã làm sẵn (07/10/2026)
+
+- Thay toàn bộ tài liệu ExamNet: `README.md`, `CONTRIBUTING.md`, `docs/PHAN-CONG.md`, `docs/deploy/VPS-SETUP.md`, mẫu PR; xoá spec cũ.
+- Khung Maven theo spec §16: `common`, `server`, `client`, `bench` (bỏ module `service`), package `labcast.*`, 46 `package-info.java` ghi chủ từng package.
+- Phiên bản thư viện khai báo sẵn trong `source/pom.xml`: JavaFX 21, RichTextFX, JSqlParser, SnakeYAML, Jackson (chưa module nào dùng).
+- `schema.sql` mới với 15 bảng theo spec §15, nằm trong `server`.
+- Khung `runner/` (Dockerfile image `labcast-runner:py3.12`, `requirements-dev.txt`), `content/`, `packaging/`, mỗi thư mục một README.
+- CI chạy thêm `pytest` cho `runner/` và thử đóng image runner; deploy đổi sang image `labcast-server`, thư mục `~/labcast` trên VPS, tự dừng bản ExamNet cũ.
+- commitlint thêm scope `runner`, `content`, `packaging`, bỏ `service`.
+
+### Còn lại (tuần 1)
 
 | Việc | Người |
 | --- | --- |
-| Đóng PR #1 của ExamNet (không merge) | 2 |
-| Đổi tên repo GitHub `ExamNet` → `LabCast` (GitHub tự chuyển hướng link cũ); đổi tên thư mục trên máy | 2 |
-| Thay tài liệu ExamNet: xoá `examnet-design.md`, viết lại `README.md`, `docs/PHAN-CONG.md` theo spec §17 | 2 |
-| Khung Maven mới theo spec §16: `common`, `server`, `client`, `bench`; `package-info.java` ghi chủ từng package | 2 |
-| Thêm thư viện: JavaFX 21, RichTextFX, JSqlParser, SnakeYAML, Jackson; lớp `Launcher` để jar chạy được JavaFX | 2 |
-| Khung `runner/` (Python, pytest, Dockerfile image `labcast-runner:py3.12`) | 3 |
-| Khung `content/` với một bài mẫu rỗng và file kiểm định dạng `lesson.yaml` | 3 |
-| CI: `./mvnw verify` + `pytest` + build image runner; workflow `release.yml` chạy `jpackage` trên Windows khi gắn tag | 2 |
-| Cập nhật `commitlint.config.mjs`: thêm scope `runner`, `content`, `packaging` | 2 |
-| Mời 3 thành viên, bật ruleset (PR + 1 review, squash), điền `CODEOWNERS` theo spec §17 | 2 |
+| Đổi tên repo GitHub `ExamNet` → `LabCast` (GitHub tự chuyển hướng link cũ); `git remote set-url` trên máy mỗi người; đổi tên thư mục trên máy | 2 |
+| Thêm `javafx-controls` và `richtextfx` vào `client`, lớp `Launcher` để jar chạy được JavaFX; app trống mở được | 2 |
+| Workflow `release.yml`: chạy `jpackage` trên máy Windows của GitHub khi gắn tag `v*` | 2 |
+| Bài mẫu rỗng trong `content/` và script kiểm định dạng `lesson.yaml` chạy trên CI | 3 |
+| Mời 3 thành viên, bật ruleset (PR + 1 review, chỉ squash merge), điền `CODEOWNERS` theo spec §17 | 2 |
 
 **M0 — nghiệm thu:**
 

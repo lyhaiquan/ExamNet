@@ -4,20 +4,23 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>examnet</groupId>
-  <artifactId>examnet-parent</artifactId>
+  <groupId>labcast</groupId>
+  <artifactId>labcast-parent</artifactId>
   <version>0.1.0</version>
   <packaging>pom</packaging>
-  <name>ExamNet</name>
-  <description>Hệ thống thi qua mạng theo mô hình Client/Server</description>
+  <name>LabCast</name>
+  <description>Phòng thực hành DSA và SQL có animation, đồng bộ qua mạng LAN</description>
 
   <!--
-    Chỉ hai dependency ngoài: sqlite-jdbc để lưu trữ và junit để test.
-    Toàn bộ tầng mạng viết bằng java.net/java.nio thuần, không framework.
+    Phần mạng (TCP, UDP multicast, UDP broadcast, TLS) chỉ dùng thư viện chuẩn của
+    Java: java.net, javax.net.ssl, java.util.concurrent. Thư viện ngoài chỉ dùng cho
+    phần không phải mạng (spec §16).
+
+    Phiên bản mọi thư viện khai báo một chỗ ở dependencyManagement bên dưới. Module
+    nào cần thì thêm dependency KHÔNG kèm version — phiên bản lấy từ đây.
   -->
   <modules>
     <module>common</module>
-    <module>service</module>
     <module>server</module>
     <module>client</module>
     <module>bench</module>
@@ -28,29 +31,60 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>5.10.2</junit.version>
     <sqlite.version>3.45.3.0</sqlite.version>
+    <javafx.version>21.0.12</javafx.version>
+    <richtextfx.version>0.11.7</richtextfx.version>
+    <jsqlparser.version>5.4</jsqlparser.version>
+    <snakeyaml.version>2.7</snakeyaml.version>
+    <jackson.version>2.22.3</jackson.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>examnet</groupId>
-        <artifactId>examnet-common</artifactId>
+        <groupId>labcast</groupId>
+        <artifactId>labcast-common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>examnet</groupId>
-        <artifactId>examnet-service</artifactId>
+        <groupId>labcast</groupId>
+        <artifactId>labcast-server</artifactId>
         <version>${project.version}</version>
       </dependency>
-      <dependency>
-        <groupId>examnet</groupId>
-        <artifactId>examnet-server</artifactId>
-        <version>${project.version}</version>
-      </dependency>
+      <!-- Lưu trữ trên máy server (spec §15) và bộ máy SQL bản đầu (spec §7.6) -->
       <dependency>
         <groupId>org.xerial</groupId>
         <artifactId>sqlite-jdbc</artifactId>
         <version>${sqlite.version}</version>
+      </dependency>
+      <!-- App desktop (spec §5.3) -->
+      <dependency>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-controls</artifactId>
+        <version>${javafx.version}</version>
+      </dependency>
+      <!-- Ô soạn code có tô màu cú pháp (client.editor) -->
+      <dependency>
+        <groupId>org.fxmisc.richtext</groupId>
+        <artifactId>richtextfx</artifactId>
+        <version>${richtextfx.version}</version>
+      </dependency>
+      <!-- Phân tích câu SQL để kiểm câu cho phép và tách bước (server.sqlviz) -->
+      <dependency>
+        <groupId>com.github.jsqlparser</groupId>
+        <artifactId>jsqlparser</artifactId>
+        <version>${jsqlparser.version}</version>
+      </dependency>
+      <!-- Đọc lesson.yaml (server.lesson) -->
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
+      </dependency>
+      <!-- JSON cho trace và payload cấu trúc lớn (spec §7.3, §10.2) -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>

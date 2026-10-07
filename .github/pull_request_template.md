@@ -4,16 +4,18 @@
 
 ## Thuộc phần nào
 
-- Nhóm chức năng: <!-- Người 1 làm bài · Người 2 kết nối và tài khoản · Người 3 kỳ thi và thời gian · Người 4 thông báo và giám sát -->
-- Phase trong spec §16: <!-- 0–10 -->
-- Thông điệp protocol liên quan: <!-- ví dụ ANSWER_DELTA, ANSWER_ACK — hoặc "không" -->
+- Mảng: <!-- Người 1 làm bài và trợ giúp · Người 2 kết nối, lớp học · Người 3 bài tập, chạy và chấm · Người 4 giảng và chiếu -->
+- Giai đoạn trong kế hoạch: <!-- 0–5, docs/specs/labcast-ke-hoach.md -->
+- Thông điệp protocol liên quan: <!-- ví dụ CODE_DELTA, CODE_ACK — hoặc "không" -->
 - [ ] Chỉ sửa package của mình; nếu chạm phần người khác, chủ phần đó đã được nhờ duyệt
 
 ## Đã kiểm tra
 
 - [ ] `./mvnw verify` chạy xanh trên máy mình
 - [ ] Có test cho phần mới (hoặc ghi lý do không test được ở dưới)
-- [ ] Nếu đổi protocol: đã cập nhật spec §8 và báo cả nhóm
+- [ ] Nếu đổi protocol: đã cập nhật spec §10 và báo cả nhóm
+- [ ] Nếu đổi định dạng trace: có cả Người 3 và Người 4 duyệt (spec §7.3)
+- [ ] Nếu thêm bài vào `content/`: lời giải mẫu qua hết test, đã tự chạy lại bài
 - [ ] Nếu đổi cấu trúc thư mục hoặc cách chạy: đã cập nhật README
 - [ ] Không có khoá, mật khẩu hay file `.db` trong PR (repo công khai)
 

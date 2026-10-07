@@ -4,26 +4,29 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>examnet</groupId>
-    <artifactId>examnet-parent</artifactId>
+    <groupId>labcast</groupId>
+    <artifactId>labcast-parent</artifactId>
     <version>0.1.0</version>
   </parent>
-  <artifactId>examnet-client</artifactId>
-  <description>Máy thi (Swing) và client Admin</description>
+  <artifactId>labcast-client</artifactId>
+  <description>App desktop JavaFX, hai chế độ: giáo viên và học viên</description>
   <dependencies>
     <!--
-      Client CHỈ phụ thuộc common. Không phụ thuộc service nên trong chương
-      trình chạy trên máy thi không có code database hay code chấm điểm —
-      "server là trọng tài" thể hiện ngay ở cấu trúc module.
+      App CHỈ phụ thuộc common. Không phụ thuộc server nên app chạy trên máy học viên
+      không chứa đáp án, test ẩn hay code chấm điểm — "không tin máy học viên"
+      (spec §1 R3) thể hiện ngay ở cấu trúc module.
+
+      Giai đoạn 0 thêm javafx-controls và richtextfx (không kèm version, lấy từ
+      pom cha) cùng lớp Launcher — xem docs/specs/labcast-ke-hoach.md.
     -->
     <dependency>
-      <groupId>examnet</groupId>
-      <artifactId>examnet-common</artifactId>
+      <groupId>labcast</groupId>
+      <artifactId>labcast-common</artifactId>
     </dependency>
     <!-- Chỉ để test đầu-cuối: dựng server thật trong cùng tiến trình -->
     <dependency>
-      <groupId>examnet</groupId>
-      <artifactId>examnet-server</artifactId>
+      <groupId>labcast</groupId>
+      <artifactId>labcast-server</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
