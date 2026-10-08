@@ -54,7 +54,7 @@ Ba việc thử trước chỉ là code nháp, không đưa vào repo. Mục đ�
 | Đổi tên repo GitHub `ExamNet` → `LabCast` (GitHub tự chuyển hướng link cũ); `git remote set-url` trên máy mỗi người; đổi tên thư mục trên máy | 2 |
 | Thêm `javafx-controls` và `richtextfx` vào `client`, lớp `Launcher` để jar chạy được JavaFX; app trống mở được | 2 |
 | Workflow `release.yml`: chạy `jpackage` trên máy Windows của GitHub khi gắn tag `v*` | 2 |
-| Bài mẫu rỗng trong `content/` và script kiểm định dạng `lesson.yaml` chạy trên CI | 3 |
+| Thư mục mẫu `content/_mau/` để chép khi soạn bài mới (kiểm định dạng trên CI làm ở giai đoạn 3) | 3 |
 | Mời 3 thành viên, bật ruleset (PR + 1 review, chỉ squash merge), điền `CODEOWNERS` theo spec §17 | 2 |
 
 **M0 — nghiệm thu:**
