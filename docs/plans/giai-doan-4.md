@@ -269,6 +269,8 @@ Mỗi PR gói **một chương** (5–15 bài), tiêu đề kiểu `feat(content
 - [ ] Animation với `demo.in` ≤ 10 phần tử (đồ thị ≤ 8 đỉnh); không `truncated`.
 - [ ] Màu và thuyết minh theo quy ước spec §7.4.
 - [ ] Bài SQL có ít nhất một database ẩn chứa NULL, dòng trùng và một bảng rỗng.
+- [ ] Câu hỏi có `LIMIT`, "nhiều nhất", "cao nhất" nói rõ khi bằng nhau thì làm gì (thêm khoá sắp phụ, hoặc in tất cả); chạy đáp án trên cả 3 database ẩn không ra hai kết quả hợp lệ khác nhau.
+- [ ] Lệnh cấm (`cam_dung`, `cam_import`, `cam_cu_phap`) đã thử bằng một bài nộp vi phạm và bị bắt.
 - [ ] genAI đã được dùng ở đâu thì người soạn đã tự kiểm lại chỗ đó.
 
 ---

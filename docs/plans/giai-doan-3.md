@@ -50,7 +50,7 @@ Ngày 10    Nghiệm thu M3 trên ≥ 4 máy
 **Payload:** `HAND_RAISE` `str lessonId`. `HAND_LOWER` `str lessonId, i64 studentId` (học viên gửi `studentId = 0`; giáo viên hạ tay giúp thì ghi id học viên).
 
 - Lưu bảng `hand_raises`; giáo viên hạ tay thì ghi `handled_by`, `handled_at`.
-- Gọi `ClassEvents.publish(userId, lessonId, GIO_TAY / HA_TAY)` để sơ đồ lớp hiện ✋.
+- Gọi `ClassEvents.publish(userId, lessonId, GIO_TAY / HA_TAY, null)` để sơ đồ lớp hiện ✋.
 - Hàng chờ của giáo viên sắp theo `raised_at`, ai giơ trước lên trước.
 
 **Test:** giơ tay hai lần liền → chỉ một dòng đang chờ; học viên hạ tay người khác → `ERROR(FORBIDDEN)`; giáo viên hạ tay → `handled_by` là id giáo viên.
@@ -130,7 +130,7 @@ void forward(Connection teacher, long studentId, CodeDelta d) {
 - Modify: `source/server/src/main/java/labcast/server/journal/CodeStore.java`
 - Test: bổ sung `CodeStoreTest`
 
-Một delta chèn > 200 ký tự → `ClassEvents.publish` kèm cờ `pasteFlag` (sơ đồ lớp hiện biểu tượng 📋). Chỉ là gợi ý cho giáo viên, không phạt (spec §8.4, §19).
+Một delta chèn > 200 ký tự → `ClassEvents.flagPaste(userId, lessonId)` (sơ đồ lớp hiện biểu tượng 📋). Chỉ là gợi ý cho giáo viên, không phạt (spec §8.4, §19).
 
 **Test:** chèn 201 ký tự → có sự kiện cờ; chèn 200 → không.
 

@@ -280,6 +280,7 @@ khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
 cay_goi: []               # tên hàm cần dựng cây lời gọi, ví dụ [dat_hau]
 cam_dung: [sorted, sort]  # hàm cấm gọi
 cam_import: []
+cam_cu_phap: []           # kiểu nút ast cấm, ví dụ [Pow] cấm toán tử **
 gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
 test_xem: [nho-1, nho-2, tb-1]   # học viên thấy input, xem được animation
 test_cham: tat-ca                # gồm test lớn ẩn, chỉ trả đúng/sai
@@ -490,7 +491,7 @@ SUBMIT_REQ(codeSeq) ─► hàng đợi ưu tiên cao ─► chạy toàn bộ t
 | --- | --- |
 | Thời gian chờ sau mỗi lần nộp sai | 0 → 15 s → 30 s → 60 s → 120 s (giữ 120 s) |
 | Sai bậc dự đoán | Chờ 5 s, đề mới; đếm "đúng liên tiếp" về 0 |
-| Nộp sai 3 lần liên tiếp | Khoá nộp đến khi làm đúng một đề dự đoán mới |
+| Nộp sai 3 lần liên tiếp | Khoá nộp đến khi làm đúng một đề dự đoán mới. Bài không có bậc dự đoán thì không khoá, chỉ áp thời gian chờ |
 | Điểm của bài | 100, trừ 20 mỗi lần nộp sai, thấp nhất 40 |
 | Thành thạo | Dự đoán đúng 3 đề liên tiếp; tự mô phỏng trọn 1 đề; code qua mọi test chấm |
 | Mở bài sau | Khi bài hiện tại đạt thành thạo |
@@ -917,7 +918,7 @@ Riêng 6 bài mẫu do **chủ bộ vẽ** làm ngay trong giai đoạn 1–3 đ
 | `Presence.srtt(userId)` | 2 | 2 (ĐG4) |
 | `FramePolicy.check(session, type)` — `router` gọi **trước** khi chuyển thông điệp cho nghiệp vụ; trả cho qua, `RATE_LIMITED` hoặc `COOLDOWN` | 2 (giao diện, chỗ gọi) | 3 (cài đặt luật giới hạn tốc độ) |
 | Trường mở rộng của `HEARTBEAT`: app `heartbeat.addField("lastCastSeq", …)`; server `presence.onHeartbeat(listener)` | 2 | 4 (phát hiện máy không nhận được multicast) |
-| `ClassEvents.publish(userId, lessonId, status)` → sơ đồ lớp | 2 | 1, 3 |
+| `ClassEvents.publish(userId, lessonId, status, failedTest)`, `ClassEvents.flagPaste(userId, lessonId)` → sơ đồ lớp | 2 | 1, 3 |
 | `Clock.serverNow()` | 3 | 2 (câu hỏi nhanh), 4 (phát hẹn giờ) |
 | Định dạng trace (§7.3), `TraceEvent`, `TraceReader` | 3 (sinh), 4 (đọc) | 1, 3, 4 (bộ vẽ) |
 | `View` (§7.4) | 4 | 1, 3 |

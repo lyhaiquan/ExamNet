@@ -20,7 +20,7 @@
 
 - **Bộ vẽ:** của lời giải mẫu (GG) hoặc của code học viên (BT). Bộ vẽ đầu tiên là bộ vẽ chính.
 - **Bậc:** theo spec §7.2. Mọi bài GG có bậc dự đoán. Bậc tự mô phỏng chỉ có ở bài mà `SimScript` (task 3.15) rút được bước: sắp xếp bằng đổi chỗ kề, và ngăn xếp.
-- **Ghi chú:** "Cấm …" ghi vào `cam_dung` / `cam_import`; "Luật trace" viết thành `luat.py`; "Cần O(…)" nghĩa là test `lon` phải làm cách chậm hơn quá giờ.
+- **Ghi chú:** "Cấm …" ghi vào `cam_dung` / `cam_import`, "cấm cú pháp" ghi vào `cam_cu_phap` (task 3.8); "Luật trace" viết thành `luat.py`; "Cần O(…)" nghĩa là test `lon` phải làm cách chậm hơn quá giờ.
 - **Đã làm:** bài mẫu làm ở giai đoạn 1–3 để kiểm bộ máy. Bài đó **tính vào phần của chủ chương**, dù người khác làm; chủ chương duyệt lại và chỉnh ở giai đoạn 4.
 
 ## Tổng số
@@ -134,7 +134,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | `hai-con-tro` | Cặp phần tử có tổng bằng x, dùng hai con trỏ | BT | `mang` | code |  |
 | `mang-xoay` | Tìm x trong dãy tăng đã bị xoay vòng | LT | — | code | Cần O(log n) |
 | `chia-doan` | Chia dãy thành k đoạn liên tiếp để tổng lớn nhất là nhỏ nhất | LT | — | code | Tìm nhị phân theo đáp án |
-| `can-bac-hai` | Phần nguyên căn bậc hai của n ≤ 10¹⁸ | LT | — | code | Cấm `math.isqrt`, `math.sqrt`, `**` |
+| `can-bac-hai` | Phần nguyên căn bậc hai của n ≤ 10¹⁸ | LT | — | code | Cấm `math.isqrt`, `math.sqrt`; cấm cú pháp `**` (`cam_cu_phap: [Pow]`) |
 
 ### `dsa.dslk` — Danh sách liên kết (Người 4)
 
@@ -157,7 +157,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | --- | --- | --- | --- | --- | --- |
 | `day-chuyen` | Băm dây chuyền | GG | `bam` | xem · dự đoán · code | `viz.BangBam` |
 | `dia-chi-mo` | Băm địa chỉ mở, dò tuyến tính | GG | `bam` | xem · dự đoán · code |  |
-| `do-tuyen-tinh` | Tự viết thêm và tìm khoá bằng dò tuyến tính trên bảng m ô | BT◆ | `mang` | dự đoán · code | Cấm `dict`, `set` |
+| `do-tuyen-tinh` | Tự viết thêm và tìm khoá bằng dò tuyến tính trên bảng m ô | BT◆ | `mang` | dự đoán · code | Cấm `dict`, `set` và cú pháp `{…}` (`cam_cu_phap: [Dict, DictComp, Set, SetComp]`) |
 | `hai-tong` | Đếm cặp có tổng bằng x, n ≤ 10⁵ | LT | — | code |  |
 | `doan-khong-lap` | Đoạn con dài nhất không có phần tử lặp | LT | — | code |  |
 | `nhom-dao-chu` | Gom các từ là đảo chữ của nhau | LT | — | code |  |
@@ -202,7 +202,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | --- | --- | --- | --- | --- | --- |
 | `fibonacci-cay-goi` | Cây lời gọi Fibonacci đệ quy (thấy lời gọi lặp lại) | GG★ | `cay-goi` | xem · dự đoán · code | `cay_goi: [fib]` |
 | `thap-ha-noi` | Tháp Hà Nội: in các bước chuyển | BT◆ | `cay-goi` | dự đoán · code |  |
-| `luy-thua-nhanh` | Luỹ thừa nhanh aⁿ mod m bằng đệ quy | BT◆ | `cay-goi` | dự đoán · code | Cấm `pow`, `**` |
+| `luy-thua-nhanh` | Luỹ thừa nhanh aⁿ mod m bằng đệ quy | BT◆ | `cay-goi` | dự đoán · code | Cấm `pow`; cấm cú pháp `**` |
 | `to-hop-pascal` | C(n, k) đệ quy theo tam giác Pascal | BT | `cay-goi` | code | Test `nho` n ≤ 6 để xem cây |
 | `ucln` | UCLN và BCNN bằng thuật toán Euclid đệ quy | LT | — | code | Cấm `math.gcd` |
 | `doi-co-so` | Đổi số sang hệ cơ số b bằng đệ quy | LT | — | code |  |
@@ -324,6 +324,8 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz` (spec §7.6), trừ loại LT. Câu ngoài phạm vi animation (CTE, hàm cửa sổ) vẫn chấm được.
 
+Đáp án viết theo SQLite (spec §7.6). Bài ghi **A2** dùng cú pháp khác nhau giữa các hệ quản trị (hàm ngày); chốt xong giả định A2 mà môn dùng hệ khác thì sửa đáp án các bài đó. Bài dùng `LIMIT` cũng phải sửa nếu hệ đó là SQL Server hay Oracle. Câu hỏi có `LIMIT` hay "nhiều nhất", "cao nhất" đều ghi rõ cách xử lý khi bằng nhau, vì database ẩn cố ý có giá trị trùng.
+
 ### `sql.co-ban` — Cơ bản: SELECT, WHERE, ORDER BY, LIMIT, DISTINCT (Người 3)
 
 3 giảng giải · 7 bài tập · 3 luyện tập.
@@ -331,18 +333,18 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `loc-sinh-vien` | Sinh viên quê Hà Nội sinh từ năm 2005 | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 1. **Đã làm** ở GĐ2 task 3.12 |
-| `sap-xep-gioi-han` | 5 sản phẩm đắt nhất | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 2. `thu_tu: co` |
+| `sap-xep-gioi-han` | 5 sản phẩm đắt nhất; cùng giá thì id nhỏ trước | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 2. `thu_tu: co` |
 | `khong-trung` | Các thành phố có khách hàng | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 3 |
 | `sv-nu-lop` | Sinh viên nữ của một lớp cho trước | BT◆ | `truong-hoc` | dự đoán · code |  |
 | `khoang-gia` | Sản phẩm giá từ 100 000 đến 500 000 và còn hàng | BT◆ | `ban-hang` | code | `BETWEEN` |
 | `ho-nguyen` | Khách hàng họ Nguyễn | BT◆ | `ban-hang` | code | `LIKE` |
-| `ba-sv-tre-nhat` | 3 sinh viên trẻ nhất; cùng ngày sinh thì theo họ tên | BT◆ | `truong-hoc` | code | `thu_tu: co` |
-| `mon-nhieu-tin-chi` | Môn từ 3 tín chỉ, sắp theo tín chỉ giảm dần | BT | `truong-hoc` | code | `thu_tu: co` |
-| `don-thang-3` | Đơn hàng đặt trong tháng 3/2026 | BT | `ban-hang` | code | Hàm ngày |
+| `ba-sv-tre-nhat` | 3 sinh viên trẻ nhất; cùng ngày sinh thì theo họ tên, rồi theo id | BT◆ | `truong-hoc` | code | `thu_tu: co` |
+| `mon-nhieu-tin-chi` | Môn từ 3 tín chỉ, sắp theo tín chỉ giảm dần, cùng tín chỉ thì theo mã môn | BT | `truong-hoc` | code | `thu_tu: co` |
+| `don-thang-3` | Đơn hàng đặt trong tháng 3/2026 | BT | `ban-hang` | code | A2: hàm ngày |
 | `dem-thanh-pho` | Số thành phố khác nhau có khách hàng | BT | `ban-hang` | code | `COUNT(DISTINCT …)` |
 | `trang-thai-don` | Đơn hàng có trạng thái thuộc một danh sách | LT | `ban-hang` | code | `IN` |
 | `vao-truoc-2020` | Nhân viên vào làm trước 2020 và lương dưới 15 triệu | LT | `nhan-su` | code |  |
-| `trang-hai` | Dòng 11–20 của danh sách sản phẩm theo tên | LT | `ban-hang` | code | `LIMIT … OFFSET`, `thu_tu: co` |
+| `trang-hai` | Dòng 11–20 của danh sách sản phẩm theo tên, cùng tên thì theo id | LT | `ban-hang` | code | `LIMIT … OFFSET`, `thu_tu: co` |
 
 ### `sql.gom-nhom` — Gộp nhóm: GROUP BY, hàm gộp, HAVING (Người 3)
 
@@ -358,9 +360,9 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 | `lop-dong` | Lớp có trên 40 sinh viên | BT◆ | `truong-hoc` | dự đoán · code | `HAVING` |
 | `khach-than-thiet` | Khách có từ 3 đơn trở lên | BT | `ban-hang` | code |  |
 | `phong-luong-cao` | Phòng có lương trung bình trên 20 triệu | BT | `nhan-su` | code |  |
-| `doanh-thu-thang` | Doanh thu theo tháng năm 2026 | BT | `ban-hang` | code | `thu_tu: co` |
+| `doanh-thu-thang` | Doanh thu theo tháng năm 2026 | BT | `ban-hang` | code | `thu_tu: co`. A2: hàm ngày |
 | `gio-du-an` | Tổng giờ mỗi dự án, chỉ dự án từ 100 giờ | LT | `nhan-su` | code |  |
-| `mon-truot-nhieu` | Môn có nhiều lần thi dưới 4 điểm nhất | LT | `truong-hoc` | code |  |
+| `mon-truot-nhieu` | Môn có nhiều lần thi dưới 4 điểm nhất; bằng nhau thì in tất cả | LT | `truong-hoc` | code |  |
 | `ty-le-dat` | Tỉ lệ phần trăm lần thi đạt (≥ 4) của từng môn, làm tròn 2 chữ số | LT | `truong-hoc` | code |  |
 
 ### `sql.null-case` — NULL và CASE (Người 3)
@@ -427,14 +429,14 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 | --- | --- | --- | --- | --- | --- |
 | `tren-trung-binh` | Nhân viên lương cao hơn lương trung bình công ty | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 9 |
 | `co-don-da-giao` | Khách hàng có ít nhất một đơn đã giao | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 10. `EXISTS`, bảng ngoài ≤ 30 dòng |
-| `sp-dat-nhat` | Sản phẩm có giá cao nhất | BT◆ | `ban-hang` | dự đoán · code | Truy vấn con một giá trị |
+| `sp-dat-nhat` | Sản phẩm có giá cao nhất; bằng nhau thì in tất cả | BT◆ | `ban-hang` | dự đoán · code | Truy vấn con một giá trị |
 | `sv-khoa-cntt` | Sinh viên thuộc các lớp của khoa CNTT | BT◆ | `truong-hoc` | code | `IN` |
 | `khach-chua-dat` | Khách chưa đặt đơn nào | BT◆ | `ban-hang` | code | `NOT IN` gặp NULL — có trong database ẩn |
-| `cao-nhat-phong` | Nhân viên lương cao nhất trong phòng mình | BT◆ | `nhan-su` | code | Tương quan |
+| `cao-nhat-phong` | Nhân viên lương cao nhất trong phòng mình; bằng nhau thì in tất cả | BT◆ | `nhan-su` | code | Tương quan |
 | `tren-tb-mon` | Lần thi có điểm trên trung bình của chính môn đó | BT◆ | `truong-hoc` | code | Tương quan |
-| `lon-hon-moi-don` | Đơn có tổng tiền lớn hơn mọi đơn của một khách cho trước | BT | `ban-hang` | code | `> ALL` |
+| `lon-hon-moi-don` | Đơn có tổng tiền lớn hơn mọi đơn của một khách cho trước | BT | `ban-hang` | code | SQLite không có `> ALL`: đáp án dùng `> (SELECT MAX …)` |
 | `ca-lop-deu-thi` | Môn mà mọi sinh viên của một lớp đều đã thi | BT | `truong-hoc` | code | `NOT EXISTS` lồng |
-| `phong-dong-nhat` | Phòng có nhiều nhân viên nhất | BT | `nhan-su` | code |  |
+| `phong-dong-nhat` | Phòng có nhiều nhân viên nhất; bằng nhau thì in tất cả | BT | `nhan-su` | code |  |
 | `ban-tren-tb` | Sản phẩm có tổng số lượng bán trên trung bình | BT | `ban-hang` | code |  |
 | `quan-ly-nhieu` | Người quản lý từ 3 nhân viên trở lên | LT | `nhan-su` | code |  |
 | `luong-thu-hai` | Lương cao thứ hai, không dùng LIMIT/OFFSET | LT | `nhan-su` | code |  |
@@ -462,32 +464,32 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `top-khach` | 3 khách chi nhiều nhất năm 2026, kèm tổng tiền | LT | `ban-hang` | code | `thu_tu: co` |
-| `doanh-thu-thanh-pho` | Doanh thu theo thành phố, chỉ đơn đã giao, giảm dần | LT | `ban-hang` | code | `thu_tu: co` |
-| `ban-chay-danh-muc` | Sản phẩm bán chạy nhất trong từng danh mục | LT | `ban-hang` | code |  |
-| `mua-lai` | Khách đặt đơn trong cả quý 1 và quý 2 | LT | `ban-hang` | code |  |
-| `ty-le-huy` | Tỉ lệ đơn huỷ theo tháng | LT | `ban-hang` | code |  |
+| `top-khach` | 3 khách chi nhiều nhất năm 2026, kèm tổng tiền; bằng tiền thì id nhỏ trước | LT | `ban-hang` | code | `thu_tu: co` |
+| `doanh-thu-thanh-pho` | Doanh thu theo thành phố, chỉ đơn đã giao, giảm dần; bằng nhau thì theo tên thành phố | LT | `ban-hang` | code | `thu_tu: co` |
+| `ban-chay-danh-muc` | Sản phẩm bán chạy nhất trong từng danh mục; bằng nhau thì in tất cả | LT | `ban-hang` | code |  |
+| `mua-lai` | Khách đặt đơn trong cả quý 1 và quý 2 | LT | `ban-hang` | code | A2: hàm ngày |
+| `ty-le-huy` | Tỉ lệ đơn huỷ theo tháng | LT | `ban-hang` | code | A2: hàm ngày |
 | `don-tb-khach` | Giá trị đơn trung bình của từng khách có từ 2 đơn | LT | `ban-hang` | code |  |
-| `ton-lau` | Sản phẩm còn tồn mà 90 ngày chưa bán | LT | `ban-hang` | code |  |
+| `ton-lau` | Sản phẩm còn tồn mà 90 ngày chưa bán | LT | `ban-hang` | code | A2: hàm ngày |
 | `danh-muc-e` | Danh mục không bán được sản phẩm nào năm 2026 | LT | `ban-hang` | code |  |
-| `don-lon-nhat` | Đơn có giá trị lớn nhất của mỗi khách | LT | `ban-hang` | code |  |
-| `khach-moi` | Số khách mới theo tháng và số người trong đó đã mua | LT | `ban-hang` | code |  |
+| `don-lon-nhat` | Đơn có giá trị lớn nhất của mỗi khách; bằng nhau thì in tất cả | LT | `ban-hang` | code |  |
+| `khach-moi` | Số khách mới theo tháng và số người trong đó đã mua | LT | `ban-hang` | code | A2: hàm ngày |
 | `hoc-bong` | Sinh viên trung bình ≥ 8 và không môn nào dưới 5 | LT | `truong-hoc` | code |  |
-| `thu-khoa-lop` | Sinh viên có trung bình cao nhất mỗi lớp | LT | `truong-hoc` | code |  |
-| `mon-kho-nhat` | Môn có tỉ lệ trượt lần 1 cao nhất | LT | `truong-hoc` | code |  |
+| `thu-khoa-lop` | Sinh viên có trung bình cao nhất mỗi lớp; bằng nhau thì in tất cả | LT | `truong-hoc` | code |  |
+| `mon-kho-nhat` | Môn có tỉ lệ trượt lần 1 cao nhất; bằng nhau thì in tất cả | LT | `truong-hoc` | code |  |
 | `thi-lai-dat` | Sinh viên trượt lần 1 nhưng đạt lần 2, kèm tên môn | LT | `truong-hoc` | code |  |
 | `tb-tin-chi` | Trung bình có trọng số tín chỉ, lấy điểm lần thi cao nhất | LT | `truong-hoc` | code |  |
 | `lop-deu-thi` | Lớp mà mọi sinh viên đều đã thi ít nhất một môn | LT | `truong-hoc` | code |  |
-| `que-dong-nhat` | Quê có nhiều sinh viên nhất trong từng khoa | LT | `truong-hoc` | code |  |
+| `que-dong-nhat` | Quê có nhiều sinh viên nhất trong từng khoa; bằng nhau thì in tất cả | LT | `truong-hoc` | code |  |
 | `gvcn-lop-gioi` | Giảng viên chủ nhiệm lớp có trung bình cao hơn toàn trường | LT | `truong-hoc` | code |  |
 | `chua-thi-bat-buoc` | Sinh viên chưa thi môn nào trong danh sách bắt buộc | LT | `truong-hoc` | code |  |
 | `pho-diem` | Số lần thi theo khoảng điểm [0, 4), [4, 6.5), [6.5, 8), [8, 10] | LT | `truong-hoc` | code | `CASE` + `GROUP BY` |
 | `tren-tb-phong` | Nhân viên lương trên trung bình phòng mình, kèm mức chênh | LT | `nhan-su` | code |  |
 | `quan-ly-cap-hai` | Nhân viên có quản lý của quản lý thuộc phòng khác | LT | `nhan-su` | code |  |
-| `du-an-lien-phong` | Dự án có nhiều nhân viên từ phòng khác nhất | LT | `nhan-su` | code |  |
+| `du-an-lien-phong` | Dự án có nhiều nhân viên từ phòng khác nhất; bằng nhau thì in tất cả | LT | `nhan-su` | code |  |
 | `gio-theo-phong` | Tổng giờ dự án theo phòng, phòng không ai làm hiện 0 | LT | `nhan-su` | code |  |
 | `moi-du-an-phong` | Nhân viên tham gia mọi dự án của phòng mình | LT | `nhan-su` | code |  |
-| `tham-nien` | Số nhân viên và lương trung bình theo năm vào làm | LT | `nhan-su` | code |  |
+| `tham-nien` | Số nhân viên và lương trung bình theo năm vào làm | LT | `nhan-su` | code | A2: hàm ngày |
 | `chi-phi-du-an` | Chi phí nhân công ước tính mỗi dự án | LT | `nhan-su` | code |  |
 | `phong-vuot-luong` | Phòng có tổng lương vượt ngân sách | LT | `nhan-su` | code |  |
 | `dong-bo-ton-kho` | Cập nhật tồn kho theo mọi đơn đã giao trong một ngày | LT | `ban-hang` | code | `dml`, truy vấn con tương quan |

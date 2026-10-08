@@ -14,7 +14,7 @@ Quy ước chung, bảng mã và ký hiệu payload: xem [README.md](README.md).
 
 | Giao diện | Người cung cấp, task | Bản rỗng ngày | Người dùng, task |
 | --- | --- | --- | --- |
-| `ClassEvents.publish(userId, lessonId, status)` | 2, task 2.12 | 1 | 3 (task 3.8), 1 (giai đoạn 3) |
+| `ClassEvents.publish(userId, lessonId, status, failedTest)`, `ClassEvents.flagPaste(userId, lessonId)` | 2, task 2.12 | 1 | 3 (task 3.8), 1 (giai đoạn 3, task 1.10, 1.14) |
 | `CodeStore.checkpoint(userId, lessonId, reason, verdict)` | 1, task 1.7 | 2 | 3 (task 3.8) |
 | `Presence.srtt(userId)` | 2, task 2.11 | 2 | 2 (task 2.13) |
 | Kết quả chuẩn bị bài (test ẩn, đề biến thể, test nhỏ có output) | 3, task 3.7 | 3 (đọc từ file JSON viết tay) | 3 (task 3.8, 3.10), giai đoạn 3 (task 3.16, 3.19) |
@@ -40,6 +40,8 @@ Ngày 15    Nghiệm thu M2
 >
 > - **Giữ nguyên:** Người 3 làm hết; nếu trễ thì SQL bản đầu (3.12, 3.13) lùi sang tuần 7, bỏ dòng SQL khỏi nghiệm thu M2.
 > - **Chuyển SQL sang Người 4:** Người 3 còn 6 task ở giai đoạn này, 6 ở giai đoạn 3. Người 4 thêm 2 + 1 task. ĐG3 và ĐG1 không đổi chủ. Người 4 đã có bộ vẽ bảng (`mang`) nên làm `bang-sql` thuận tay.
+>
+> Ngoài task của mình, Người 3 còn duyệt PR của bốn module `viz` do chủ bộ vẽ viết (`cay`, `dslk`, `bam` ở giai đoạn này; `do_thi` ở giai đoạn 3) và soạn ba CSDL dùng chung cho bài SQL (xem [danh-muc-bai.md](danh-muc-bai.md#ba-csdl-dùng-chung-cho-bài-sql)).
 >
 > Nhóm chốt một trong hai **trước ngày 1** của giai đoạn này.
 
@@ -221,10 +223,10 @@ Sự kiện: `push`, `pop`, `enq`, `deq` (ngăn xếp/hàng đợi); `link`, `un
 
 **Phía Python** (cấu trúc gắn camera):
 
-- `Nut(gia_tri, ten="ds")`: tạo nút → `node`; gán `.tiep = y` → `unlink` cạnh cũ (nếu có) rồi `link` tới `y`; `ten_dau = …` khai báo trong `khung_nhin` để vẽ con trỏ đầu danh sách.
+- `Nut(gia_tri, ten="ds")`: tạo nút → `node`; gán `.tiep = y` → `unlink` cạnh cũ (nếu có) rồi `link` tới `y`; **đọc** `.gia_tri` hay `.tiep` → `read` (id nút, tên trường), `ListModel` tô vàng nút đó một bước. Biến con trỏ đầu danh sách khai báo trong `khung_nhin` để vẽ mũi tên `dau`.
 - `BangBam(m, kieu="day-chuyen", ten="h")`: `them(k)`, `tim(k)`, `xoa(k)` → `bucket` (ô `i = k % m`, dây chuyền) và `read` ở các ô dò (địa chỉ mở, dò tuyến tính). Dùng cho bài giảng giải. Bài tập băm cho học viên tự viết hàm dò trên một `viz.Mang` làm bảng, nên không cần lớp này.
 
-**Test:** `push 1, push 2, pop` → trạng thái `[1]`, thay đổi cuối là `Pop(2)`; `pop` khi rỗng → `IllegalStateException` (trace sai, báo rõ); `deq` lấy phần tử đầu. Python: `a.tiep = b; a.tiep = c` → `link a b`, `unlink a b`, `link a c`; `BangBam(7)` thêm 3 rồi 10 → cùng ô 3, hai sự kiện `bucket`.
+**Test:** `push 1, push 2, pop` → trạng thái `[1]`, thay đổi cuối là `Pop(2)`; `pop` khi rỗng → `IllegalStateException` (trace sai, báo rõ); `deq` lấy phần tử đầu. Python: `a.tiep = b; a.tiep = c` → `link a b`, `unlink a b`, `link a c`; duyệt danh sách 3 nút → đúng 3 `read` trường `tiep`; `BangBam(7)` thêm 3 rồi 10 → cùng ô 3, hai sự kiện `bucket`.
 
 **Commit:** `feat(client): bộ vẽ ngăn xếp, danh sách liên kết, bảng băm và bài trung tố → hậu tố`
 
@@ -333,13 +335,14 @@ Khi mở một bài: gửi `CHECKPOINT_FETCH(lessonId, 0, −1)` → nạp `code
       """Nút cây nhị phân. Gán .trai / .phai sinh sự kiện edge; tạo nút sinh node."""
       def __init__(self, khoa, ten="t"): ...           # → {"t":"node","v":ten,"id":…,"x":khoa}
       def __setattr__(self, k, v): ...                  # k ∈ {trai, phai}: bỏ cạnh cũ, thêm cạnh mới → edge
+      def __getattribute__(self, k): ...                # k ∈ {khoa, trai, phai} → {"t":"read","v":ten,"id":…,"k":k}
   def danh_dau(nut, trang_thai): ...                    # → mark; trang_thai ∈ dang-xet | xong | loai
   def xoay(nut, huong): ...                             # → rotate; chỉ ghi sự kiện, lời giải tự đổi con trỏ
   ```
 
-  `id` của nút là số tăng dần theo thứ tự tạo, nên trace của hai lần chạy cùng input giống nhau. Heap không cần lớp riêng: `khung_nhin` khai báo `kieu: heap` cho một `viz.Mang` hoặc `list`.
+  `id` của nút là số tăng dần theo thứ tự tạo, nên trace của hai lần chạy cùng input giống nhau. **Phải ghi cả lần đọc** (như `Mang.__getitem__`): phần lớn bài tập cây chỉ duyệt, không gán, nên thiếu `read` thì animation đứng yên và luật "duyệt một lần" không kiểm được. `TreeModel` tô vàng nút vừa bị đọc trong một bước. Heap không cần lớp riêng: `khung_nhin` khai báo `kieu: heap` cho một `viz.Mang` hoặc `list`.
 
-**Test:** heap `[1,3,2,7]` → nút 7 là con trái của 3; layout cây 3 nút cân → gốc nằm giữa hai con; `rotate` phải tại gốc của cây lệch trái 3 nút → gốc mới đúng. Python: chèn 2, 1, 3 vào cây nhị phân tìm kiếm dựng bằng `NutCay` → 3 `node`, 2 `edge` đúng cha con.
+**Test:** heap `[1,3,2,7]` → nút 7 là con trái của 3; layout cây 3 nút cân → gốc nằm giữa hai con; `rotate` phải tại gốc của cây lệch trái 3 nút → gốc mới đúng. Python: chèn 2, 1, 3 vào cây nhị phân tìm kiếm dựng bằng `NutCay` → 3 `node`, 2 `edge` đúng cha con; tìm 3 → các `read` lần lượt ở nút 2 rồi nút 3.
 
 **Commit:** `feat(client): thêm bộ vẽ cây và heap`
 
@@ -437,12 +440,12 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 
 **Quy trình chấm** (spec §8.2):
 
-1. `kiem_cam.py`: duyệt `ast`; gọi hàm có tên trong `cam_dung` (`sorted(...)`, `x.sort()`) hoặc `import` thuộc `cam_import` → `FORBIDDEN_CALL`, dừng.
+1. `kiem_cam.py`: duyệt `ast`; gọi hàm có tên trong `cam_dung` (`sorted(...)`, `x.sort()`, `math.isqrt(...)`), `import` thuộc `cam_import`, hoặc gặp nút cú pháp có kiểu trong `cam_cu_phap` (tên lớp của `ast`: `Pow` cho `**`, `Dict`/`DictComp` cho `{k: v}`, `Set`/`SetComp` cho `{x}`) → `FORBIDDEN_CALL`, dừng.
 2. Chạy mọi test cố định và test lớn **không** bật tracer; so output (bỏ khoảng trắng cuối dòng và dòng trống cuối).
 3. Nếu bài có `luat.py`: chạy code học viên với một test cỡ `tb` có tracer (container của học viên), rồi đưa trace thu được vào `luat.py` chạy trong **container tin cậy riêng** (có gắn thư mục bài, nhận trace qua stdin, không chạy code học viên) → `TRACE_RULE` nếu vi phạm.
-4. Gọi `CodeStore.checkpoint(…, "SUBMIT", verdict)` (Người 1) và `ClassEvents.publish(userId, lessonId, status)` (Người 2).
+4. Gọi `CodeStore.checkpoint(…, "SUBMIT", verdict)` (Người 1) và `ClassEvents.publish(userId, lessonId, status, failedTest)` (Người 2) — `failedTest` là id test sai đầu tiên (`lon-2`…), `null` khi qua hết.
 
-**Test:** `kiem_cam.py` bắt `sorted(a)`, `a.sort()`, `from heapq import heappush` khi bị cấm; không bắt biến tên `sorted_list`. `GraderTest` (sandbox giả trả output định sẵn): đúng hết → `OK`; sai một test ẩn → `WRONG`, trong kết quả không có input của test đó; quá giờ → `TIME_LIMIT`.
+**Test:** `kiem_cam.py` bắt `sorted(a)`, `a.sort()`, `from heapq import heappush` khi bị cấm; không bắt biến tên `sorted_list`; `cam_cu_phap: [Pow]` bắt `a ** 2` và `a **= 2` nhưng không bắt `*`; `cam_cu_phap: [Dict]` bắt `{}` và `{1: 2}`. `GraderTest` (sandbox giả trả output định sẵn): đúng hết → `OK`; sai một test ẩn → `WRONG`, trong kết quả không có input của test đó; quá giờ → `TIME_LIMIT`.
 
 **Commit:** `feat(server): chấm bài nộp bằng test ẩn, kiểm hàm cấm và luật trace`
 
@@ -470,9 +473,12 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 - `VariantService.issue(userId, lessonId)`: lấy một đề chưa dùng của người này từ lô đã chuẩn bị, sinh `nonce` 16 byte `SecureRandom` (hex), lưu bảng `variants` với `expires_at = now + 10 phút`.
 - `answer(userId, nonce, answerJson)`: nonce không có / đã dùng / hết hạn / không phải của người này → `ERROR(NONCE_INVALID)`. Đánh dấu `used_at` **trong cùng giao dịch** với việc chấm, để hai gói gửi cùng lúc không cùng được tính.
 - So đáp án theo `question.kind`: `array` (so từng phần tử), `number`, `set` (không quan tâm thứ tự), `text` (bỏ khoảng trắng hai đầu).
-- `ProgressService`: luật spec §8.4 — `streak`, thời gian chờ 0 → 15 → 30 → 60 → 120 s, khoá nộp sau 3 lần sai liên tiếp đến khi đúng một đề dự đoán, điểm 100 − 20 × số lần sai (thấp nhất 40), mở bài trong `mo_khoa` khi thành thạo. Bài giáo viên giao cho lớp (`LESSON_PUSH`, task 2.12) coi như đã mở với cả lớp. Quy ước điền `mo_khoa` ở [danh-muc-bai.md](danh-muc-bai.md#chuỗi-mở-bài).
+- `ProgressService`: luật spec §8.4 — `streak`, thời gian chờ 0 → 15 → 30 → 60 → 120 s, khoá nộp sau 3 lần sai liên tiếp đến khi đúng một đề dự đoán (bài không có bậc dự đoán thì không khoá, chỉ chờ), điểm 100 − 20 × số lần sai (thấp nhất 40), mở bài trong `mo_khoa` khi thành thạo. Quy ước điền `mo_khoa` ở [danh-muc-bai.md](danh-muc-bai.md#chuỗi-mở-bài).
+- **Thành thạo một bài** = qua **bậc cuối** của bài, tức nộp đúng ở bậc code. Đúng 3 đề dự đoán liền chỉ mở bậc kế trong cùng bài, không mở bài khác. Nhờ vậy bài không có bậc dự đoán (phần lớn bài tập, mọi bài luyện tập) vẫn mở được bài sau.
+- **Bài mở sẵn** = bài không nằm trong `mo_khoa` của bài nào khác (bài đầu chương, chương chỉ có luyện tập). Tính một lần khi nạp nội dung.
+- Bài giáo viên giao cho lớp (`LESSON_PUSH`, task 2.12) coi như đã mở với cả lớp.
 
-**Test:** gửi đúng đáp án hai lần cùng nonce → lần hai `NONCE_INVALID`; nonce của người khác → `NONCE_INVALID`; đúng 3 đề liên tiếp → `mastered`; sai giữa chừng → `streak` về 0; nộp sai 3 lần → `SUBMIT_REQ` lần 4 bị `ERROR(LOCKED)` cho tới khi đúng một đề dự đoán.
+**Test:** gửi đúng đáp án hai lần cùng nonce → lần hai `NONCE_INVALID`; nonce của người khác → `NONCE_INVALID`; đúng 3 đề liên tiếp → `mastered`; sai giữa chừng → `streak` về 0; nộp sai 3 lần → `SUBMIT_REQ` lần 4 bị `ERROR(LOCKED)` cho tới khi đúng một đề dự đoán; bài không có bậc dự đoán, nộp đúng → mở bài trong `mo_khoa`; bài không ai trỏ tới → mở sẵn với học viên mới.
 
 **Commit:** `feat(server): bậc dự đoán với mã đề dùng một lần, luật thành thạo và mở bài`
 
@@ -572,10 +578,15 @@ Có công tắc `--heartbeat co-dinh` để đo thí nghiệm 9 (chu kỳ cố �
 
 ```java
 public final class ClassEvents {                                       // spec §17.3
-    public void publish(long userId, String lessonId, StudentStatus status);
+    /** failedTest: id test sai đầu tiên khi status = SAI_TEST, còn lại null. Dùng cho thống kê "N bạn sai test X". */
+    public void publish(long userId, String lessonId, StudentStatus status, String failedTest);
+    /** Cờ dán khối lớn (task 1.14). Giữ tới khi học viên nộp đúng bài đó. */
+    public void flagPaste(long userId, String lessonId);
     public enum StudentStatus { DANG_LAM, SAI_TEST, DA_QUA, GIO_TAY, HA_TAY }
 }
 ```
+
+Chữ ký này **chốt ở ngày 1** (luật giao diện trước): đủ trường cho `CLASS_STATE` bên dưới, để Người 1 và Người 3 không phải chờ đổi.
 
 **Payload:** `CLASS_JOIN` trống (giáo viên gửi để nhận sơ đồ). `CLASS_STATE` `JSON{students:[{userId, name, presence, lessonId, status, failedTest, pasteFlag}], stats:[{lessonId, testId, failCount}]}` — gửi `Priority.CONFLATABLE`, key `"lop"`, nên giáo viên xem chậm chỉ nhận bản mới nhất. `LESSON_PUSH` `str lessonId` (giáo viên → server → mọi học viên trong lớp).
 
