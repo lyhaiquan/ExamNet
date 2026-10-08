@@ -2,7 +2,7 @@
 
 **Mục tiêu:** có số liệu thật cho 8 thí nghiệm bắt buộc (spec §14), mỗi mục tiêu O1–O6 (spec §3) có kết luận đạt hay không; đổ nội dung tới ≥ 100 bài (đích 200).
 
-**Thứ tự trong hai tuần:** ngày 1–2 dựng khung đo (task 4.0); sau đó mỗi người chạy thí nghiệm của mình **buổi sáng** và soạn nội dung **buổi chiều**. Thí nghiệm cần máy thật (TN3) hẹn cả nhóm làm chung một buổi trong phòng máy.
+**Thứ tự trong hai tuần:** ngày 1–2 dựng khung đo (mục "Khung đo" bên dưới); sau đó mỗi người chạy thí nghiệm của mình **buổi sáng** và soạn nội dung **buổi chiều**. Thí nghiệm cần máy thật (TN3) hẹn cả nhóm làm chung một buổi trong phòng máy.
 
 Quy ước chung: xem [README.md](README.md).
 
@@ -25,7 +25,7 @@ Quy ước chung: xem [README.md](README.md).
 
 ---
 
-## Task 4.0: Khung đo (Người 4, ngày 1–2)
+## Khung đo (Người 4, ngày 1–2)
 
 **Files:**
 - Create: `source/bench/src/main/java/labcast/bench/VirtualStudent.java`
@@ -75,7 +75,7 @@ public final class Stats {
 
 ---
 
-## Task 4.1 — TN1: Băng thông chiếu (Người 4)
+## TN1: Băng thông chiếu (Người 4)
 
 **Chứng minh:** O1 (phần băng thông), ĐG1. **File:** `Exp1BangThong.java` → `exp1_bang_thong.csv`.
 
@@ -96,7 +96,7 @@ public final class Stats {
 
 **Commit:** `test(bench): thí nghiệm 1 — băng thông chiếu multicast, TCP và video`
 
-## Task 4.2 — TN2: Đồng hồ và độ lệch giữa các màn hình (Người 3)
+## TN2: Đồng hồ và độ lệch giữa các màn hình (Người 3)
 
 **Chứng minh:** O1 (phần độ lệch), ĐG3. **File:** `Exp2DongHo.java` → `exp2a_sai_so_dong_ho.csv`, `exp2b_lech_man_hinh.csv`.
 
@@ -115,7 +115,7 @@ Chạy N = 10 học viên ảo **trong cùng một tiến trình** (chung đồn
 
 **Commit:** `test(bench): thí nghiệm 2 — sai số đồng hồ và độ lệch giữa các màn hình`
 
-## Task 4.3 — TN3: Mất gói và vào lớp muộn (Người 4, cả nhóm làm chung một buổi)
+## TN3: Mất gói và vào lớp muộn (Người 4, cả nhóm làm chung một buổi)
 
 **Chứng minh:** O2, ĐG1. **File:** `Exp3MatGoi.java` (chạy trên mỗi máy học viên thật, ghi log) → `exp3_mat_goi.csv`.
 
@@ -132,7 +132,7 @@ Chạy N = 10 học viên ảo **trong cùng một tiến trình** (chung đồn
 
 **Commit:** `test(bench): thí nghiệm 3 — mất gói multicast, NACK và vào lớp muộn`
 
-## Task 4.4 — TN4: Mất code khi sự cố (Người 1)
+## TN4: Mất code khi sự cố (Người 1)
 
 **Chứng minh:** O3, ĐG2. **File:** `Exp4MatCode.java` → `exp4_mat_code.csv`.
 
@@ -152,7 +152,7 @@ Bot gõ một đoạn văn bản 2 000 ký tự biết trước, 5 ký tự/s, q
 
 **Commit:** `test(bench): thí nghiệm 4 — mất code khi rút dây, tắt app, đổi máy`
 
-## Task 4.5 — TN5: Độ trễ phản chiếu (Người 1)
+## TN5: Độ trễ phản chiếu (Người 1)
 
 **Chứng minh:** O4, ĐG2. **File:** `Exp5PhanChieu.java` → `exp5_phan_chieu.csv`.
 
@@ -166,7 +166,7 @@ Bot gõ một đoạn văn bản 2 000 ký tự biết trước, 5 ký tự/s, q
 
 **Commit:** `test(bench): thí nghiệm 5 — độ trễ phản chiếu và gộp thay đổi`
 
-## Task 4.6 — TN6: Ảnh hưởng của spam (Người 3)
+## TN6: Ảnh hưởng của spam (Người 3)
 
 **Chứng minh:** O5 (phần spam). **File:** `Exp6Spam.java` → `exp6_spam.csv`.
 
@@ -180,7 +180,7 @@ Bot gõ một đoạn văn bản 2 000 ký tự biết trước, 5 ký tự/s, q
 
 **Commit:** `test(bench): thí nghiệm 6 — một máy spam không làm chậm cả lớp`
 
-## Task 4.7 — TN7: Chạy thử dồn tải (Người 3)
+## TN7: Chạy thử dồn tải (Người 3)
 
 **Chứng minh:** O5 (phần chạy thử); khớp danh sách "Online Judge" của `Instruction.md` §9. **File:** `Exp7DonTai.java` → `exp7_don_tai.csv`.
 
@@ -194,7 +194,7 @@ Bot gõ một đoạn văn bản 2 000 ký tự biết trước, 5 ký tự/s, q
 
 **Commit:** `test(bench): thí nghiệm 7 — 40 lượt chạy thử dồn trong 10 giây`
 
-## Task 4.8 — TN8: Công bằng câu hỏi nhanh (Người 2)
+## TN8: Công bằng câu hỏi nhanh (Người 2)
 
 **Chứng minh:** O6, ĐG4. **File:** `Exp8CongBang.java` → `exp8_cong_bang.csv`.
 
@@ -209,13 +209,13 @@ Bot gõ một đoạn văn bản 2 000 ký tự biết trước, 5 ký tự/s, q
 
 **Commit:** `test(bench): thí nghiệm 8 — công bằng của câu hỏi nhanh khi bù độ trễ`
 
-## Task 4.9 — TN9 (tuỳ chọn): Phát hiện máy rớt (Người 2)
+## TN9 (tuỳ chọn): Phát hiện máy rớt (Người 2)
 
 **File:** `Exp9Heartbeat.java` → `exp9_heartbeat.csv`. 20 học viên ảo qua `DelayProxy`; ở thời điểm ngẫu nhiên `cut()` + `block(true)` một máy. So heartbeat thích nghi với cố định 2 s (`--heartbeat co-dinh`): thời gian tới `SUSPECT`, tới `DISCONNECTED`, số byte heartbeat mỗi phút khi mạng ổn định. **Cột:** `lan, che_do, toi_suspect_ms, toi_disconnected_ms, byte_moi_phut`.
 
 **Commit:** `test(bench): thí nghiệm 9 — heartbeat thích nghi và cố định`
 
-## Task 4.10 — TN10 (tuỳ chọn): Chi phí TLS (Người 2)
+## TN10 (tuỳ chọn): Chi phí TLS (Người 2)
 
 **File:** `Exp10Tls.java` → `exp10_tls.csv`. 1 000 lần kết nối mới (đo thời gian bắt tay tới `HELLO_ACK`); 10 000 lượt hỏi–đáp `LESSON_LIST` trên một kết nối (đo độ trễ); CPU của server đo bằng `ThreadMXBean`. So bật và tắt TLS. **Cột:** `lan, tls, bat_tay_p50_ms, hoi_dap_p50_ms, hoi_dap_p95_ms, cpu_ms`.
 
@@ -236,13 +236,17 @@ Theo spec §17.2. Mỗi người khoảng 13 animation giảng giải và 50 bà
 | 3 | Quy hoạch động (6), SQL cơ bản, gộp nhóm, NULL/CASE, DML (7) | 20: quy hoạch động | 30: cơ bản, gộp nhóm, DML |
 | 4 | Sắp xếp/tìm kiếm (9), DSLK (2), băm (2) | 20: sắp xếp, tìm kiếm, DSLK, băm | 30: tổng hợp nhiều mệnh đề |
 
-Khi có đề cương thật của hai môn (giả định A1), chia lại theo chương của đề cương, giữ nguyên mỗi người ≈ 50 bài.
+Danh sách từng bài (id, loại, bộ vẽ, bậc, ghi chú) ở [danh-muc-bai.md](danh-muc-bai.md). Khi có đề cương thật của hai môn (giả định A1), sửa danh mục đó trước, giữ nguyên mỗi người ≈ 50 bài.
 
 ### Thứ tự làm
 
+Theo năm đợt ở [danh-muc-bai.md](danh-muc-bai.md#thứ-tự-làm-và-mức-cắt):
+
 1. Animation ★ của mình (spec §7.7).
-2. Bài tập có animation (bài `bai-tap`).
-3. Bài chỉ chấm test (bài `luyen-tap`).
+2. Bài tập thuộc bộ lõi (BT◆).
+3. Animation giảng giải còn lại.
+4. Nửa đầu bảng bài tập và bảng luyện tập của mỗi chương.
+5. Phần còn lại.
 
 Mỗi PR gói **một chương** (5–15 bài), tiêu đề kiểu `feat(content): thêm 12 bài chương quy hoạch động`.
 

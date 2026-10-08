@@ -905,7 +905,7 @@ Leader còn giữ: `MessageType`, `ErrorCode`, các `pom.xml`, CI, đóng gói, 
 | Người 4 | Sắp xếp/tìm kiếm (9), DSLK (2), băm (2) — **13** | 20: sắp xếp, tìm kiếm, DSLK, băm | 30: bài tổng hợp nhiều mệnh đề (loại `luyen-tap`) |
 | **Tổng** | **53** | **100** | **100** |
 
-Riêng 4 bài mẫu của bộ demo tối thiểu (§1 R5) do **chủ bộ vẽ** làm ngay trong giai đoạn 1–3 để kiểm bộ máy.
+Riêng 6 bài mẫu do **chủ bộ vẽ** làm ngay trong giai đoạn 1–3 để kiểm bộ máy: bộ demo tối thiểu ở §1 R5 (4 bài DSA và bài SQL GROUP BY) cùng bài SQL lọc sinh viên. Các bài này tính vào phần của chủ chương; danh sách ở `docs/plans/danh-muc-bai.md`.
 
 ### 17.3. Chỗ giao nhau
 

@@ -8,6 +8,43 @@ Quy ước chung, bảng mã và ký hiệu payload: xem [README.md](README.md).
 
 ---
 
+## Thứ tự và phụ thuộc
+
+**Luật giao diện trước:** ai cung cấp một giao diện cho người khác thì trong **ngày 1–2** merge một PR nhỏ chỉ gồm chữ ký hàm, cài đặt rỗng (không làm gì, hoặc trả giá trị mặc định) và một test. Người dùng gọi được ngay, không phải chờ bản thật. Bản thật thay vào sau, không đổi chữ ký.
+
+| Giao diện | Người cung cấp, task | Bản rỗng ngày | Người dùng, task |
+| --- | --- | --- | --- |
+| `ClassEvents.publish(userId, lessonId, status)` | 2, task 2.12 | 1 | 3 (task 3.8), 1 (giai đoạn 3) |
+| `CodeStore.checkpoint(userId, lessonId, reason, verdict)` | 1, task 1.7 | 2 | 3 (task 3.8) |
+| `Presence.srtt(userId)` | 2, task 2.11 | 2 | 2 (task 2.13) |
+| Kết quả chuẩn bị bài (test ẩn, đề biến thể, test nhỏ có output) | 3, task 3.7 | 3 (đọc từ file JSON viết tay) | 3 (task 3.8, 3.10), giai đoạn 3 (task 3.16, 3.19) |
+| `viz.NganXep`, `viz.HangDoi` | 3, task 3.9 | 4 (bản thật, việc nhỏ) | 4 (task 4.8) |
+| `Clock.serverNow()` có chỉnh dần | 3, task 3.6 | đã có bản đầu từ giai đoạn 1 | 4 (task 4.6), 2 (task 2.13) |
+| `PracticeController`, `PresenterPane`, `QuizPane` | 3 (3.13), 4 (4.7), 2 (2.13) | không cần bản rỗng | 2 (task 2.14, lắp màn) |
+
+Bản đầu của `Clock` từ giai đoạn 1 đủ để Người 4 và Người 2 bắt đầu. Task 3.6 chỉ làm cho số đo chính xác hơn, cần xong trước nghiệm thu M2.
+
+**Lịch theo ngày** (15 ngày làm việc của tuần 4–6; ngày ghi là ngày **merge**):
+
+```text
+           Tuần 4 (ngày 1–5)               Tuần 5 (ngày 6–10)                Tuần 6 (ngày 11–15)
+Người 2    2.12 rỗng(1) · 2.11(2–4)        2.13 quiz(5–9)                    2.12 thật(10–12) · 2.14(13–15)
+Người 1    1.7 rỗng(2) · 1.5(1–4)          1.6(5–7) · 1.7 thật(8–10)         1.8(11–12) · 1.9(13–15)
+Người 3    3.7(1–3) · 3.9(4) · 3.8(5–7)    3.10(8–9) · 3.11(10)              3.6(11) · 3.12(12–13) · 3.13(14–15)
+Người 4    4.4(1–3) · 4.5(4–6)             4.6(7–9) · 4.7(10–11)             4.8(12–15)
+Ngày 10    Ghép thử trên 2 máy: chiếu bài nổi bọt (4.4–4.6) và câu hỏi nhanh (2.13)
+Ngày 15    Nghiệm thu M2
+```
+
+> **Lệch tải cần quyết:** Người 3 có 8 task ở giai đoạn này và 7 task ở giai đoạn 3, lại đứng đầu nguồn của nhiều người; Người 2 có 4 task mỗi giai đoạn. Lịch trên đã xếp sát cho Người 3, trễ một task là trễ M2. Đây đúng là câu hỏi còn treo "chuyển phần SQL (task 3.12, 3.13, 3.14 và bộ vẽ `bang-sql`) sang Người 4":
+>
+> - **Giữ nguyên:** Người 3 làm hết; nếu trễ thì SQL bản đầu (3.12, 3.13) lùi sang tuần 7, bỏ dòng SQL khỏi nghiệm thu M2.
+> - **Chuyển SQL sang Người 4:** Người 3 còn 6 task ở giai đoạn này, 6 ở giai đoạn 3. Người 4 thêm 2 + 1 task. ĐG3 và ĐG1 không đổi chủ. Người 4 đã có bộ vẽ bảng (`mang`) nên làm `bang-sql` thuận tay.
+>
+> Nhóm chốt một trong hai **trước ngày 1** của giai đoạn này.
+
+---
+
 ## Người 4 — ĐG1: chiếu animation qua multicast
 
 ### Task 4.4: Phát multicast phía server
@@ -177,11 +214,17 @@ public final class CastSession {
 - Create: `source/client/src/main/java/labcast/client/views/dslk/ListModel.java`, `ListView.java`
 - Create: `source/client/src/main/java/labcast/client/views/bam/HashModel.java`, `HashView.java`
 - Create: `content/dsa/ngan-xep/trung-to-hau-to/` (đủ file như bài nổi bọt; dùng `viz.NganXep` của Người 3, task 3.9)
-- Test: `StackModelTest`, `ListModelTest`, `HashModelTest`
+- Create: `runner/viz/dslk.py` (`Nut`), `runner/viz/bam.py` (`BangBam`) — trong `runner/` nên Người 3 duyệt PR
+- Test: `StackModelTest`, `ListModelTest`, `HashModelTest`, `runner/tests/test_dslk.py`, `runner/tests/test_bam.py`
 
 Sự kiện: `push`, `pop`, `enq`, `deq` (ngăn xếp/hàng đợi); `link`, `unlink` (DSLK); `bucket` (băm: `{"t":"bucket","v":"h","i":3,"x":17}`). Mỗi model trả danh sách thay đổi để view vẽ, giống `ArrayModel`. Ngăn xếp vẽ đứng, hàng đợi vẽ ngang (cùng một model, khác cách bố trí).
 
-**Test:** `push 1, push 2, pop` → trạng thái `[1]`, thay đổi cuối là `Pop(2)`; `pop` khi rỗng → `IllegalStateException` (trace sai, báo rõ); `deq` lấy phần tử đầu.
+**Phía Python** (cấu trúc gắn camera):
+
+- `Nut(gia_tri, ten="ds")`: tạo nút → `node`; gán `.tiep = y` → `unlink` cạnh cũ (nếu có) rồi `link` tới `y`; `ten_dau = …` khai báo trong `khung_nhin` để vẽ con trỏ đầu danh sách.
+- `BangBam(m, kieu="day-chuyen", ten="h")`: `them(k)`, `tim(k)`, `xoa(k)` → `bucket` (ô `i = k % m`, dây chuyền) và `read` ở các ô dò (địa chỉ mở, dò tuyến tính). Dùng cho bài giảng giải. Bài tập băm cho học viên tự viết hàm dò trên một `viz.Mang` làm bảng, nên không cần lớp này.
+
+**Test:** `push 1, push 2, pop` → trạng thái `[1]`, thay đổi cuối là `Pop(2)`; `pop` khi rỗng → `IllegalStateException` (trace sai, báo rõ); `deq` lấy phần tử đầu. Python: `a.tiep = b; a.tiep = c` → `link a b`, `unlink a b`, `link a c`; `BangBam(7)` thêm 3 rồi 10 → cùng ô 3, hai sự kiện `bucket`.
 
 **Commit:** `feat(client): bộ vẽ ngăn xếp, danh sách liên kết, bảng băm và bài trung tố → hậu tố`
 
@@ -278,12 +321,25 @@ Khi mở một bài: gửi `CHECKPOINT_FETCH(lessonId, 0, −1)` → nạp `code
 
 **Files:**
 - Create: `source/client/src/main/java/labcast/client/views/cay/TreeModel.java`, `TreeLayout.java`, `TreeView.java`
-- Test: `TreeModelTest`, `TreeLayoutTest`
+- Create: `runner/viz/cay.py` (`NutCay`, `danh_dau`, `xoay`) — trong `runner/` nên Người 3 duyệt PR
+- Test: `TreeModelTest`, `TreeLayoutTest`, `runner/tests/test_cay.py`
 
 - Hai nguồn dữ liệu: sự kiện `node`/`edge`/`mark`/`rotate` (cây nhị phân tìm kiếm, AVL), hoặc một list vẽ thành heap (`kieu: heap`, con của `i` là `2i+1`, `2i+2`).
 - `TreeLayout`: hoành độ theo thứ tự duyệt giữa, tung độ theo độ sâu — đủ cho cây ≤ 31 nút.
+- **Phía Python** (cấu trúc gắn camera, giống `viz.Mang`):
 
-**Test:** heap `[1,3,2,7]` → nút 7 là con trái của 3; layout cây 3 nút cân → gốc nằm giữa hai con; `rotate` phải tại gốc của cây lệch trái 3 nút → gốc mới đúng.
+  ```python
+  class NutCay:
+      """Nút cây nhị phân. Gán .trai / .phai sinh sự kiện edge; tạo nút sinh node."""
+      def __init__(self, khoa, ten="t"): ...           # → {"t":"node","v":ten,"id":…,"x":khoa}
+      def __setattr__(self, k, v): ...                  # k ∈ {trai, phai}: bỏ cạnh cũ, thêm cạnh mới → edge
+  def danh_dau(nut, trang_thai): ...                    # → mark; trang_thai ∈ dang-xet | xong | loai
+  def xoay(nut, huong): ...                             # → rotate; chỉ ghi sự kiện, lời giải tự đổi con trỏ
+  ```
+
+  `id` của nút là số tăng dần theo thứ tự tạo, nên trace của hai lần chạy cùng input giống nhau. Heap không cần lớp riêng: `khung_nhin` khai báo `kieu: heap` cho một `viz.Mang` hoặc `list`.
+
+**Test:** heap `[1,3,2,7]` → nút 7 là con trái của 3; layout cây 3 nút cân → gốc nằm giữa hai con; `rotate` phải tại gốc của cây lệch trái 3 nút → gốc mới đúng. Python: chèn 2, 1, 3 vào cây nhị phân tìm kiếm dựng bằng `NutCay` → 3 `node`, 2 `edge` đúng cha con.
 
 **Commit:** `feat(client): thêm bộ vẽ cây và heap`
 
@@ -414,7 +470,7 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 - `VariantService.issue(userId, lessonId)`: lấy một đề chưa dùng của người này từ lô đã chuẩn bị, sinh `nonce` 16 byte `SecureRandom` (hex), lưu bảng `variants` với `expires_at = now + 10 phút`.
 - `answer(userId, nonce, answerJson)`: nonce không có / đã dùng / hết hạn / không phải của người này → `ERROR(NONCE_INVALID)`. Đánh dấu `used_at` **trong cùng giao dịch** với việc chấm, để hai gói gửi cùng lúc không cùng được tính.
 - So đáp án theo `question.kind`: `array` (so từng phần tử), `number`, `set` (không quan tâm thứ tự), `text` (bỏ khoảng trắng hai đầu).
-- `ProgressService`: luật spec §8.4 — `streak`, thời gian chờ 0 → 15 → 30 → 60 → 120 s, khoá nộp sau 3 lần sai liên tiếp đến khi đúng một đề dự đoán, điểm 100 − 20 × số lần sai (thấp nhất 40), mở bài trong `mo_khoa` khi thành thạo.
+- `ProgressService`: luật spec §8.4 — `streak`, thời gian chờ 0 → 15 → 30 → 60 → 120 s, khoá nộp sau 3 lần sai liên tiếp đến khi đúng một đề dự đoán, điểm 100 − 20 × số lần sai (thấp nhất 40), mở bài trong `mo_khoa` khi thành thạo. Bài giáo viên giao cho lớp (`LESSON_PUSH`, task 2.12) coi như đã mở với cả lớp. Quy ước điền `mo_khoa` ở [danh-muc-bai.md](danh-muc-bai.md#chuỗi-mở-bài).
 
 **Test:** gửi đúng đáp án hai lần cùng nonce → lần hai `NONCE_INVALID`; nonce của người khác → `NONCE_INVALID`; đúng 3 đề liên tiếp → `mastered`; sai giữa chừng → `streak` về 0; nộp sai 3 lần → `SUBMIT_REQ` lần 4 bị `ERROR(LOCKED)` cho tới khi đúng một đề dự đoán.
 

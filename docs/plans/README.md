@@ -10,6 +10,7 @@ Mỗi file là kế hoạch triển khai của **một giai đoạn** trong [`..
 | [giai-doan-3.md](giai-doan-3.md) | Trợ giúp và hoàn thiện | 7–8 |
 | [giai-doan-4.md](giai-doan-4.md) | Thí nghiệm và nội dung | 9–10 |
 | [giai-doan-5.md](giai-doan-5.md) | Đóng gói và bảo vệ | 11 |
+| [danh-muc-bai.md](danh-muc-bai.md) | Danh mục 53 bài giảng giải, 100 bài DSA, 100 bài SQL (bản tạm, chờ đề cương) | soạn ở tuần 9–10 |
 
 ## Mức chi tiết
 

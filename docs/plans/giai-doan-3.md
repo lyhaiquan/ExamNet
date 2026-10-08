@@ -8,6 +8,36 @@ Quy ước chung, bảng mã và ký hiệu payload: xem [README.md](README.md).
 
 ---
 
+## Thứ tự và phụ thuộc
+
+Cùng luật "giao diện trước" như giai đoạn 2: người cung cấp merge chữ ký và bản rỗng trong ngày 1–2.
+
+| Giao diện | Người cung cấp, task | Cần trước ngày | Người dùng, task |
+| --- | --- | --- | --- |
+| `RunService.lastTrace(userId, lessonId)` | 3, task 3.20 | 1 (bản thật, việc nhỏ — làm **đầu tiên** dù đánh số cuối) | 1 (task 1.13), 4 (task 4.12) |
+| `viz.cat(nhan)` và sự kiện `call`/`ret`/`prune` từ tracer | 3, task 3.17 | 4 | 1 (task 1.15, cây lời gọi N-Queens) |
+| Bộ vẽ `luoi` | 3, task 3.18 | 6 | 1 (task 1.15, bàn cờ N-Queens) |
+| Sự kiện `line`, `vars` từ tracer | 3, task 3.17 | 4 | 4 (task 4.13; trước đó dùng trace viết tay) |
+| `CastState` (dựng lại khúc `CAST_DATA` bất kỳ) | 4, task 4.9 | 3 | 4 (task 4.11) |
+| `CodeStore.onAccepted(listener)` | 1, task 1.11 | 3 | 1 (task 1.11, 1.14) |
+| Kết quả chuẩn bị bài có 200 test nhỏ kèm output | 3, task 3.7 (giai đoạn 2) | đã có | 3 (task 3.16, 3.19) |
+
+**Lịch theo ngày** (10 ngày làm việc của tuần 7–8; ngày ghi là ngày **merge**):
+
+```text
+           Tuần 7 (ngày 1–5)                          Tuần 8 (ngày 6–10)
+Người 1    1.10(1–2) · 1.11(3–5)                      1.12(6) · 1.13(7–8) · 1.14(8) · 1.15(9–10)
+Người 2    2.16(1–2) · 2.15(3–5)                      2.17(6–7) · 2.18(8–9) · dựng phòng thử M3(10)
+Người 3    3.20(1) · 3.17(2–4) · 3.18(5–6)            3.14(7–8) · 3.15(9) · 3.16(9–10) · 3.19(10)
+Người 4    4.9(1–3) · 4.10(4–5)                       4.11(6) · 4.12(7) · 4.13(8–10)
+Ngày 5     Ghép thử: giơ tay → phản chiếu (1.10, 1.11) và sửa gói mất (4.9) trên 3 máy
+Ngày 10    Nghiệm thu M3 trên ≥ 4 máy
+```
+
+> **Lệch tải:** Người 3 có 7 task trong 10 ngày, ba task cuối dồn vào ngày 9–10. Xem ghi chú ở [giai-doan-2.md](giai-doan-2.md#thứ-tự-và-phụ-thuộc). Nếu nhóm giữ nguyên phân công và Người 3 trễ, thứ tự lùi sang giai đoạn 4 theo spec §1 R5: task 3.15 (tự mô phỏng) rồi 3.16 (phản ví dụ). Task 3.19 (kiểm nội dung trên CI) **không lùi**, vì giai đoạn 4 đổ nội dung dựa vào nó.
+
+---
+
 ## Người 1 — trợ giúp trực tiếp
 
 ### Task 1.10: Giơ tay và hàng chờ trợ giúp
@@ -112,13 +142,29 @@ Một delta chèn > 200 ký tự → `ClassEvents.publish` kèm cờ `pasteFlag`
 - Create: `source/client/src/main/java/labcast/client/views/caygoi/CallTreeModel.java`, `CallTreeView.java`
 - Create: `source/client/src/main/java/labcast/client/views/dothi/GraphModel.java`, `GraphLayout.java`, `GraphView.java`
 - Create: `content/dsa/quay-lui/n-queens/` (cùng Người 3: bàn cờ dùng bộ vẽ `luoi`)
-- Test: `CallTreeModelTest`, `GraphModelTest`, `GraphLayoutTest`
+- Create: `runner/viz/do_thi.py` (`DoThi`)
+- Test: `CallTreeModelTest`, `GraphModelTest`, `GraphLayoutTest`, `runner/tests/test_do_thi.py`
 
 **`cay-goi`** nhận `call` (`id`, `p` = id cha, `f`, `args`), `ret` (`id`, `x`), `prune` (`p`, `s` = nhãn nhánh bị cắt, do `viz.cat(...)` sinh — task 3.17):
 - Nút đang chạy: vàng. Trả về giá trị đúng (khác `False`/`None`): xanh. Trả về mà không thành công: đỏ (quay lui). Nhánh `prune`: xám, dấu ✗.
 - Cây con đã xong và không chứa lời giải thì **thu gọn** thành một nút "…".
 
 **`do-thi`** nhận `node`, `edge` (`u`, `w`, `wt`), `mark` (`id` hoặc `e`, `s` = trạng thái); hoặc chụp biến `adj` (danh sách kề). Bố trí: đỉnh xếp vòng tròn khi ≤ 20 đỉnh; trọng số ghi giữa cạnh.
+
+**Phía Python:** `runner/viz/do_thi.py` (Người 3 duyệt PR, vì nằm trong `runner/`):
+
+```python
+class DoThi:
+    """Đồ thị gắn camera. Tạo xong sinh node + edge cho mọi đỉnh, cạnh."""
+    def __init__(self, n, canh, co_huong=False, ten="g"): ...   # canh: [(u, w, trong_so), …]
+    def ke(self, u): ...       # trả [(w, trong_so), …]; sinh mark u "dang-xet" và mark từng cạnh (u, w) "dang-xet"
+    def danh_dau(self, u, trang_thai): ...                         # → mark đỉnh: xong | loai | trong-cay
+    def danh_dau_canh(self, u, w, trang_thai): ...                 # → mark cạnh (Prim, Kruskal, đường đi ngắn nhất)
+```
+
+Bài tập đồ thị đưa `DoThi` sẵn trong `khung.py`; học viên gọi `g.ke(u)` thay cho `adj[u]` là thấy được thứ tự duyệt. Mảng `dist`, `da_tham` dùng `viz.Mang` như thường.
+
+**Test Python:** `DoThi(3, [(0,1,1),(1,2,1)])` → 3 `node`, 2 `edge`; `g.ke(1)` → `mark 1` và 2 `mark` cạnh (đồ thị vô hướng).
 
 **Test:** `call 1`, `call 2 (p=1)`, `ret 2 False`, `prune p=1 "cột 2"`, `call 3 (p=1)`, `ret 3 True`, `ret 1 True` → nút 2 đỏ, nút xám dưới 1, nút 3 xanh; danh sách kề `{0:[1,2],1:[2]}` → 3 đỉnh, 3 cạnh; layout 6 đỉnh → các đỉnh cách tâm bằng nhau.
 
@@ -217,7 +263,7 @@ Hiện code (lấy từ ô soạn hoặc `LESSON_DATA`), tô sáng dòng theo s�
 **Files:**
 - Modify: `source/server/src/main/java/labcast/server/sqlviz/SqliteEngine.java`
 - Create: `source/server/src/main/java/labcast/server/sqlviz/StepPlanner.java`, `Grouping.java`
-- Create: `content/sql/gom-nhom/diem-trung-binh-lop/` (bài mẫu GROUP BY, đúng ví dụ ở spec §7.6)
+- Create: `content/sql/gom-nhom/diem-trung-binh-lop/` (bài mẫu GROUP BY + HAVING, đề ở [danh-muc-bai.md](danh-muc-bai.md))
 - Test: `StepPlannerTest`, `GroupingTest`
 
 Làm đủ bảng tách bước ở spec §7.6. Chỗ khó:
@@ -314,7 +360,9 @@ Sai một bước → `SIM_RESULT{ok:false}`, đề hết hiệu lực, muốn l
 1. `lesson.yaml` hợp lệ: đủ trường bắt buộc, `kieu` thuộc danh sách bộ vẽ, `mo_khoa` trỏ tới bài có thật.
 2. Chạy bước chuẩn bị (task 3.7 giai đoạn 2): `loi_giai.py` cho đúng output của mọi test cố định trong `tests/`.
 3. Trace giảng giải không `truncated`.
-4. Bài SQL: `dap_an.sql` qua `SqlGuard` và chạy được trên database mẫu.
+4. Bài SQL: `dap_an.sql` qua `SqlGuard` và chạy được trên database mẫu; `schema.sql` khác bản ở `content/sql/_csdl/` mà không khai báo bảng thêm → cảnh báo (không làm hỏng CI).
+
+Bỏ qua mọi thư mục có tên bắt đầu bằng `_` (`_mau`, `_csdl`).
 
 In mọi lỗi kèm tên thư mục, thoát mã 1 nếu có lỗi. Bước CI:
 
