@@ -70,6 +70,9 @@ class SandboxTest {
     @Test
     void docker_khongCoMang_vaBiGietKhiQuaGio() throws Exception {
         assumeTrue(DockerSandbox.available(), "Docker không chạy");
+        assumeTrue(
+                DockerSandbox.imageAvailable(DockerSandbox.DEFAULT_IMAGE),
+                "chưa có image: docker build -t labcast-runner:py3.12 runner");
         var d = new DockerSandbox(DockerSandbox.DEFAULT_IMAGE);
         Outcome net = d.run(
                 new Job("import socket\nsocket.create_connection((\"1.1.1.1\", 80), 2)\n", "", false, 5_000), l -> {});

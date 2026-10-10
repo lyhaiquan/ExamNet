@@ -63,6 +63,19 @@ public final class DockerSandbox extends ProcessSandbox {
         p.destroyForcibly();
     }
 
+    /** Image runner đã được build hoặc {@code docker load} trên máy này. */
+    public static boolean imageAvailable(String image) {
+        try {
+            Process p = new ProcessBuilder("docker", "image", "inspect", image)
+                    .redirectErrorStream(true)
+                    .start();
+            p.getInputStream().readAllBytes();
+            return p.waitFor(15, TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /** {@code docker info} chạy được: Docker Desktop đang bật. */
     public static boolean available() {
         try {
