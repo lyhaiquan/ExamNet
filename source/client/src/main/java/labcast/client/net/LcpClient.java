@@ -69,6 +69,12 @@ public final class LcpClient implements AutoCloseable {
 
     public LcpClient(String device) {
         this.device = device;
+        // Server chủ động chia tay (đăng nhập ở máy khác, server tắt): KHÔNG tự nối lại.
+        on(MessageType.BYE, f -> {
+            closed = true;
+            closeSocket();
+            setState(State.CLOSED);
+        });
         on(MessageType.HEARTBEAT, f -> {
             try {
                 send(heartbeat.ackFor(f));

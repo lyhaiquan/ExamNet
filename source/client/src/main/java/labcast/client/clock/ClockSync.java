@@ -1,6 +1,10 @@
 package labcast.client.clock;
 
 import java.util.function.LongSupplier;
+import labcast.client.net.LcpClient;
+import labcast.common.protocol.MessageType;
+import labcast.common.protocol.PayloadReader;
+import labcast.common.protocol.PayloadWriter;
 
 /**
  * Ước lượng độ lệch giữa đồng hồ máy này và đồng hồ server, kiểu NTP (ĐG3). Bản giai đoạn 1: giữ mẫu
@@ -49,6 +53,38 @@ public final class ClockSync implements Clock {
 
     public synchronized boolean isSynced() {
         return bestDelay != Long.MAX_VALUE;
+    }
+
+    /**
+     * Đo ngay sau khi vào lớp: gửi 5 {@code TIME_SYNC_REQ(t1)} cách nhau 100 ms, mỗi {@code
+     * TIME_SYNC_RESP(t1, t2, t3)} ghi {@code t4} ngay khi nhận rồi thêm mẫu. Giai đoạn 2 đo lại định kỳ.
+     */
+    public void start(LcpClient client) {
+        client.on(MessageType.TIME_SYNC_RESP, f -> {
+            long t4 = localNow();
+            try {
+                PayloadReader r = f.reader();
+                addSample(r.i64(), r.i64(), r.i64(), t4);
+            } catch (Exception ignored) {
+                // mẫu hỏng: bỏ
+            }
+        });
+        Thread t = new Thread(
+                () -> {
+                    for (int i = 0; i < 5; i++) {
+                        client.send(
+                                MessageType.TIME_SYNC_REQ,
+                                new PayloadWriter().i64(localNow()).toBytes());
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            return;
+                        }
+                    }
+                },
+                "dong-bo-gio");
+        t.setDaemon(true);
+        t.start();
     }
 
     /** Giờ máy, để ghi t1, t4. */

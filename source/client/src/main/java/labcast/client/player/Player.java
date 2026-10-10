@@ -72,7 +72,9 @@ public final class Player {
     /** Dựng lại từ keyframe gần nhất trước k rồi áp tới k, KHÔNG animation. k = −1 là về đầu. */
     public void seek(int k) {
         k = Math.max(-1, Math.min(k, trace.size() - 1));
-        int s = trace.snapshotBefore(k);
+        // Ở vị trí đầu (−1) vẫn lấy keyframe ở chỉ số 0 nếu có: đó là trạng thái ban đầu của mảng,
+        // không có nó thì màn hình trống tới khi bấm Phát.
+        int s = trace.snapshotBefore(Math.max(k, 0));
         resetViews(s);
         for (int i = s + 1; i <= k; i++) {
             dispatch(trace.events().get(i), false, Duration.ZERO);

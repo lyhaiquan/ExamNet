@@ -148,4 +148,13 @@ class PlayerTest {
         p.seek(-1);
         assertNull(v.resets.get(v.resets.size() - 1));
     }
+
+    @Test
+    void viTriDau_vanVeTrangThaiBanDau() throws Exception {
+        var v = new ViewGia("mang");
+        var p = new Player(trace1000(), Map.of("a", v), () -> 0L);
+        p.seek(-1);
+        assertEquals(0, v.resets.get(v.resets.size() - 1).get(0).asInt()); // keyframe ở chỉ số 0
+        assertEquals(-1, p.position());
+    }
 }
