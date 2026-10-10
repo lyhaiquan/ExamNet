@@ -25,6 +25,7 @@ import labcast.server.run.RunModule;
 import labcast.server.session.SessionManager;
 import labcast.server.store.AuditLog;
 import labcast.server.store.Database;
+import labcast.server.sync.SyncModule;
 
 /** Lắp các phần của server: router, pool nghiệp vụ, vòng accept và các module. */
 public final class LabCastServer implements AutoCloseable {
@@ -34,6 +35,7 @@ public final class LabCastServer implements AutoCloseable {
     public static List<ServerModule> modules() {
         return List.of(
                 new AccountModule(), // Người 2
+                new SyncModule(), // Người 3
                 new LessonModule(), // Người 3
                 new RunModule(), // Người 3
                 new JournalModule() // Người 1
