@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,6 +67,7 @@ public final class Connection implements AutoCloseable {
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile boolean closing;
     private volatile Session session;
+    private final Map<String, Object> attrs = new ConcurrentHashMap<>();
     private Thread reader;
     private Thread writer;
 
@@ -101,6 +104,15 @@ public final class Connection implements AutoCloseable {
 
     public void bindSession(Session s) {
         this.session = s;
+    }
+
+    /** Thông tin gắn với kết nối, ví dụ tên máy gửi trong HELLO. */
+    public Object attr(String key) {
+        return attrs.get(key);
+    }
+
+    public void setAttr(String key, Object value) {
+        attrs.put(key, value);
     }
 
     public OutboundQueue queue() {

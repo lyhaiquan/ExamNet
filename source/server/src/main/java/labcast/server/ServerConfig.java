@@ -47,6 +47,14 @@ public record ServerConfig(
         return new ServerConfig(port, db, c, lop, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
     }
 
+    public ServerConfig withLop(String l) {
+        return new ServerConfig(port, db, content, l, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
+    }
+
+    public ServerConfig withTaoGiaoVien(String t) {
+        return new ServerConfig(port, db, content, lop, lan, t, khongSandbox, discoveryPort, statusPort);
+    }
+
     public ServerConfig withKhongSandbox(boolean k) {
         return new ServerConfig(port, db, content, lop, lan, taoGiaoVien, k, discoveryPort, statusPort);
     }

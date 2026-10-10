@@ -11,9 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.ProtocolException;
+import labcast.server.account.AccountModule;
 import labcast.server.net.Connection;
 import labcast.server.net.Router;
 import labcast.server.net.TcpServer;
+import labcast.server.session.SessionManager;
+import labcast.server.store.AuditLog;
 import labcast.server.store.Database;
 
 /** Lắp các phần của server: router, pool nghiệp vụ, vòng accept và các module. */
@@ -23,6 +26,7 @@ public final class LabCastServer implements AutoCloseable {
     /** Danh sách module của server thật. Thêm module mới: mỗi module một dòng. */
     public static List<ServerModule> modules() {
         return List.of(
+                new AccountModule() // Người 2
                 // thêm module mới ở đây, mỗi module một dòng
                 );
     }
@@ -36,7 +40,9 @@ public final class LabCastServer implements AutoCloseable {
         this.pool = Executors.newFixedThreadPool(
                 Math.max(4, Runtime.getRuntime().availableProcessors() * 2), named("nghiep-vu"));
         this.scheduler = Executors.newScheduledThreadPool(2, named("hen-gio"));
-        this.ctx = new ServerContext(new Router(), db, scheduler, cfg);
+        AuditLog audit = new AuditLog(db);
+        this.ctx = new ServerContext(
+                new Router(), db, scheduler, cfg, new SessionManager(db, audit, System::currentTimeMillis), audit);
         installCore();
         for (ServerModule m : modules) {
             m.install(ctx);
@@ -83,11 +89,13 @@ public final class LabCastServer implements AutoCloseable {
         @Override
         public void closed(Connection c) {
             tcp.forget(c);
+            ctx.sessions().onDisconnect(c);
         }
 
         @Override
         public void badFrame(Connection c, ProtocolException e) {
             LOG.warning("Frame hỏng từ " + c.remoteAddress() + ": " + e.getMessage());
+            ctx.audit().record(c.remoteAddress(), "BAD_FRAME", e.getMessage());
         }
     }
 
