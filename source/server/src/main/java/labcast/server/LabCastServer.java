@@ -15,6 +15,7 @@ import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
 import labcast.server.account.AccountModule;
+import labcast.server.journal.JournalModule;
 import labcast.server.net.Connection;
 import labcast.server.net.Router;
 import labcast.server.net.TcpServer;
@@ -30,7 +31,8 @@ public final class LabCastServer implements AutoCloseable {
     /** Danh sách module của server thật. Thêm module mới: mỗi module một dòng. */
     public static List<ServerModule> modules() {
         return List.of(
-                new AccountModule() // Người 2
+                new AccountModule(), // Người 2
+                new JournalModule() // Người 1
                 // thêm module mới ở đây, mỗi module một dòng
                 );
     }
