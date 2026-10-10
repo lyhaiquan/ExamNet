@@ -1,0 +1,118 @@
+package labcast.client.editor;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.scene.Node;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import labcast.common.protocol.CodeDelta;
+import org.fxmisc.flowless.VirtualizedScrollPane;
+import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.LineNumberFactory;
+import org.fxmisc.richtext.model.StyleSpans;
+import org.fxmisc.richtext.model.StyleSpansBuilder;
+
+/**
+ * Ô soạn code Python (RichTextFX): tô màu từ khoá, số dòng, Tab thành 4 dấu cách. Mỗi thay đổi đi qua
+ * {@link DeltaBatcher} để gộp thành delta rồi giao cho {@code sink} (thường là {@code JournalClient}).
+ */
+public final class CodeEditor {
+    private static final String[] KEYWORDS = {
+        "False", "None", "True", "and", "as", "assert", "break", "class", "continue", "def", "del", "elif", "else",
+        "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or",
+        "pass", "raise", "return", "try", "while", "with", "yield"
+    };
+    private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>\\b(" + String.join("|", KEYWORDS) + ")\\b)"
+            + "|(?<STRING>\"([^\"\\\\\\n]|\\\\.)*\"|'([^'\\\\\\n]|\\\\.)*')"
+            + "|(?<COMMENT>#[^\\n]*)"
+            + "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)");
+
+    private final CodeArea area = new CodeArea();
+    private final VirtualizedScrollPane<CodeArea> pane = new VirtualizedScrollPane<>(area);
+    private DeltaBatcher batcher;
+    private boolean loading;
+
+    public CodeEditor() {
+        area.setParagraphGraphicFactory(LineNumberFactory.get(area));
+        area.getStylesheets().add(CodeEditor.class.getResource("python.css").toExternalForm());
+        area.setStyle("-fx-font-family: 'Consolas', 'Courier New', monospace; -fx-font-size: 14px;");
+        area.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.TAB) {
+                area.replaceSelection("    ");
+                e.consume();
+            }
+        });
+        area.plainTextChanges().subscribe(ch -> {
+            if (!loading && batcher != null) {
+                batcher.onChange(ch.getPosition(), ch.getRemoved(), ch.getInserted());
+            }
+        });
+        area.textProperty().addListener((obs, o, n) -> area.setStyleSpans(0, highlight(n)));
+        Timeline ticker = new Timeline(new KeyFrame(javafx.util.Duration.millis(50), e -> {
+            if (batcher != null) {
+                batcher.tick();
+            }
+        }));
+        ticker.setCycleCount(Timeline.INDEFINITE);
+        ticker.play();
+    }
+
+    /** Nạp code của một bài (không sinh delta), đánh số tiếp từ {@code seq} server đang có. */
+    public void load(String lessonId, String code, long seq, Consumer<CodeDelta> sink) {
+        if (batcher != null) {
+            batcher.flush();
+        }
+        loading = true;
+        try {
+            area.replaceText(code);
+            area.moveTo(0);
+            area.getUndoManager().forgetHistory();
+        } finally {
+            loading = false;
+        }
+        batcher = new DeltaBatcher(lessonId, System::currentTimeMillis, sink);
+        batcher.setLastSeq(seq);
+    }
+
+    /** Xả delta đang gộp ngay, ví dụ trước khi bấm Chạy thử. Trả seq cuối đã gửi. */
+    public long flush() {
+        if (batcher == null) {
+            return 0;
+        }
+        batcher.flush();
+        return batcher.lastSeq();
+    }
+
+    public String text() {
+        return area.getText();
+    }
+
+    public Node node() {
+        return pane;
+    }
+
+    public void setEditable(boolean editable) {
+        area.setEditable(editable);
+    }
+
+    static StyleSpans<Collection<String>> highlight(String text) {
+        Matcher m = PATTERN.matcher(text);
+        StyleSpansBuilder<Collection<String>> b = new StyleSpansBuilder<>();
+        int last = 0;
+        while (m.find()) {
+            String cls = m.group("KEYWORD") != null
+                    ? "keyword"
+                    : m.group("STRING") != null ? "string" : m.group("COMMENT") != null ? "comment" : "number";
+            b.add(Collections.emptyList(), m.start() - last);
+            b.add(Collections.singleton(cls), m.end() - m.start());
+            last = m.end();
+        }
+        b.add(Collections.emptyList(), text.length() - last);
+        return b.create();
+    }
+}

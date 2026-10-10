@@ -1,0 +1,6 @@
+/* Màu cú pháp Python cho CodeEditor */
+.keyword { -fx-fill: #8e44ad; -fx-font-weight: bold; }
+.string  { -fx-fill: #27ae60; }
+.comment { -fx-fill: #95a5a6; -fx-font-style: italic; }
+.number  { -fx-fill: #d35400; }
+.lineno  { -fx-background-color: #f4f6f7; -fx-text-fill: #95a5a6; }
