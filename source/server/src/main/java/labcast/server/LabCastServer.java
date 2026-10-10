@@ -16,10 +16,12 @@ import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
 import labcast.server.account.AccountModule;
 import labcast.server.journal.JournalModule;
+import labcast.server.lesson.LessonModule;
 import labcast.server.net.Connection;
 import labcast.server.net.Router;
 import labcast.server.net.TcpServer;
 import labcast.server.presence.Presence;
+import labcast.server.run.RunModule;
 import labcast.server.session.SessionManager;
 import labcast.server.store.AuditLog;
 import labcast.server.store.Database;
@@ -32,6 +34,8 @@ public final class LabCastServer implements AutoCloseable {
     public static List<ServerModule> modules() {
         return List.of(
                 new AccountModule(), // Người 2
+                new LessonModule(), // Người 3
+                new RunModule(), // Người 3
                 new JournalModule() // Người 1
                 // thêm module mới ở đây, mỗi module một dòng
                 );

@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import labcast.server.TestPaths;
 import org.junit.jupiter.api.Test;
 
 /** Chạy runner thật. Bỏ qua phần cần Python hoặc Docker khi máy không có. */
@@ -29,16 +29,8 @@ class SandboxTest {
             print(*a)
             """;
 
-    /** Thư mục runner/ của repo, tìm ngược lên từ thư mục đang chạy test. */
     static Path runnerDir() {
-        Path p = Path.of("").toAbsolutePath();
-        while (p != null) {
-            if (Files.exists(p.resolve("runner/run.py"))) {
-                return p.resolve("runner");
-            }
-            p = p.getParent();
-        }
-        throw new IllegalStateException("Không thấy runner/run.py");
+        return TestPaths.repoRoot().resolve("runner");
     }
 
     static Sandbox local() {

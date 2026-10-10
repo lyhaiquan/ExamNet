@@ -35,6 +35,12 @@ public record ServerConfig(
         return defaults().withPort(0).withDb(":memory:").withDiscoveryPort(0);
     }
 
+    /** Thư mục runner/ nằm cạnh thư mục content/ trong repo (chế độ không sandbox chạy run.py ở đây). */
+    public Path runnerDir() {
+        Path parent = content.toAbsolutePath().normalize().getParent();
+        return parent == null ? Path.of("runner") : parent.resolve("runner");
+    }
+
     public ServerConfig withPort(int p) {
         return new ServerConfig(p, db, content, lop, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
     }
