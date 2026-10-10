@@ -55,6 +55,17 @@ class LanInterfaceTest {
         assertEquals("eth0", LanInterface.pick(hai, null).orElseThrow().name());
     }
 
+    /** Đúng máy của leader: không có cổng dây, có máy ảo, ZeroTier, Tailscale. */
+    @Test
+    void mayCoVpnVaMayAo_chonWifiThat() throws Exception {
+        var may = List.of(
+                nic("eth1", "VMware Virtual Ethernet Adapter for VMnet8", "192.168.41.1", false),
+                nic("wlan2", "Killer(R) Wi-Fi 6 AX1650i", "172.20.8.114", false),
+                nic("eth10", "ZeroTier Virtual Port", "10.140.231.224", false),
+                nic("net7", "Tailscale Tunnel", "100.64.0.5", false));
+        assertEquals("wlan2", LanInterface.pick(may, null).orElseThrow().name());
+    }
+
     @Test
     void diaChiRieng() throws Exception {
         assertTrue(LanInterface.isPrivate(InetAddress.getByName("172.31.0.1")));

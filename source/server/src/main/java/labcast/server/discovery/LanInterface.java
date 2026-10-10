@@ -16,8 +16,25 @@ import java.util.Optional;
  * (vEthernet 172.x); quảng bá nhầm địa chỉ card ảo thì app học viên không nối được.
  */
 public final class LanInterface {
-    private static final List<String> VIRTUAL =
-            List.of("vethernet", "wsl", "docker", "virtualbox", "vmware", "hyper-v", "vboxnet", "br-", "loopback");
+    /** Card ảo hay card VPN: Docker/WSL (vEthernet), máy ảo, ZeroTier, Tailscale, Hamachi… */
+    private static final List<String> VIRTUAL = List.of(
+            "vethernet",
+            "wsl",
+            "docker",
+            "virtualbox",
+            "vmware",
+            "hyper-v",
+            "vboxnet",
+            "br-",
+            "loopback",
+            "virtual",
+            "zerotier",
+            "tailscale",
+            "tunnel",
+            "vpn",
+            "hamachi",
+            "radmin",
+            "tap-");
 
     private LanInterface() {}
 
