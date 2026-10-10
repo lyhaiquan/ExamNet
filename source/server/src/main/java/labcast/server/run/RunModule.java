@@ -106,7 +106,7 @@ public final class RunModule implements ServerModule {
                         Priority.NORMAL);
                 return;
             }
-            String verdict = verdict(o, expected);
+            String verdict = verdict(o, expected, l.thoiGianMs());
             record(s.userId(), lessonId, seqRun, verdict);
             Map<String, Object> res = new LinkedHashMap<>();
             res.put("runId", runId);
@@ -121,8 +121,9 @@ public final class RunModule implements ServerModule {
     }
 
     /** Kết quả chấm của một test (spec §10.3). */
-    static String verdict(Outcome o, String expected) {
-        if (o.killed()) {
+    static String verdict(Outcome o, String expected, int timeLimitMs) {
+        // time_ms đo bên trong runner, không gồm thời gian dựng container
+        if (o.killed() || (o.ok() && o.timeMs() > timeLimitMs)) {
             return "TIME_LIMIT";
         }
         if (!o.ok()) {

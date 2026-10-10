@@ -27,6 +27,20 @@ abstract class ProcessSandbox implements Sandbox {
     /** Lệnh chạy cho một lượt; {@code name} là tên duy nhất của lượt (Docker dùng làm tên container). */
     protected abstract List<String> command(String name);
 
+    /** Thời gian khởi động thêm ngoài giới hạn của bài (Docker cần dựng container). */
+    protected long startupBudgetMs() {
+        return 0;
+    }
+
+    /**
+     * Tiến trình kết thúc mà không in dòng kết quả: lỗi của HẠ TẦNG (Docker không chạy, thiếu image,
+     * thiếu Python) thì trả IOException để học viên nhận SANDBOX_DOWN, không bị chấm là code mình lỗi.
+     * Trả null nếu là lỗi của bài làm.
+     */
+    protected IOException infrastructureFailure(int exitCode, String stderr) {
+        return null;
+    }
+
     /** Giết lượt chạy quá giờ. Mặc định giết tiến trình con. */
     protected void kill(String name, Process p) {
         p.destroyForcibly();
@@ -45,7 +59,8 @@ abstract class ProcessSandbox implements Sandbox {
         Thread watchdog = new Thread(
                 () -> {
                     try {
-                        if (!p.waitFor(job.timeLimitMs() + GRACE_MS, TimeUnit.MILLISECONDS)) {
+                        long deadline = job.timeLimitMs() + GRACE_MS + startupBudgetMs();
+                        if (!p.waitFor(deadline, TimeUnit.MILLISECONDS)) {
                             killed.set(true);
                             kill(name, p);
                         }
@@ -88,6 +103,10 @@ abstract class ProcessSandbox implements Sandbox {
         }
         if (result == null) {
             String err = stderr.toString().strip();
+            IOException infra = infrastructureFailure(p.exitValue(), err);
+            if (infra != null) {
+                throw infra;
+            }
             return new Outcome(
                     false,
                     "",

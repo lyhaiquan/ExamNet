@@ -2,9 +2,11 @@ package labcast.server.run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,6 +83,33 @@ class SandboxTest {
         Outcome loop = d.run(new Job("while True:\n    pass\n", "", false, 500), l -> {});
         assertTrue(loop.killed());
         assertTrue((System.nanoTime() - t0) / 1_000_000 < 8_000);
+    }
+
+    /** Docker không chạy / thiếu image: không được chấm thành lỗi của học viên. */
+    @Test
+    void dockerBaoLoi_laLoiHaTang_khongPhaiLoiBaiLam() throws Exception {
+        String py = LocalPythonSandbox.detectPython();
+        assumeTrue(py != null, "máy không có Python 3");
+        var gia = new DockerSandbox(DockerSandbox.DEFAULT_IMAGE) {
+            @Override
+            protected List<String> command(String name) {
+                // giả lập `docker run` báo lỗi: in ra stderr rồi thoát mã 125
+                return List.of(
+                        py,
+                        "-c",
+                        "import sys; sys.stdin.read(); sys.stderr.write('docker: Error response from daemon');"
+                                + " sys.exit(125)");
+            }
+        };
+        var ex = assertThrows(IOException.class, () -> gia.run(new Job("print(1)", "", false, 1_000), l -> {}));
+        assertTrue(ex.getMessage().contains("Docker"), ex.getMessage());
+    }
+
+    @Test
+    void baiLamTuThoatMa3_vanLaLoiBaiLam() throws Exception {
+        Outcome o = local().run(new Job("import os\nos._exit(3)\n", "", false, 2_000), l -> {});
+        assertFalse(o.ok());
+        assertFalse(o.killed());
     }
 
     @Test

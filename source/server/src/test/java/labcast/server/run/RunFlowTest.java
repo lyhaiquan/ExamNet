@@ -114,9 +114,11 @@ class RunFlowTest {
 
     @Test
     void verdict_cacTruongHop() {
-        assertEquals("TIME_LIMIT", RunModule.verdict(new Outcome(false, "", "x", false, 1, true), "1"));
-        assertEquals("RUNTIME_ERROR", RunModule.verdict(new Outcome(false, "", "x", false, 1, false), "1"));
-        assertEquals("WRONG", RunModule.verdict(new Outcome(true, "2\n", null, false, 1, false), "1\n"));
-        assertEquals("OK", RunModule.verdict(new Outcome(true, "1 \n", null, false, 1, false), "1"));
+        assertEquals("TIME_LIMIT", RunModule.verdict(new Outcome(false, "", "x", false, 1, true), "1", 1000));
+        assertEquals("RUNTIME_ERROR", RunModule.verdict(new Outcome(false, "", "x", false, 1, false), "1", 1000));
+        assertEquals("WRONG", RunModule.verdict(new Outcome(true, "2\n", null, false, 1, false), "1\n", 1000));
+        assertEquals("OK", RunModule.verdict(new Outcome(true, "1 \n", null, false, 1, false), "1", 1000));
+        // chạy xong trong runner nhưng quá giới hạn của bài
+        assertEquals("TIME_LIMIT", RunModule.verdict(new Outcome(true, "1", null, false, 1500, false), "1", 1000));
     }
 }

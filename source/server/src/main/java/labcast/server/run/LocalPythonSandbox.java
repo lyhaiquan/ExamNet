@@ -26,6 +26,15 @@ public final class LocalPythonSandbox extends ProcessSandbox {
         return List.of(python, runPy.toString());
     }
 
+    /** run.py không mở được (sai thư mục runner) là lỗi cấu hình server, không phải lỗi bài làm. */
+    @Override
+    protected java.io.IOException infrastructureFailure(int exitCode, String stderr) {
+        if (stderr.contains("can't open file") || stderr.contains("No module named 'viz'")) {
+            return new java.io.IOException("Không chạy được runner ở " + runPy + ": " + stderr);
+        }
+        return null;
+    }
+
     /** {@code LABCAST_PYTHON} nếu có, rồi {@code python3}, rồi {@code python}. Không có thì null. */
     public static String detectPython() {
         String env = System.getenv("LABCAST_PYTHON");

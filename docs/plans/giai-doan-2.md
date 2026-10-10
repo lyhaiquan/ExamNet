@@ -261,6 +261,8 @@ Thứ tự bắt buộc trong `JournalClient.submit`: `journal.append(d)` → `c
 
 ### Task 1.6: Khôi phục sau rớt mạng
 
+> **Đã có từ giai đoạn 1:** `JournalModule` đã gọi `setCodeSeqLookup(store::lastSeq)`; `LcpClient` tự nối lại và gửi `RESUME_REQ`; `JournalClient` gửi lại mọi delta chưa ACK khi nối lại (server bỏ trùng). Task này còn: đối chiếu `RESUME_STATE.serverLastSeq` để chỉ gửi phần thiếu, và nhật ký trên đĩa (task 1.5).
+
 **Files:**
 - Modify: `source/client/src/main/java/labcast/client/journal/JournalClient.java`
 - Modify: `source/server/src/main/java/labcast/server/journal/JournalModule.java` — gọi `ctx.sessions().setCodeSeqLookup(store::lastSeq)`
@@ -351,6 +353,8 @@ Khi mở một bài: gửi `CHECKPOINT_FETCH(lessonId, 0, −1)` → nạp `code
 ## Người 3 — ĐG3 đồng hồ, chấm bài, luyện tập, SQL bản đầu
 
 ### Task 3.6: Đồng hồ — đồng bộ lại, bù trôi, chỉnh dần
+
+> **Đã có từ giai đoạn 1:** `ClockSync(LongSupplier)` (đồng hồ giả cho test) và `start(LcpClient)` đo 5 mẫu lúc vào lớp. Task này thêm đo lại định kỳ, bù trôi, chỉnh dần.
 
 **Files:**
 - Modify: `source/client/src/main/java/labcast/client/clock/ClockSync.java`

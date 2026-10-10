@@ -51,6 +51,20 @@ class DiscoveryTest {
     }
 
     @Test
+    void serverQuangBaLoopback_dungDiaChiNguonCuaGoiTraLoi() throws Exception {
+        var info = new DiscoveryClient.ServerInfo("Lớp", "GV", "127.0.0.1", 7000, false, "");
+        var nguon = InetAddress.getByName("192.168.1.10");
+        assertEquals(
+                "192.168.1.10", DiscoveryClient.withReachableHost(info, nguon).host());
+        var rong = new DiscoveryClient.ServerInfo("Lớp", "GV", "", 7000, false, "");
+        assertEquals(
+                "192.168.1.10", DiscoveryClient.withReachableHost(rong, nguon).host());
+        var tot = new DiscoveryClient.ServerInfo("Lớp", "GV", "192.168.1.20", 7000, false, "");
+        assertEquals(
+                "192.168.1.20", DiscoveryClient.withReachableHost(tot, nguon).host());
+    }
+
+    @Test
     void khongCoServer_traDanhSachRong() throws Exception {
         int cong;
         try (var tam = new DatagramSocket()) {

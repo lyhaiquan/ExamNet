@@ -194,7 +194,7 @@ public enum MessageType {
 
 public enum ErrorCode {
     BAD_FRAME(1), AUTH_REQUIRED(2), FORBIDDEN(3), LOCKED(4), COOLDOWN(5), RATE_LIMITED(6),
-    NONCE_INVALID(7), SQL_NOT_ALLOWED(8), SANDBOX_DOWN(9), INTERNAL(99);
+    NONCE_INVALID(7), SQL_NOT_ALLOWED(8), SANDBOX_DOWN(9), NOT_FOUND(10), INTERNAL(99);
     public int code();
     public static ErrorCode fromCode(int code);   // mã lạ → INTERNAL
 }
@@ -515,7 +515,7 @@ SQLite: mỗi `Database` giữ **một** `java.sql.Connection`, mọi thao tác 
 | `AUTH_OK` | `str token, str role, i64 userId, str fullName, i64 classId` |
 | `AUTH_FAIL` | `str reason` |
 | `RESUME_REQ` | `str token, str lessonId` (rỗng nếu chưa mở bài), `i64 lastAckedSeq` |
-| `RESUME_STATE` | `bool ok, i64 serverLastSeq` (−1 nếu không có) |
+| `RESUME_STATE` | `bool ok, i64 serverLastSeq` (0 nếu bài chưa có delta nào, −1 nếu không gửi `lessonId`) |
 | `ERROR` | `u16 code, str message, i32 retryAfterMs` |
 | `BYE` | `str reason` |
 | `ADMIN_ROSTER_IMPORT` | `str csv` (mỗi dòng `username,họ tên,mật khẩu`) |
@@ -1028,7 +1028,7 @@ public final class LessonRepository {
 }
 ```
 
-**Payload:** `LESSON_LIST` trống. `LESSON_FETCH` `str lessonId`. `LESSON_DATA` `JSON{kind: "list", lessons:[{id, mon, chuong, ten, loai}]}` hoặc `JSON{kind: "lesson", id, ten, de, khung, khungNhin, trace}`, trong đó `trace` là trace giảng giải (chạy `loi_giai.py` với `demo.in` qua sandbox lần đầu được hỏi, rồi giữ trong bộ nhớ).
+**Payload:** `LESSON_LIST` trống. `LESSON_FETCH` `str lessonId`. `LESSON_DATA` `JSON{kind: "list", lessons:[{id, mon, chuong, ten, loai}]}` hoặc `JSON{kind: "lesson", id, ten, loai, de, khung, khungNhin, testXem:[{id, input}], trace, code, codeSeq}`. `code`/`codeSeq` là code học viên đang có trên server (mở lại bài thì làm tiếp đúng chỗ). `trace` là trace giảng giải (chạy `loi_giai.py` với `demo.in` qua sandbox lần đầu được hỏi, rồi giữ trong bộ nhớ).
 
 **`khung.py` của bài nổi bọt:**
 
@@ -1203,11 +1203,19 @@ Nhận `CODE_ACK(lastSeq)` → xoá mọi delta có `seq ≤ lastSeq`.
 Hai máy cắm dây chung switch; máy A chạy server (có Docker), máy B chạy app.
 
 ```bash
-# máy A — đứng ở thư mục gốc repo
+# máy A — đứng ở thư mục gốc repo, Docker Desktop đã bật
 docker build -t labcast-runner:py3.12 runner
 cd source && ./mvnw -q package -DskipTests
-java -jar server/target/labcast-server.jar --tao-giao-vien gv:matkhau:Giáo viên --content ../content
+java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien "gv:matkhau:Giáo viên"
+
+# máy B
+java -jar client/target/labcast-client.jar
 ```
+
+- Họ tên có dấu cách nên `--tao-giao-vien` phải nằm trong ngoặc kép.
+- Cửa sổ `cmd` của Windows hiện vỡ chữ tiếng Việt: chạy `chcp 65001` trước.
+- Server tự kiểm Docker lúc khởi động và in lệnh cần chạy nếu thiếu image. Máy không có Docker (chỉ khi phát triển): thêm `--khong-sandbox`, code học viên chạy bằng Python cục bộ, KHÔNG cách ly.
+- Thử giao diện không cần hai máy: `LABCAST_UI_SMOKE=1 ./mvnw -pl client test -Dtest=UiSmokeTest` đi trọn luồng dưới đây và chụp màn hình vào `client/target/ui-smoke/`.
 
 - [ ] Máy B mở app: danh sách lớp tự hiện tên lớp của máy A (không gõ IP).
 - [ ] Đăng nhập học viên (nhập bằng `ADMIN_ROSTER_IMPORT` từ app giáo viên hoặc test) thành công; sai mật khẩu bị từ chối.

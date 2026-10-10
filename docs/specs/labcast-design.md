@@ -577,7 +577,7 @@ Frame UDP dùng đúng định dạng này, mỗi datagram một frame, đọc b
 
 | Mã | Giá trị |
 | --- | --- |
-| `ErrorCode` | `BAD_FRAME`, `AUTH_REQUIRED`, `FORBIDDEN` (sai vai trò), `LOCKED` (bài chưa mở), `COOLDOWN`, `RATE_LIMITED`, `NONCE_INVALID`, `SQL_NOT_ALLOWED`, `SANDBOX_DOWN`, `INTERNAL` |
+| `ErrorCode` | `BAD_FRAME`, `AUTH_REQUIRED`, `FORBIDDEN` (sai vai trò), `LOCKED` (bài chưa mở), `COOLDOWN`, `RATE_LIMITED`, `NONCE_INVALID`, `SQL_NOT_ALLOWED`, `SANDBOX_DOWN`, `NOT_FOUND` (không có bài, mốc lưu… được hỏi), `INTERNAL` |
 | Kết quả chấm | `OK`, `WRONG`, `TIME_LIMIT`, `MEMORY_LIMIT`, `RUNTIME_ERROR`, `FORBIDDEN_CALL`, `TRACE_RULE` |
 | Lý do `BYE` | `LOGGED_IN_ELSEWHERE`, `SERVER_SHUTDOWN`, `CLIENT_EXIT`, `TOO_MANY_MESSAGES` |
 

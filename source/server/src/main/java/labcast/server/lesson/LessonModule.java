@@ -110,18 +110,25 @@ public final class LessonModule implements ServerModule {
         if (rs.isEmpty() || code.isEmpty() || input.isEmpty()) {
             return CompletableFuture.completedFuture(List.of());
         }
-        return demoTraces.computeIfAbsent(l.id(), k -> {
+        synchronized (demoTraces) {
+            CompletableFuture<List<String>> cached = demoTraces.get(l.id());
+            // Lần trước chạy lỗi (Docker chưa bật…) thì kết quả là danh sách rỗng: chạy lại, không giữ lỗi mãi
+            if (cached != null && !(cached.isDone() && cached.join().isEmpty())) {
+                return cached;
+            }
             List<String> lines = new ArrayList<>();
             Job job = new Job(code.get(), input.get(), true, Math.max(5_000, l.thoiGianMs()), l.id(), views(l));
-            return rs.get().run(0, job, lines::add).thenApply((Outcome o) -> {
-                if (!o.ok()) {
-                    LOG.warning("Lời giải mẫu " + l.id() + " chạy lỗi: " + o.error());
-                    demoTraces.remove(l.id()); // lần sau thử lại
+            CompletableFuture<List<String>> f = rs.get().run(0, job, lines::add).handle((Outcome o, Throwable err) -> {
+                if (err != null || !o.ok()) {
+                    LOG.warning(
+                            "Lời giải mẫu " + l.id() + " chạy lỗi: " + (err != null ? err.getMessage() : o.error()));
                     return List.<String>of();
                 }
                 return List.copyOf(lines);
             });
-        });
+            demoTraces.put(l.id(), f);
+            return f;
+        }
     }
 
     /** {@code khung_nhin} của bài dưới dạng ghi vào sự kiện {@code hdr} của trace. */

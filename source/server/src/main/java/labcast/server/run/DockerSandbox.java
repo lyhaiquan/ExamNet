@@ -1,5 +1,6 @@
 package labcast.server.run;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -8,7 +9,8 @@ import java.util.concurrent.TimeUnit;
  * CPU, số tiến trình, hệ thống file chỉ đọc, không quyền root. Container KHÔNG được gắn thư mục bài
  * học: code học viên chỉ nhận code và input qua stdin, nên không đọc được lời giải hay test ẩn.
  */
-public final class DockerSandbox extends ProcessSandbox {
+// Không final: test thay lệnh docker bằng tiến trình giả để kiểm cách phân loại lỗi hạ tầng.
+public class DockerSandbox extends ProcessSandbox {
     public static final String DEFAULT_IMAGE = "labcast-runner:py3.12";
 
     private final String image;
@@ -47,6 +49,31 @@ public final class DockerSandbox extends ProcessSandbox {
                 "--security-opt",
                 "no-new-privileges",
                 image);
+    }
+
+    /** Dựng container mất 1–2 s trên Windows; không tính khoảng này vào giới hạn của bài. */
+    @Override
+    protected long startupBudgetMs() {
+        return 3_000;
+    }
+
+    /**
+     * {@code docker run} tự báo lỗi (daemon không chạy, thiếu image) bằng mã 125–127 và dòng {@code
+     * docker: …} trên stderr; khi đó code học viên chưa hề chạy.
+     */
+    @Override
+    protected IOException infrastructureFailure(int exitCode, String stderr) {
+        if (exitCode >= 125 && exitCode <= 127
+                || stderr.startsWith("docker:")
+                || stderr.contains("Unable to find image")) {
+            return new IOException("Docker không chạy được lượt này (mã " + exitCode + "): " + firstLine(stderr)
+                    + ". Bật Docker Desktop và build image: docker build -t " + image + " runner");
+        }
+        return null;
+    }
+
+    private static String firstLine(String s) {
+        return s.lines().findFirst().orElse("");
     }
 
     /** Giết tiến trình {@code docker run} chưa đủ: container vẫn chạy. Phải {@code docker kill} theo tên. */

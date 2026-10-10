@@ -11,6 +11,7 @@ import labcast.server.discovery.LanInterface;
 import labcast.server.discovery.NicInfo;
 import labcast.server.ops.BuildInfo;
 import labcast.server.ops.StatusEndpoint;
+import labcast.server.run.DockerSandbox;
 import labcast.server.store.Database;
 
 /**
@@ -25,6 +26,11 @@ public final class ServerMain {
     private ServerMain() {}
 
     public static void main(String[] args) throws Exception {
+        if (java.util.List.of(args).contains("--help")
+                || java.util.List.of(args).contains("-h")) {
+            System.out.println(ServerConfig.USAGE);
+            return;
+        }
         ServerConfig cfg;
         try {
             cfg = ServerConfig.parse(args, System.getenv());
@@ -67,6 +73,19 @@ public final class ServerMain {
         System.out.println("  Tìm server:     UDP " + discovery.port());
         System.out.println("  Bài học:        " + cfg.content().toAbsolutePath().normalize());
         System.out.println("  Trạng thái:     http://0.0.0.0:" + status.port() + "/version");
+        if (!cfg.khongSandbox()) {
+            if (!DockerSandbox.available()) {
+                System.out.println(
+                        "  CẢNH BÁO: Docker chưa chạy — bật Docker Desktop, nếu không mọi lượt chạy thử sẽ báo"
+                                + " lỗi SANDBOX_DOWN");
+            } else if (!DockerSandbox.imageAvailable(DockerSandbox.DEFAULT_IMAGE)) {
+                System.out.println(
+                        "  CẢNH BÁO: thiếu image " + DockerSandbox.DEFAULT_IMAGE + ". Đứng ở thư mục gốc repo"
+                                + " chạy: docker build -t " + DockerSandbox.DEFAULT_IMAGE + " runner");
+            } else {
+                System.out.println("  Sandbox:        Docker, image " + DockerSandbox.DEFAULT_IMAGE);
+            }
+        }
         if (cfg.khongSandbox()) {
             System.out.println(
                     "  CẢNH BÁO: --khong-sandbox — code học viên chạy thẳng trên máy này, chỉ dùng khi phát triển");

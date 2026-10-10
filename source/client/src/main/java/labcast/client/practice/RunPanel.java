@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -18,6 +19,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import labcast.client.net.LcpClient;
+import labcast.common.protocol.ErrorMessage;
 import labcast.common.protocol.Frame;
 import labcast.common.protocol.JsonPayload;
 import labcast.common.protocol.MessageType;
@@ -41,10 +43,15 @@ public final class RunPanel extends VBox {
     private final TextArea output = new TextArea();
     private final List<String> lines = new ArrayList<>();
     private volatile long runId = -1;
+    /** Đang chờ kết quả. Bất kỳ ERROR nào tới lúc này (SANDBOX_DOWN, NOT_FOUND…) kết thúc lượt chạy. */
+    private volatile boolean inFlight;
+
+    private final PauseTransition timeout = new PauseTransition(javafx.util.Duration.seconds(30));
 
     private final Consumer<Frame> onQueued = this::queued;
     private final Consumer<Frame> onChunk = this::chunk;
     private final Consumer<Frame> onResult = this::result;
+    private final Consumer<Frame> onError = this::error;
 
     /**
      * @param flushCode xả delta đang gộp trong ô soạn, trả seq code cuối — server chạy đúng phiên bản đó
@@ -74,6 +81,8 @@ public final class RunPanel extends VBox {
         client.on(MessageType.RUN_QUEUED, onQueued);
         client.on(MessageType.TRACE_CHUNK, onChunk);
         client.on(MessageType.RUN_RESULT, onResult);
+        client.on(MessageType.ERROR, onError);
+        timeout.setOnFinished(e -> fail("Server không trả kết quả sau 30 giây"));
     }
 
     /** Gỡ listener khi rời màn bài học. */
@@ -81,6 +90,8 @@ public final class RunPanel extends VBox {
         client.off(MessageType.RUN_QUEUED, onQueued);
         client.off(MessageType.TRACE_CHUNK, onChunk);
         client.off(MessageType.RUN_RESULT, onResult);
+        client.off(MessageType.ERROR, onError);
+        timeout.stop();
     }
 
     private void run() {
@@ -90,6 +101,8 @@ public final class RunPanel extends VBox {
             lines.clear();
         }
         runId = 0; // đang chờ RUN_QUEUED
+        inFlight = true;
+        timeout.playFromStart();
         runBtn.setDisable(true);
         verdict.setText("Đang chạy…");
         verdict.setStyle("-fx-font-weight: bold; -fx-text-fill: #7f8c8d;");
@@ -141,6 +154,7 @@ public final class RunPanel extends VBox {
         if (r.path("runId").asLong() != runId) {
             return;
         }
+        inFlight = false;
         Trace t;
         synchronized (lines) {
             try {
@@ -151,6 +165,7 @@ public final class RunPanel extends VBox {
         }
         Trace trace = t;
         Platform.runLater(() -> {
+            timeout.stop();
             runBtn.setDisable(false);
             String v = r.path("tests").path(0).path("verdict").asText("?");
             verdict.setText(
@@ -166,5 +181,29 @@ public final class RunPanel extends VBox {
             output.setText(r.path("stdout").asText("") + (err.isEmpty() ? "" : "\n" + err));
             onTrace.accept(trace);
         });
+    }
+
+    private void error(Frame f) {
+        if (!inFlight) {
+            return;
+        }
+        String msg;
+        try {
+            msg = ErrorMessage.from(f).message();
+        } catch (IOException e) {
+            msg = "Lỗi không rõ";
+        }
+        String m = msg;
+        Platform.runLater(() -> fail(m));
+    }
+
+    /** Kết thúc lượt chạy vì lỗi phía server hoặc hết giờ chờ: mở lại nút để học viên thử lại. */
+    private void fail(String message) {
+        inFlight = false;
+        runId = -1;
+        timeout.stop();
+        runBtn.setDisable(false);
+        verdict.setText("⚠ " + message);
+        verdict.setStyle("-fx-font-weight: bold; -fx-text-fill: #c0392b;");
     }
 }

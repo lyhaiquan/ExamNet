@@ -189,13 +189,18 @@ Lược đồ ở [`source/server/src/main/resources/schema.sql`](source/server/
 
 ## 12.1. Start Server
 
-Giai đoạn 0 mới có server mẫu, chỉ mở cổng trạng thái:
+Đứng ở thư mục gốc repo, Docker Desktop đã bật:
 
 ```bash
+docker build -t labcast-runner:py3.12 runner
 cd source && ./mvnw -q package -DskipTests
-java -jar server/target/labcast-server.jar
-# mở http://localhost:8080/version
+java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien "gv:matkhau:Giáo viên"
+# trạng thái: http://localhost:8080/version
 ```
+
+Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version`). Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.
+
+App: `java -jar client/target/labcast-client.jar`, chọn lớp tự tìm thấy, đăng nhập.
 
 Chạy bằng Docker, đứng ở thư mục gốc repo, giống hệt bản trên VPS:
 

@@ -70,7 +70,7 @@ public final class DiscoveryClient {
                     if (f.type() != MessageType.DISCOVER_REPLY) {
                         continue;
                     }
-                    ServerInfo info = parse(f);
+                    ServerInfo info = withReachableHost(parse(f), p.getAddress());
                     found.putIfAbsent(info.host() + ":" + info.port(), info);
                 } catch (ProtocolException e) {
                     // trả lời hỏng: bỏ
@@ -84,6 +84,30 @@ public final class DiscoveryClient {
     static ServerInfo parse(Frame f) throws ProtocolException {
         PayloadReader r = f.reader();
         return new ServerInfo(r.str(), r.str(), r.str(), r.u16(), r.bool(), r.str());
+    }
+
+    /**
+     * Server không chọn được card LAN thì quảng bá {@code 127.0.0.1} hoặc rỗng — nối vào đó là nối vào
+     * chính máy học viên. Khi đó dùng địa chỉ nguồn của gói trả lời: chắc chắn tới được từ máy này.
+     */
+    static ServerInfo withReachableHost(ServerInfo info, InetAddress source) {
+        boolean unusable;
+        try {
+            unusable =
+                    info.host().isBlank() || InetAddress.getByName(info.host()).isLoopbackAddress();
+        } catch (IOException e) {
+            unusable = true;
+        }
+        if (!unusable || source == null || source.isLoopbackAddress()) {
+            return info;
+        }
+        return new ServerInfo(
+                info.className(),
+                info.teacherName(),
+                source.getHostAddress(),
+                info.port(),
+                info.tls(),
+                info.fingerprint());
     }
 
     private static List<InetAddress> broadcastTargets() throws IOException {
