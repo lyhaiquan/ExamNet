@@ -42,6 +42,11 @@ public record Frame(MessageType type, byte flags, int seq, byte[] payload) {
         return (flags & flag) != 0;
     }
 
+    /** Bộ đọc payload nhị phân, đọc từ đầu. */
+    public PayloadReader reader() {
+        return new PayloadReader(payload);
+    }
+
     public Frame withSeq(int seq) {
         return new Frame(type, flags, seq, payload);
     }
