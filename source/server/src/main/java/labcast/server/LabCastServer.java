@@ -1,7 +1,9 @@
 package labcast.server;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -10,11 +12,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import labcast.common.protocol.MessageType;
+import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
 import labcast.server.account.AccountModule;
 import labcast.server.net.Connection;
 import labcast.server.net.Router;
 import labcast.server.net.TcpServer;
+import labcast.server.presence.Presence;
 import labcast.server.session.SessionManager;
 import labcast.server.store.AuditLog;
 import labcast.server.store.Database;
@@ -41,8 +45,9 @@ public final class LabCastServer implements AutoCloseable {
                 Math.max(4, Runtime.getRuntime().availableProcessors() * 2), named("nghiep-vu"));
         this.scheduler = Executors.newScheduledThreadPool(2, named("hen-gio"));
         AuditLog audit = new AuditLog(db);
-        this.ctx = new ServerContext(
-                new Router(), db, scheduler, cfg, new SessionManager(db, audit, System::currentTimeMillis), audit);
+        SessionManager sessions = new SessionManager(db, audit, System::currentTimeMillis);
+        Presence presence = new Presence(sessions::all, System::currentTimeMillis);
+        this.ctx = new ServerContext(new Router(), db, scheduler, cfg, sessions, audit, presence);
         installCore();
         for (ServerModule m : modules) {
             m.install(ctx);
@@ -52,6 +57,20 @@ public final class LabCastServer implements AutoCloseable {
     private void installCore() {
         // App thoát có báo trước: đóng kết nối. Phiên vẫn giữ để đăng nhập lại.
         ctx.router().on(MessageType.BYE, (c, f) -> c.connection().close());
+        // HEARTBEAT_ACK(i64 echoServerTime, list<{str key, i64 value}> fields)
+        ctx.router().on(MessageType.HEARTBEAT_ACK, (c, f) -> {
+            if (c.session() == null) {
+                return;
+            }
+            PayloadReader r = f.reader();
+            long echo = r.i64();
+            int n = r.hasRemaining() ? r.u16() : 0;
+            Map<String, Long> fields = new HashMap<>();
+            for (int i = 0; i < n; i++) {
+                fields.put(r.str(), r.i64());
+            }
+            ctx.presence().ack(c.session(), echo, fields, c.receivedAt());
+        });
     }
 
     public void start() throws IOException {
@@ -60,6 +79,7 @@ public final class LabCastServer implements AutoCloseable {
                 ctx.config().port(),
                 s -> new Connection(s, ctx.router(), pool, new Events(), System::currentTimeMillis));
         tcp.start();
+        ctx.presence().start(scheduler);
         LOG.info("LabCast nghe TCP " + tcp.port());
     }
 

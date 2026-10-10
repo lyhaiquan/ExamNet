@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import labcast.server.net.Router;
+import labcast.server.presence.Presence;
 import labcast.server.session.SessionManager;
 import labcast.server.store.AuditLog;
 import labcast.server.store.Database;
@@ -21,6 +22,7 @@ public final class ServerContext {
     private final ServerConfig config;
     private final SessionManager sessions;
     private final AuditLog audit;
+    private final Presence presence;
     private final Map<Class<?>, Object> services = new ConcurrentHashMap<>();
 
     public ServerContext(
@@ -29,13 +31,15 @@ public final class ServerContext {
             ScheduledExecutorService scheduler,
             ServerConfig config,
             SessionManager sessions,
-            AuditLog audit) {
+            AuditLog audit,
+            Presence presence) {
         this.router = router;
         this.db = db;
         this.scheduler = scheduler;
         this.config = config;
         this.sessions = sessions;
         this.audit = audit;
+        this.presence = presence;
     }
 
     public Router router() {
@@ -60,6 +64,10 @@ public final class ServerContext {
 
     public AuditLog audit() {
         return audit;
+    }
+
+    public Presence presence() {
+        return presence;
     }
 
     public <T> void register(Class<T> type, T service) {
