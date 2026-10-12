@@ -17,4 +17,13 @@ public record Lesson(
         List<String> testXem,
         List<String> moKhoa,
         Path dir,
-        String contentHash) {}
+        String contentHash,
+        List<String> camImport,
+        List<String> camCuPhap,
+        int soTestAn) {
+
+    /** Bài có luật soi trace ({@code luat.py}): chấm thêm bước kiểm trace sau khi qua hết test. */
+    public boolean hasTraceRule() {
+        return java.nio.file.Files.exists(dir.resolve("luat.py"));
+    }
+}

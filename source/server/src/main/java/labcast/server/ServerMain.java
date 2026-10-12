@@ -9,6 +9,8 @@ import labcast.server.account.UserRepository;
 import labcast.server.discovery.DiscoveryResponder;
 import labcast.server.discovery.LanInterface;
 import labcast.server.discovery.NicInfo;
+import labcast.server.lesson.LessonPreparer;
+import labcast.server.lesson.LessonRepository;
 import labcast.server.ops.BuildInfo;
 import labcast.server.ops.Dashboard;
 import labcast.server.ops.LogBuffer;
@@ -53,6 +55,15 @@ public final class ServerMain {
         LabCastServer server = new LabCastServer(cfg, db, LabCastServer.modules());
         server.start();
         status.enableDashboard(new Dashboard(server.context(), info, logs, server.port())::json);
+        // Sinh trước test ẩn của mọi bài ở luồng nền (lưu đệm theo hash), lượt nộp đầu khỏi phải chờ
+        server.context().find(LessonPreparer.class).ifPresent(p -> {
+            Thread t = new Thread(
+                    () -> p.warmUp(
+                            server.context().require(LessonRepository.class).all()),
+                    "chuan-bi-bai");
+            t.setDaemon(true);
+            t.start();
+        });
 
         String host = lanAddress(cfg);
         UserRepository users = server.context().require(UserRepository.class);

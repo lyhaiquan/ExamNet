@@ -44,6 +44,22 @@ public final class RunService implements AutoCloseable {
                 pool);
     }
 
+    /** Chạy việc khác trên cùng pool (chấm bài nộp), để số tiến trình chạy code cùng lúc vẫn bị giới hạn. */
+    public <T> CompletableFuture<T> submit(java.util.concurrent.Callable<T> work) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return work.call();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new CompletionException(e);
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                },
+                pool);
+    }
+
     public Sandbox sandbox() {
         return sandbox;
     }

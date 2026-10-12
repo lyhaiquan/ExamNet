@@ -94,6 +94,24 @@ public final class LessonRepository {
                 .map(p -> readOr(p, ""));
     }
 
+    /** Mã mọi test cố định của bài ({@code tests/*.in} có {@code .out} đi kèm), sắp theo tên. */
+    public List<String> fixedTestIds(String id) {
+        return get(id).map(l -> {
+                    try (var files = Files.list(l.dir().resolve("tests"))) {
+                        return files.map(p -> p.getFileName().toString())
+                                .filter(n -> n.endsWith(".in"))
+                                .map(n -> n.substring(0, n.length() - 3))
+                                .filter(t ->
+                                        Files.exists(l.dir().resolve("tests").resolve(t + ".out")))
+                                .sorted()
+                                .toList();
+                    } catch (IOException e) {
+                        return List.<String>of();
+                    }
+                })
+                .orElse(List.of());
+    }
+
     /** Input của test cố định {@code tests/<testId>.in}. */
     public Optional<String> testInput(String id, String testId) {
         return testFile(id, testId, ".in");
@@ -185,7 +203,10 @@ public final class LessonRepository {
                 strings(y, "test_xem"),
                 strings(y, "mo_khoa"),
                 dir,
-                hash(dir));
+                hash(dir),
+                strings(y, "cam_import"),
+                strings(y, "cam_cu_phap"),
+                y.get("so_test_an") instanceof Number so ? so.intValue() : 0);
     }
 
     private static String str(Map<String, Object> y, String k) throws IOException {

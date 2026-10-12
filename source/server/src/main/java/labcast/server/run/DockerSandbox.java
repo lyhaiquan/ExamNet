@@ -1,6 +1,8 @@
 package labcast.server.run;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +24,31 @@ public class DockerSandbox extends ProcessSandbox {
     @Override
     protected List<String> command(String name) {
         // image đã có ENTRYPOINT ["python", "/runner/run.py"], không cần ghi lệnh sau tên image
+        List<String> cmd = new ArrayList<>(safeRun(name));
+        cmd.add(image);
+        return cmd;
+    }
+
+    /**
+     * Cùng cờ an toàn, đổi điểm vào thành {@code runner/<script>.py}. Có {@code lessonDir} thì gắn vào
+     * {@code /bai} CHỈ ĐỌC — chỉ cho script tin cậy (xem {@link ScriptRunner}).
+     */
+    @Override
+    protected List<String> scriptCommand(String name, String script, Path lessonDir) {
+        List<String> cmd = new ArrayList<>(safeRun(name));
+        if (lessonDir != null) {
+            cmd.add("--mount");
+            cmd.add("type=bind,source=" + lessonDir.toAbsolutePath() + ",target=/bai,readonly");
+        }
+        cmd.addAll(List.of("--entrypoint", "python", image, "/runner/" + script + ".py"));
+        if (lessonDir != null) {
+            cmd.add("/bai");
+        }
+        return cmd;
+    }
+
+    /** {@code docker run} với đủ cờ an toàn ở spec §8.1, chưa có tên image. */
+    private static List<String> safeRun(String name) {
         return List.of(
                 "docker",
                 "run",
@@ -47,8 +74,7 @@ public class DockerSandbox extends ProcessSandbox {
                 "--cap-drop",
                 "ALL",
                 "--security-opt",
-                "no-new-privileges",
-                image);
+                "no-new-privileges");
     }
 
     /** Dựng container mất 1–2 s trên Windows; không tính khoảng này vào giới hạn của bài. */

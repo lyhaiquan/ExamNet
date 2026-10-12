@@ -41,8 +41,11 @@ public final class RunModule implements ServerModule {
     @Override
     public void install(ServerContext ctx) {
         this.ctx = ctx;
-        this.runs = new RunService(sandbox(ctx));
+        Sandbox sb = sandbox(ctx);
+        this.runs = new RunService(sb);
         ctx.register(RunService.class, runs);
+        // chấm bài nộp (practice.SubmitModule) chạy script khác của runner trên cùng sandbox
+        ctx.register(ScriptRunner.class, (ScriptRunner) sb);
         ctx.router().on(MessageType.RUN_REQ, this::run);
     }
 
@@ -53,9 +56,7 @@ public final class RunModule implements ServerModule {
         String py = LocalPythonSandbox.detectPython();
         if (py == null) {
             LOG.warning("--khong-sandbox nhưng không tìm thấy Python 3 — mọi lượt chạy sẽ báo SANDBOX_DOWN");
-            return (job, onLine) -> {
-                throw new java.io.IOException("Không có Python 3 trên máy server");
-            };
+            return new Unavailable("Không có Python 3 trên máy server");
         }
         LOG.warning("CHẾ ĐỘ KHÔNG SANDBOX: code học viên chạy thẳng trên máy này. Chỉ dùng khi phát triển.");
         return new LocalPythonSandbox(py, ctx.config().runnerDir());
@@ -120,6 +121,20 @@ public final class RunModule implements ServerModule {
         });
     }
 
+    /** Sandbox khi máy server không chạy được code: mọi lượt báo lỗi hạ tầng (SANDBOX_DOWN). */
+    private record Unavailable(String reason) implements Sandbox, ScriptRunner {
+        @Override
+        public Outcome run(Job job, Consumer<String> onLine) throws java.io.IOException {
+            throw new java.io.IOException(reason);
+        }
+
+        @Override
+        public Result runScript(String script, java.nio.file.Path lessonDir, String stdin, long deadlineMs)
+                throws java.io.IOException {
+            throw new java.io.IOException(reason);
+        }
+    }
+
     /** Kết quả chấm của một test (spec §10.3). */
     static String verdict(Outcome o, String expected, int timeLimitMs) {
         // time_ms đo bên trong runner, không gồm thời gian dựng container
@@ -135,8 +150,8 @@ public final class RunModule implements ServerModule {
         return normalize(o.stdout()).equals(normalize(expected)) ? "OK" : "WRONG";
     }
 
-    /** Bỏ khoảng trắng cuối mỗi dòng và các dòng trống ở cuối. */
-    static String normalize(String s) {
+    /** Bỏ khoảng trắng cuối mỗi dòng và các dòng trống ở cuối. Chấm bài nộp ({@code grade}) dùng chung. */
+    public static String normalize(String s) {
         List<String> lines = new ArrayList<>(List.of(s.replace("\r\n", "\n").split("\n", -1)));
         lines.replaceAll(String::stripTrailing);
         while (!lines.isEmpty() && lines.get(lines.size() - 1).isEmpty()) {

@@ -26,6 +26,14 @@ public final class LocalPythonSandbox extends ProcessSandbox {
         return List.of(python, runPy.toString());
     }
 
+    @Override
+    protected List<String> scriptCommand(String name, String script, Path lessonDir) {
+        String py = runPy.resolveSibling(script + ".py").toString();
+        return lessonDir == null
+                ? List.of(python, py)
+                : List.of(python, py, lessonDir.toAbsolutePath().toString());
+    }
+
     /** run.py không mở được (sai thư mục runner) là lỗi cấu hình server, không phải lỗi bài làm. */
     @Override
     protected java.io.IOException infrastructureFailure(int exitCode, String stderr) {

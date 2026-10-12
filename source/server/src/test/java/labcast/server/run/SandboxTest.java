@@ -85,6 +85,31 @@ class SandboxTest {
         assertTrue((System.nanoTime() - t0) / 1_000_000 < 8_000);
     }
 
+    /**
+     * Script chấm chạy trong container học viên; script tin cậy đọc được thư mục bài gắn chỉ đọc nhưng không
+     * ghi được vào đó; container học viên không thấy thư mục bài.
+     */
+    @Test
+    void docker_chamVaScriptTinCay() throws Exception {
+        assumeTrue(DockerSandbox.available(), "Docker không chạy");
+        assumeTrue(
+                DockerSandbox.imageAvailable(DockerSandbox.DEFAULT_IMAGE),
+                "chưa có image: docker build -t labcast-runner:py3.12 runner");
+        var d = new DockerSandbox(DockerSandbox.DEFAULT_IMAGE);
+        String job = "{\"k\":\"k1\",\"code\":"
+                + labcast.common.protocol.JsonPayload.MAPPER.writeValueAsString(
+                        NOI_BOT + "import os\nprint(os.path.exists('/bai'))\n")
+                + ",\"time_limit_ms\":1000,\"tests\":[{\"id\":\"a\",\"input\":\"3 2 1\\n\"}],\"cam\":{}}";
+        ScriptRunner.Result cham = d.runScript("cham", null, job, 20_000);
+        String dong = String.join("\n", cham.lines());
+        assertTrue(
+                dong.contains("\"stdout\": \"1 2 3\\nFalse\\n\""), "container học viên không được thấy /bai: " + dong);
+
+        Path bai = TestPaths.repoRoot().resolve("content/dsa/sap-xep/noi-bot");
+        ScriptRunner.Result prep = d.runScript("chuan_bi", bai, "{\"so_test_an\": 2}", 60_000);
+        assertTrue(prep.lines().get(prep.lines().size() - 1).contains("\"an-2\""), String.join("\n", prep.lines()));
+    }
+
     /** Docker không chạy / thiếu image: không được chấm thành lỗi của học viên. */
     @Test
     void dockerBaoLoi_laLoiHaTang_khongPhaiLoiBaiLam() throws Exception {

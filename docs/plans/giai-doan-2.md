@@ -440,7 +440,9 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 - Create: `source/server/src/main/java/labcast/server/practice/SubmitHandler.java`
 - Test: `runner/tests/test_kiem_cam.py`, `GraderTest`
 
-**Payload:** `SUBMIT_REQ` `str lessonId, i64 codeSeq`. `SUBMIT_RESULT` `JSON{verdict, score, cooldownMs, unlocked:[lessonId…], tests:[{id, verdict, timeMs}]}` — test ẩn **không** kèm input/output.
+**Payload:** `SUBMIT_REQ` `str lessonId, i64 codeSeq`. `SUBMIT_RESULT` `JSON{lessonId, verdict, message, score, cooldownMs, mastered, failedTest, unlocked:[lessonId…], tests:[{id, hidden, verdict, timeMs, error?}]}` — test ẩn **không** kèm input, output hay thông báo lỗi (`error` chỉ có ở test xem được). Đang phải chờ → `ERROR(COOLDOWN, retryAfterMs)`; lượt nộp trước chưa chấm xong → `ERROR(RATE_LIMITED)`; hạ tầng hỏng → `ERROR(SANDBOX_DOWN)`, không tính lượt sai.
+
+> **Đã làm sớm (12/10/2026, nhánh `feat/giai-doan-1`):** `runner/kiem_cam.py`, `cham.py` (mỗi test một tiến trình con, dòng kết quả kèm khoá bí mật để code học viên không in giả được), `chuan_bi.py` + `LessonPreparer` (phần test ẩn của task 3.7, chưa có đề biến thể), `kiem_luat.py`, `Grader`, `SubmitModule`, và phần thời gian chờ / điểm của `ProgressService` (task 3.10). **Chưa làm:** khoá nộp sau 3 lần sai (cần bậc dự đoán, task 3.10), gọi `CodeStore.checkpoint` (task 1.7) và `ClassEvents.publish` (task 2.12) — hai phần đó chưa có; kết quả đã nằm trong bảng `submissions`. Test đầu-cuối: `SubmitFlowTest`.
 
 **Quy trình chấm** (spec §8.2):
 
