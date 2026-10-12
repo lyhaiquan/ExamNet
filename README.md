@@ -198,7 +198,11 @@ java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien 
 # trạng thái: http://localhost:8080/version
 ```
 
-Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version`). Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.
+Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard).
+
+**Dashboard:** mở `http://localhost:8080/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
+
+ Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.
 
 App: `java -jar client/target/labcast-client.jar`, chọn lớp tự tìm thấy, đăng nhập.
 

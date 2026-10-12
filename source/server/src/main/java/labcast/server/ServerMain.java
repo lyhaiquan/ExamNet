@@ -10,6 +10,8 @@ import labcast.server.discovery.DiscoveryResponder;
 import labcast.server.discovery.LanInterface;
 import labcast.server.discovery.NicInfo;
 import labcast.server.ops.BuildInfo;
+import labcast.server.ops.Dashboard;
+import labcast.server.ops.LogBuffer;
 import labcast.server.ops.StatusEndpoint;
 import labcast.server.run.DockerSandbox;
 import labcast.server.store.Database;
@@ -40,12 +42,17 @@ public final class ServerMain {
             return;
         }
 
+        // Giữ log gần đây trong bộ nhớ cho dashboard
+        LogBuffer logs = new LogBuffer(500);
+        Logger.getLogger("").addHandler(logs);
+
         BuildInfo info = BuildInfo.current();
         StatusEndpoint status = StatusEndpoint.start(cfg.statusPort(), info);
 
         Database db = Database.open(cfg.db());
         LabCastServer server = new LabCastServer(cfg, db, LabCastServer.modules());
         server.start();
+        status.enableDashboard(new Dashboard(server.context(), info, logs, server.port())::json);
 
         String host = lanAddress(cfg);
         UserRepository users = server.context().require(UserRepository.class);
@@ -73,6 +80,8 @@ public final class ServerMain {
         System.out.println("  Tìm server:     UDP " + discovery.port());
         System.out.println("  Bài học:        " + cfg.content().toAbsolutePath().normalize());
         System.out.println("  Trạng thái:     http://0.0.0.0:" + status.port() + "/version");
+        System.out.println(
+                "  Dashboard:      http://localhost:" + status.port() + "/  (chỉ mở được trên chính máy này)");
         if (!cfg.khongSandbox()) {
             if (!DockerSandbox.available()) {
                 System.out.println(
