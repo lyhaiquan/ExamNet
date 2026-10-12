@@ -213,7 +213,7 @@ content = ../content
 java -jar server/target/labcast-server.jar --cau-hinh lop.conf
 ```
 
-Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_TAO_GIAO_VIEN`, `LABCAST_CONTENT`, `LABCAST_DB`, `LABCAST_LAN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. Chữ server in ra cửa sổ cmd bị vỡ dấu thì gõ `chcp 65001` trước khi chạy.
+Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_TAO_GIAO_VIEN`, `LABCAST_CONTENT`, `LABCAST_DB`, `LABCAST_LAN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. Không cần `chcp 65001`: server tự chuyển cửa sổ cmd sang UTF-8 lúc chạy và trả lại bảng mã cũ khi tắt.
 
 **Dashboard:** mở `http://localhost:8080/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
 

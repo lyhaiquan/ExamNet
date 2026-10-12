@@ -1219,7 +1219,7 @@ java -jar client/target/labcast-client.jar
 ```
 
 - Họ tên có dấu cách nên `--tao-giao-vien` phải nằm trong ngoặc kép. Họ tên có chữ ngoài Cp1252 (ớ, ư, ạ, ễ…) thì ghi vào file cấu hình và chạy `--cau-hinh lop.conf` (README §12.1).
-- Cửa sổ `cmd` của Windows hiện vỡ chữ tiếng Việt: chạy `chcp 65001` trước.
+- Chữ tiếng Việt server in ra: `ConsoleUtf8.install()` (dòng đầu `main`) đổi stdout, stderr, log sang UTF-8 và, khi chạy trong cửa sổ lệnh Windows, tự `chcp 65001` rồi trả bảng mã cũ lúc tắt. `chcp` phải kế thừa stdin của cửa sổ, chạy với stdin là ống thì nó thoát mã 0 mà không đổi gì (đo 12/10/2026).
 - Server tự kiểm Docker lúc khởi động và in lệnh cần chạy nếu thiếu image. Máy không có Docker (chỉ khi phát triển): thêm `--khong-sandbox`, code học viên chạy bằng Python cục bộ, KHÔNG cách ly.
 - Thử giao diện không cần hai máy: `LABCAST_UI_SMOKE=1 ./mvnw -pl client test -Dtest=UiSmokeTest` đi trọn luồng dưới đây và chụp màn hình vào `client/target/ui-smoke/`.
 

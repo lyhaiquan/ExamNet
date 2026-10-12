@@ -12,6 +12,7 @@ import labcast.server.discovery.NicInfo;
 import labcast.server.lesson.LessonPreparer;
 import labcast.server.lesson.LessonRepository;
 import labcast.server.ops.BuildInfo;
+import labcast.server.ops.ConsoleUtf8;
 import labcast.server.ops.Dashboard;
 import labcast.server.ops.LogBuffer;
 import labcast.server.ops.StatusEndpoint;
@@ -30,6 +31,7 @@ public final class ServerMain {
     private ServerMain() {}
 
     public static void main(String[] args) throws Exception {
+        ConsoleUtf8.install(); // trước mọi dòng in ra: chữ tiếng Việt không vỡ dấu trong cmd
         if (java.util.List.of(args).contains("--help")
                 || java.util.List.of(args).contains("-h")) {
             System.out.println(ServerConfig.USAGE);
