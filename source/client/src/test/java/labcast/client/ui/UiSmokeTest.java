@@ -36,6 +36,7 @@ import labcast.server.account.UserRepository;
 import labcast.server.discovery.DiscoveryResponder;
 import labcast.server.journal.JournalModule;
 import labcast.server.lesson.LessonModule;
+import labcast.server.practice.SubmitModule;
 import labcast.server.run.RunModule;
 import labcast.server.store.Database;
 import labcast.server.sync.SyncModule;
@@ -157,7 +158,8 @@ class UiSmokeTest {
                                 new SyncModule(),
                                 new LessonModule(),
                                 new RunModule(),
-                                new JournalModule()))) {
+                                new JournalModule(),
+                                new SubmitModule()))) {
             server.start();
             new UserRepository(db).create("sv", "Nguyễn Văn An", Role.STUDENT, "1");
             Platform.startup(() -> {});
@@ -286,6 +288,16 @@ class UiSmokeTest {
                 return null;
             });
             chup(scene, "4-de-bai");
+
+            // Nộp bài: chấm cả test ẩn, code đúng nên đạt 100 điểm
+            fx(() -> {
+                tabs.getSelectionModel().select(0);
+                ((Button) scene.lookup("#submit")).fire();
+                return null;
+            });
+            until(() -> verdict.getText().contains("Đạt"), "kết quả nộp bài");
+            assertTrue(fx(verdict::getText).contains("100 điểm"), fx(verdict::getText));
+            chup(scene, "5-nop-bai");
 
             HomeScreen home = (HomeScreen) scene.getRoot();
             assertEquals(
