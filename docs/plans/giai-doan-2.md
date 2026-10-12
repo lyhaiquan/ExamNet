@@ -592,7 +592,9 @@ public final class ClassEvents {                                       // spec �
 
 Chữ ký này **chốt ở ngày 1** (luật giao diện trước): đủ trường cho `CLASS_STATE` bên dưới, để Người 1 và Người 3 không phải chờ đổi.
 
-**Payload:** `CLASS_JOIN` trống (giáo viên gửi để nhận sơ đồ). `CLASS_STATE` `JSON{students:[{userId, name, presence, lessonId, status, failedTest, pasteFlag}], stats:[{lessonId, testId, failCount}]}` — gửi `Priority.CONFLATABLE`, key `"lop"`, nên giáo viên xem chậm chỉ nhận bản mới nhất. `LESSON_PUSH` `str lessonId` (giáo viên → server → mọi học viên trong lớp).
+**Payload:** `CLASS_JOIN` trống (giáo viên gửi để nhận sơ đồ). `CLASS_STATE` `JSON{students:[{userId, name, presence, lessonId, status, failedTest, pasteFlag, appFocus:{inApp, leaves, awayMs}}], stats:[{lessonId, testId, failCount}]}` — gửi `Priority.CONFLATABLE`, key `"lop"`, nên giáo viên xem chậm chỉ nhận bản mới nhất. `LESSON_PUSH` `str lessonId` (giáo viên → server → mọi học viên trong lớp).
+
+`appFocus` lấy từ `ctx.require(AppFocus.class).state(userId)` (đã có, `labcast.server.presence`); nghe `AppFocus.onChange(...)` để đẩy `CLASS_STATE` ngay khi học viên rời app hoặc quay lại. Ô học viên đang ở ngoài app hiện cờ "rời app" kèm số lần rời và tổng thời gian ở ngoài.
 
 Nguồn sự kiện: `Presence.onStateChange` (có mặt), `ClassEvents.publish` (Người 3 khi chấm, Người 1 khi giơ tay), gom lại và đẩy tối đa 5 lần/giây.
 

@@ -564,6 +564,7 @@ Frame UDP dùng đúng định dạng này, mỗi datagram một frame, đọc b
 | Xác thực | `AUTH`, `AUTH_OK`, `AUTH_FAIL` | 2 |
 | Đồng bộ giờ | `TIME_SYNC_REQ`, `TIME_SYNC_RESP` | 3 |
 | Liveness | `HEARTBEAT`, `HEARTBEAT_ACK` | 2 |
+| Rời app | `APP_FOCUS` (học viên → server, không trả lời; nối lại thì gửi lại trạng thái hiện tại) | 2 |
 | Khôi phục | `RESUME_REQ`, `RESUME_STATE` | 2 (phiên), 1 (code) |
 | Lớp học | `CLASS_JOIN`, `CLASS_STATE`, `LESSON_PUSH` | 2 |
 | Bài học | `LESSON_LIST`, `LESSON_FETCH`, `LESSON_DATA` | 3 |

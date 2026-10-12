@@ -17,6 +17,8 @@ public enum MessageType {
     HEARTBEAT_ACK(0x07),
     RESUME_REQ(0x08),
     RESUME_STATE(0x09),
+    /** {@code bool inApp, i64 clientTs, str lessonId}: học viên vừa rời app (Alt+Tab, thu nhỏ) hoặc quay lại. */
+    APP_FOCUS(0x0A),
     ERROR(0x0E),
     BYE(0x0F),
 

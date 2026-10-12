@@ -20,6 +20,7 @@ import labcast.server.lesson.LessonModule;
 import labcast.server.net.Connection;
 import labcast.server.net.Router;
 import labcast.server.net.TcpServer;
+import labcast.server.presence.AppFocusModule;
 import labcast.server.presence.Presence;
 import labcast.server.run.RunModule;
 import labcast.server.session.SessionManager;
@@ -38,7 +39,8 @@ public final class LabCastServer implements AutoCloseable {
                 new SyncModule(), // Người 3
                 new LessonModule(), // Người 3
                 new RunModule(), // Người 3
-                new JournalModule() // Người 1
+                new JournalModule(), // Người 1
+                new AppFocusModule() // Người 2
                 // thêm module mới ở đây, mỗi module một dòng
                 );
     }

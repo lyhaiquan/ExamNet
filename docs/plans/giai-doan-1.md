@@ -516,6 +516,7 @@ SQLite: mỗi `Database` giữ **một** `java.sql.Connection`, mọi thao tác 
 | `AUTH_FAIL` | `str reason` |
 | `RESUME_REQ` | `str token, str lessonId` (rỗng nếu chưa mở bài), `i64 lastAckedSeq` |
 | `RESUME_STATE` | `bool ok, i64 serverLastSeq` (0 nếu bài chưa có delta nào, −1 nếu không gửi `lessonId`) |
+| `APP_FOCUS` | `bool inApp, i64 clientTs, str lessonId` — học viên rời app (`false`) hoặc quay lại (`true`). Chỉ học viên đã đăng nhập; server lấy mốc giờ theo đồng hồ của server, `clientTs` chỉ để đối chiếu |
 | `ERROR` | `u16 code, str message, i32 retryAfterMs` |
 | `BYE` | `str reason` |
 | `ADMIN_ROSTER_IMPORT` | `str csv` (mỗi dòng `username,họ tên,mật khẩu`) |

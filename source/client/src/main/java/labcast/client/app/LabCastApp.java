@@ -8,6 +8,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import labcast.client.clock.ClockSync;
 import labcast.client.journal.JournalClient;
+import labcast.client.net.AppFocusReporter;
 import labcast.client.ui.HomeScreen;
 import labcast.client.ui.LessonLock;
 import labcast.client.ui.LoginController;
@@ -65,7 +66,10 @@ public final class LabCastApp extends Application {
         });
         // Học viên mở bài thì khoá toàn màn hình; giáo viên mở bài để giảng thì không
         if (li.role() == Role.STUDENT) {
-            lock = new LessonLock(stage, inApp -> {});
+            AppFocusReporter reporter = new AppFocusReporter(li.client());
+            lock = new LessonLock(
+                    stage,
+                    inApp -> reporter.changed(inApp, home.openLessonProperty().get()));
             home.openLessonProperty().addListener((obs, was, now) -> {
                 if (now != null) {
                     lock.engage();
