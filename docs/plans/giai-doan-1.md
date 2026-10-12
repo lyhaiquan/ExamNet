@@ -659,10 +659,13 @@ public final class DiscoveryClient {
 | `--lan` | tự chọn (task 2.8) |
 | `--tao-giao-vien user:mật khẩu:họ tên` | không |
 | `--khong-sandbox` | tắt (chỉ để phát triển, spec §8.1) |
+| `--cau-hinh <file>` | không — file UTF-8, mỗi dòng `khoá = giá trị` (khoá = tên tham số bỏ `--`) |
+
+Biến môi trường `LABCAST_DB`, `LABCAST_CONTENT`, `LABCAST_LOP`, `LABCAST_LAN`, `LABCAST_TAO_GIAO_VIEN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. **Vì sao cần file và biến môi trường:** Windows chuyển tham số dòng lệnh sang Cp1252 trước khi tới Java, chữ ớ, ư, ạ… thành `?` và mất hẳn (đã đo 12/10/2026 với Git Bash, PowerShell, cmd kể cả `chcp 65001`); file UTF-8 và biến môi trường thì giữ nguyên. Tham số dòng lệnh có `?` trên máy như vậy → server dừng và chỉ cách sửa, không chạy với tên lớp sai hay tạo giáo viên có mật khẩu không gõ lại được.
 
 `main` vẫn **giữ** `StatusEndpoint.start(...)` cho bước deploy. In ra địa chỉ card LAN đã chọn để giáo viên kiểm.
 
-**Test:** `ServerConfig.parse(...)` đọc đúng từng tham số; tham số lạ → `IllegalArgumentException` có thông báo dễ hiểu.
+**Test:** `ServerConfig.parse(...)` đọc đúng từng tham số; tham số lạ → `IllegalArgumentException` có thông báo dễ hiểu; file cấu hình giữ đúng tiếng Việt (kể cả BOM); thứ tự thắng; `--lop "L?p"` trên máy đọc tham số bằng Cp1252 → dừng, thông báo chỉ `--cau-hinh` và `LABCAST_LOP`.
 
 **Commit:** `feat(server): ServerMain mở cổng 7000, tìm server và các module`
 
@@ -1215,7 +1218,7 @@ java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien 
 java -jar client/target/labcast-client.jar
 ```
 
-- Họ tên có dấu cách nên `--tao-giao-vien` phải nằm trong ngoặc kép.
+- Họ tên có dấu cách nên `--tao-giao-vien` phải nằm trong ngoặc kép. Họ tên có chữ ngoài Cp1252 (ớ, ư, ạ, ễ…) thì ghi vào file cấu hình và chạy `--cau-hinh lop.conf` (README §12.1).
 - Cửa sổ `cmd` của Windows hiện vỡ chữ tiếng Việt: chạy `chcp 65001` trước.
 - Server tự kiểm Docker lúc khởi động và in lệnh cần chạy nếu thiếu image. Máy không có Docker (chỉ khi phát triển): thêm `--khong-sandbox`, code học viên chạy bằng Python cục bộ, KHÔNG cách ly.
 - Thử giao diện không cần hai máy: `LABCAST_UI_SMOKE=1 ./mvnw -pl client test -Dtest=UiSmokeTest` đi trọn luồng dưới đây và chụp màn hình vào `client/target/ui-smoke/`.

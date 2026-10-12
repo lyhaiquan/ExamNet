@@ -200,6 +200,21 @@ java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien 
 
 Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard).
 
+**Tên có dấu tiếng Việt:** trên Windows, chữ như ớ, ư, ạ không đi qua được dòng lệnh (Java nhận thành `?`), nên `--lop "Lớp D22CQCN01"` bị server từ chối kèm hướng dẫn. Ghi tên lớp, họ tên giáo viên, đường dẫn có dấu vào một file UTF-8 (Notepad lưu UTF-8 mặc định):
+
+```text
+# lop.conf
+lop = Lớp D22CQCN01 — Lập trình mạng
+tao-giao-vien = gv:matkhau:Nguyễn Thị Lan
+content = ../content
+```
+
+```bash
+java -jar server/target/labcast-server.jar --cau-hinh lop.conf
+```
+
+Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_TAO_GIAO_VIEN`, `LABCAST_CONTENT`, `LABCAST_DB`, `LABCAST_LAN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. Chữ server in ra cửa sổ cmd bị vỡ dấu thì gõ `chcp 65001` trước khi chạy.
+
 **Dashboard:** mở `http://localhost:8080/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
 
  Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.

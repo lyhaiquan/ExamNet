@@ -72,6 +72,98 @@ class ServerConfigTest {
                 () -> ServerConfig.parse(new String[] {"--lop", "--khong-sandbox"}, Map.of()));
     }
 
+    /** File cấu hình đọc giả: tên file → nội dung. */
+    static ServerConfig parse(String[] args, Map<String, String> env, boolean lossy, Map<String, String> files) {
+        return ServerConfig.parse(args, env, lossy, p -> {
+            String f = files.get(p.toString());
+            if (f == null) {
+                throw new IllegalArgumentException("Không đọc được file cấu hình " + p);
+            }
+            return f;
+        });
+    }
+
+    @Test
+    void fileCauHinh_giuNguyenTiengViet() {
+        var c = parse(
+                new String[] {"--cau-hinh", "lop.conf"},
+                Map.of(),
+                true,
+                Map.of(
+                        "lop.conf",
+                        "\uFEFF# cấu hình lớp thứ Ba\n"
+                                + "lop = Lớp D22CQCN01 — Cô Nguyễn Thị Lan\n"
+                                + "\n"
+                                + "tao-giao-vien = gv:mật khẩu ư:Nguyễn Thị Lan\n"
+                                + "content = \"../nội dung\"\n"
+                                + "khong-sandbox = true\n"
+                                + "port = 7100\n"));
+        assertEquals("Lớp D22CQCN01 — Cô Nguyễn Thị Lan", c.lop());
+        assertEquals("gv:mật khẩu ư:Nguyễn Thị Lan", c.taoGiaoVien());
+        assertEquals(Path.of("../nội dung"), c.content());
+        assertTrue(c.khongSandbox());
+        assertEquals(7100, c.port());
+    }
+
+    @Test
+    void thuTuThang_dongLenh_file_bienMoiTruong_macDinh() {
+        Map<String, String> env = Map.of("LABCAST_LOP", "Lớp từ biến", "LABCAST_LAN", "Wi-Fi", "LABCAST_DB", "env.db");
+        Map<String, String> files = Map.of("a.conf", "lop = Lớp từ file\ndb = file.db\n");
+        assertEquals("Lớp từ biến", parse(new String[0], env, true, files).lop());
+        var c = parse(new String[] {"--cau-hinh", "a.conf"}, env, true, files);
+        assertEquals("Lớp từ file", c.lop());
+        assertEquals("file.db", c.db());
+        assertEquals("Wi-Fi", c.lan(), "file không ghi thì vẫn lấy biến môi trường");
+        assertEquals(
+                "D22",
+                parse(new String[] {"--cau-hinh", "a.conf", "--lop", "D22"}, env, true, files)
+                        .lop());
+    }
+
+    @Test
+    void bienMoiTruong_taoGiaoVienVaThuMucBai() {
+        var c = ServerConfig.parse(
+                new String[0],
+                Map.of("LABCAST_TAO_GIAO_VIEN", "gv:mk:Lê Thị Ưng", "LABCAST_CONTENT", "D:/Bài học"),
+                true,
+                p -> "");
+        assertEquals("gv:mk:Lê Thị Ưng", c.taoGiaoVien());
+        assertEquals(Path.of("D:/Bài học"), c.content());
+    }
+
+    /** Windows đọc tham số theo Cp1252: "Lớp" tới Java thành "L?p". Phải dừng, chỉ cách sửa. */
+    @Test
+    void thamSoDaMatChuTiengViet_dungLaiVaChiCachSua() {
+        var e = assertThrows(
+                IllegalArgumentException.class,
+                () -> ServerConfig.parse(new String[] {"--lop", "L?p D22CQCN01"}, Map.of(), true, p -> ""));
+        assertTrue(e.getMessage().contains("--lop"), e.getMessage());
+        assertTrue(e.getMessage().contains("--cau-hinh"), e.getMessage());
+        assertTrue(e.getMessage().contains("LABCAST_LOP"), e.getMessage());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> ServerConfig.parse(
+                        new String[] {"--tao-giao-vien", "gv:mk:Nguy?n Th? Lan"}, Map.of(), true, p -> ""));
+        // máy đọc tham số bằng UTF-8 (Linux, Windows bật UTF-8 toàn hệ thống) thì '?' là chữ thật
+        assertEquals(
+                "Ai?",
+                ServerConfig.parse(new String[] {"--lop", "Ai?"}, Map.of(), false, p -> "")
+                        .lop());
+    }
+
+    @Test
+    void fileCauHinhCoKhoaLa_baoDong() {
+        var e = assertThrows(
+                IllegalArgumentException.class,
+                () -> parse(
+                        new String[] {"--cau-hinh", "x.conf"},
+                        Map.of(),
+                        true,
+                        Map.of("x.conf", "lop = A\ncong = 1\n")));
+        assertTrue(e.getMessage().contains("dòng 2"), e.getMessage());
+        assertTrue(e.getMessage().contains("cong"), e.getMessage());
+    }
+
     @Test
     void thuMucRunner_canhThuMucContent() {
         var c = ServerConfig.defaults().withContent(Path.of("/repo/content"));
