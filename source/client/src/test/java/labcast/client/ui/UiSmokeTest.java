@@ -250,6 +250,16 @@ class UiSmokeTest {
             assertEquals(
                     "print(sorted(a))", fx(() -> Clipboard.getSystemClipboard().getString()));
             assertTrue(fx(area::getText).endsWith("import"), "dán đoạn copy trong ô code phải được");
+            // Ctrl+Insert (copy) và Shift+Delete (cắt) cũng không được đưa code ra clipboard của Windows
+            fx(() -> {
+                area.selectRange(0, 6);
+                area.fireEvent(phim(KeyCode.INSERT, false, true));
+                area.selectRange(0, 6);
+                area.fireEvent(phim(KeyCode.DELETE, true, false));
+                return null;
+            });
+            assertEquals(
+                    "print(sorted(a))", fx(() -> Clipboard.getSystemClipboard().getString()));
             fx(() -> {
                 area.replaceText(CODE);
                 return null;
