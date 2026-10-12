@@ -611,11 +611,13 @@ public final class Presence {
 public record NicInfo(String name, String displayName, List<InetAddress> ipv4, boolean up, boolean loopback) {}
 
 public final class LanInterface {
-    /** Chọn card LAN: đang bật, không phải loopback, có IPv4 riêng (10.x, 172.16–31.x, 192.168.x),
-     *  tên không chứa vEthernet, WSL, docker, VirtualBox, VMware, Hyper-V, vboxnet, br-.
-     *  override (tên card hoặc IP) từ --lan được ưu tiên. */
+    /** Chọn card LAN: đang bật, không phải loopback, tên không chứa vEthernet, WSL, docker, VirtualBox,
+     *  VMware, Hyper-V, vboxnet, br-, ZeroTier, Tailscale, VPN… Ưu tiên card có IPv4 riêng (10.x,
+     *  172.16–31.x, 192.168.x); không có thì nhận card thật có IPv4 thường — mạng trường có thể cấp dải
+     *  công cộng (máy leader nhận 192.99.3.115 ngày 12/10). override (tên card hoặc IP) từ --lan được ưu tiên. */
     static Optional<NicInfo> pick(List<NicInfo> all, String override);
     public static NicInfo pickOrThrow(String override) throws SocketException;   // đọc NetworkInterface thật
+    public static Optional<InetAddress> usableAddress(NicInfo n);   // IP để quảng bá: riêng trước, bỏ 169.254.x
 }
 
 public final class DiscoveryResponder implements AutoCloseable {

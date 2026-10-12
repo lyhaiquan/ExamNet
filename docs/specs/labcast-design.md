@@ -522,7 +522,7 @@ Trả lời `Topics.md` §4.7.5 và §5.4.
 
 - **Thiết lập kết nối:** app gửi `DISCOVER` tới địa chỉ broadcast của từng card mạng; server trả tên lớp, cổng TCP, chế độ TLS và vân tay chứng chỉ. Không tìm được thì cho nhập IP.
 - **Chọn card mạng cho multicast phía app:** sau khi kết nối TCP, app lấy `socket.getLocalAddress()`, tìm `NetworkInterface` chứa địa chỉ đó và tham gia nhóm multicast **trên đúng card đó**. Cách này tránh lỗi nghe nhầm card mạng ảo (VirtualBox, VMware, Hyper-V).
-- **Chọn card mạng phía server:** máy server có Docker Desktop nên có thêm card ảo (vEthernet của WSL2). Server chọn **card LAN** theo cấu hình; mặc định là card có IPv4 riêng và không phải card ảo, hiện trên màn giáo viên để kiểm. Server phát multicast bằng `setNetworkInterface(card LAN)` và `DISCOVER_REPLY` quảng bá **địa chỉ của card LAN**, không phải địa chỉ card ảo.
+- **Chọn card mạng phía server:** máy server có Docker Desktop nên có thêm card ảo (vEthernet của WSL2). Server chọn **card LAN** theo cấu hình; mặc định là card không phải card ảo hay VPN, ưu tiên card có IPv4 riêng; mạng trường cấp IP ngoài dải riêng thì vẫn nhận card thật đó. Card được chọn hiện trên màn giáo viên để kiểm, sai thì chỉ định bằng `--lan`. Server phát multicast bằng `setNetworkInterface(card LAN)` và `DISCOVER_REPLY` quảng bá **địa chỉ của card LAN**, không phải địa chỉ card ảo.
 - **Một kết nối TCP suốt buổi** cho mỗi app. Rớt thì tự kết nối lại và khôi phục (§10.4e).
 
 ---

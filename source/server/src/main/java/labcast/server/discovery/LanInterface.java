@@ -39,8 +39,10 @@ public final class LanInterface {
     private LanInterface() {}
 
     /**
-     * Card đang bật, không phải loopback, có IPv4 riêng (10.x, 172.16–31.x, 192.168.x), tên không
-     * giống card ảo. {@code override} (tên card hoặc IP, từ {@code --lan}) được ưu tiên tuyệt đối.
+     * Card đang bật, không phải loopback, tên không giống card ảo. Ưu tiên card có IPv4 riêng (10.x,
+     * 172.16–31.x, 192.168.x); không có thì nhận card thật có IPv4 thường — mạng trường hay công ty có thể
+     * cấp dải công cộng (máy leader nhận 192.99.3.115), card ảo dù có IP riêng vẫn không được chọn.
+     * {@code override} (tên card hoặc IP, từ {@code --lan}) được ưu tiên tuyệt đối.
      */
     static Optional<NicInfo> pick(List<NicInfo> all, String override) {
         if (override != null && !override.isBlank()) {
@@ -54,11 +56,34 @@ public final class LanInterface {
             }
             return Optional.empty();
         }
-        return all.stream()
+        List<NicInfo> real = all.stream()
                 .filter(n -> n.up() && !n.loopback())
-                .filter(n -> n.ipv4().stream().anyMatch(LanInterface::isPrivate))
                 .filter(n -> !looksVirtual(n))
+                .toList();
+        Optional<NicInfo> withPrivate = real.stream()
+                .filter(n -> privateAddress(n).isPresent())
                 .min(Comparator.comparingInt(LanInterface::rank));
+        if (withPrivate.isPresent()) {
+            return withPrivate;
+        }
+        return real.stream().filter(n -> usableAddress(n).isPresent()).min(Comparator.comparingInt(LanInterface::rank));
+    }
+
+    /**
+     * IPv4 để quảng bá cho app học viên: địa chỉ riêng nếu có, không thì địa chỉ thường đầu tiên. Bỏ
+     * 169.254.x (Windows tự cấp khi không có DHCP, máy khác không tới được), 0.0.0.0, multicast.
+     */
+    public static Optional<InetAddress> usableAddress(NicInfo n) {
+        return privateAddress(n)
+                .or(() -> n.ipv4().stream().filter(LanInterface::isUsable).findFirst());
+    }
+
+    static boolean isUsable(InetAddress a) {
+        return a instanceof Inet4Address
+                && !a.isLoopbackAddress()
+                && !a.isLinkLocalAddress()
+                && !a.isAnyLocalAddress()
+                && !a.isMulticastAddress();
     }
 
     /** Đọc card thật của máy. Không chọn được card nào thì báo lỗi kèm danh sách để dùng {@code --lan}. */

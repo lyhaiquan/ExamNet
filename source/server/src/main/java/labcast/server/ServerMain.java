@@ -127,11 +127,10 @@ public final class ServerMain {
     private static String lanAddress(ServerConfig cfg) {
         try {
             NicInfo nic = LanInterface.pickOrThrow(cfg.lan());
-            String ip = LanInterface.privateAddress(nic)
-                    .orElse(
-                            nic.ipv4().isEmpty()
-                                    ? InetAddress.getLoopbackAddress()
-                                    : nic.ipv4().get(0))
+            // --lan chỉ đúng card chỉ có địa chỉ tự cấp 169.254.x: vẫn theo ý người chạy
+            String ip = LanInterface.usableAddress(nic)
+                    .or(() -> nic.ipv4().stream().findFirst())
+                    .orElse(InetAddress.getLoopbackAddress())
                     .getHostAddress();
             System.out.println("  Card LAN:       " + nic.displayName() + " " + ip);
             return ip;
