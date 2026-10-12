@@ -1,0 +1,829 @@
+/*
+ * Giao diện chung của app LabCast. Gắn vào gốc mỗi màn bằng Theme.apply(...): màn đăng nhập, màn
+ * chính, và cả các Scene test tự dựng (UiSmokeTest) đều nhận cùng một bộ màu.
+ *
+ * Màu khai báo một chỗ ở .lc-root, các luật bên dưới chỉ dùng tên màu. Màu của bộ vẽ animation
+ * (vàng đang xét, xanh dương vừa ghi…) nằm ở VizPalette vì bộ vẽ tô bằng code Java.
+ */
+
+.lc-root {
+    -lc-bg: #f3f5fa;
+    -lc-surface: #ffffff;
+    -lc-surface-2: #f8fafc;
+    -lc-border: #e2e8f0;
+    -lc-border-strong: #cbd5e1;
+    -lc-text: #1e293b;
+    -lc-muted: #64748b;
+    -lc-faint: #94a3b8;
+    -lc-primary: #4f46e5;
+    -lc-primary-hover: #4338ca;
+    -lc-primary-soft: #eef2ff;
+    -lc-primary-text: #3730a3;
+    -lc-success: #15803d;
+    -lc-success-bg: #16a34a;
+    -lc-success-soft: #dcfce7;
+    -lc-danger: #b91c1c;
+    -lc-danger-soft: #fee2e2;
+    -lc-warning: #b45309;
+    -lc-warning-soft: #fef3c7;
+    -lc-nav: #141a2e;
+    -lc-nav-2: #222a44;
+    -lc-console: #0f172a;
+
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-background-color: -lc-bg;
+    -fx-accent: -lc-primary;
+    -fx-focus-color: -lc-primary;
+    -fx-faint-focus-color: transparent;
+    -fx-text-fill: -lc-text;
+}
+
+/* ---------- Chữ ---------- */
+
+.label {
+    -fx-text-fill: -lc-text;
+}
+
+.h1 {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.muted {
+    -fx-text-fill: -lc-muted;
+}
+
+.section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lc-muted;
+}
+
+.card-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Nút ---------- */
+
+.button {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border-strong;
+    -fx-border-radius: 8;
+    -fx-padding: 6 14;
+    -fx-text-fill: -lc-text;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: -lc-surface-2;
+    -fx-border-color: -lc-faint;
+}
+
+.button:pressed {
+    -fx-background-color: #e9edf5;
+}
+
+.button:focused {
+    -fx-border-color: -lc-primary;
+}
+
+.button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.button.primary {
+    -fx-background-color: -lc-primary;
+    -fx-border-color: -lc-primary;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button.primary:hover {
+    -fx-background-color: -lc-primary-hover;
+    -fx-border-color: -lc-primary-hover;
+}
+
+.button.success {
+    -fx-background-color: -lc-success-bg;
+    -fx-border-color: -lc-success-bg;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button.success:hover {
+    -fx-background-color: -lc-success;
+    -fx-border-color: -lc-success;
+}
+
+.button.ghost {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -lc-primary;
+    -fx-padding: 4 8;
+}
+
+.button.ghost:hover {
+    -fx-background-color: -lc-primary-soft;
+}
+
+.button.on-dark {
+    -fx-background-color: transparent;
+    -fx-border-color: #3b4566;
+    -fx-text-fill: #e2e8f0;
+}
+
+.button.on-dark:hover {
+    -fx-background-color: -lc-nav-2;
+}
+
+/* ---------- Ô nhập ---------- */
+
+.text-field,
+.password-field {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border-strong;
+    -fx-border-radius: 8;
+    -fx-padding: 8 10;
+    -fx-prompt-text-fill: -lc-faint;
+    -fx-text-fill: -lc-text;
+}
+
+.text-field:focused,
+.password-field:focused {
+    -fx-border-color: -lc-primary;
+    -fx-effect: dropshadow(three-pass-box, rgba(79, 70, 229, 0.25), 6, 0.3, 0, 0);
+}
+
+.combo-box {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border-strong;
+    -fx-border-radius: 8;
+    -fx-padding: 1 2;
+}
+
+.combo-box:focused {
+    -fx-border-color: -lc-primary;
+}
+
+.combo-box > .list-cell {
+    -fx-text-fill: -lc-text;
+    -fx-padding: 4 6;
+}
+
+.combo-box > .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.combo-box > .arrow-button > .arrow {
+    -fx-background-color: -lc-muted;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.15), 12, 0, 0, 4);
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 5 10;
+    -fx-text-fill: -lc-text;
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:hover,
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+}
+
+/* ---------- Thanh cuộn mảnh ---------- */
+
+.scroll-bar {
+    -fx-background-color: transparent;
+    -fx-padding: 2;
+}
+
+.scroll-bar > .track,
+.scroll-bar > .track-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar > .thumb {
+    -fx-background-color: rgba(100, 116, 139, 0.35);
+    -fx-background-radius: 6;
+}
+
+.scroll-bar > .thumb:hover {
+    -fx-background-color: rgba(100, 116, 139, 0.55);
+}
+
+.scroll-bar > .increment-button,
+.scroll-bar > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar > .increment-button > .increment-arrow,
+.scroll-bar > .decrement-button > .decrement-arrow {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .corner {
+    -fx-background-color: transparent;
+}
+
+/* ---------- Thẻ, nhãn nhỏ ---------- */
+
+.card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.06), 14, 0, 0, 2);
+}
+
+.badge {
+    -fx-background-radius: 999;
+    -fx-padding: 2 9;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: -lc-muted;
+}
+
+.badge-giang-giai {
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+}
+
+.badge-bai-tap {
+    -fx-background-color: #ffedd5;
+    -fx-text-fill: #9a3412;
+}
+
+.badge-luyen-tap {
+    -fx-background-color: #e0f2fe;
+    -fx-text-fill: #075985;
+}
+
+/* ---------- Màn đăng nhập ---------- */
+
+.login-bg {
+    -fx-background-color: linear-gradient(to bottom right, #1e1b4b 0%, #3730a3 45%, #6d28d9 100%);
+}
+
+.login-card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 16;
+    -fx-padding: 28 30 24 30;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.35), 40, 0, 0, 12);
+}
+
+.brand-mark {
+    -fx-background-color: -lc-primary;
+    -fx-background-radius: 8;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-alignment: center;
+    -fx-min-width: 30;
+    -fx-min-height: 30;
+    -fx-max-width: 30;
+    -fx-max-height: 30;
+}
+
+.brand-mark.large {
+    -fx-background-radius: 12;
+    -fx-font-size: 18px;
+    -fx-min-width: 44;
+    -fx-min-height: 44;
+    -fx-max-width: 44;
+    -fx-max-height: 44;
+}
+
+.login-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.server-list {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+    -fx-padding: 4;
+}
+
+.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 8 10;
+}
+
+.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background-color: #eef1f6;
+    -fx-background-radius: 8;
+}
+
+.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-primary;
+    -fx-border-radius: 8;
+}
+
+.server-name {
+    -fx-font-weight: bold;
+}
+
+.server-meta {
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 12px;
+}
+
+.server-dot {
+    -fx-fill: #22c55e;
+}
+
+.placeholder {
+    -fx-text-fill: -lc-muted;
+    -fx-text-alignment: center;
+}
+
+.divider-text {
+    -fx-text-fill: -lc-faint;
+    -fx-font-size: 11px;
+}
+
+.divider-line {
+    -fx-background-color: -lc-border;
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+    -fx-pref-height: 1;
+}
+
+.form-status {
+    -fx-text-fill: -lc-muted;
+}
+
+.form-status.error {
+    -fx-text-fill: -lc-danger;
+}
+
+/* ---------- Thanh trên cùng ---------- */
+
+.topbar {
+    -fx-background-color: -lc-nav;
+    -fx-padding: 9 16;
+}
+
+.topbar .brand {
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.class-chip {
+    -fx-background-color: -lc-nav-2;
+    -fx-background-radius: 999;
+    -fx-padding: 3 12;
+    -fx-text-fill: #c7d2fe;
+    -fx-font-size: 12px;
+}
+
+.avatar {
+    -fx-background-color: #818cf8;
+    -fx-background-radius: 999;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-min-width: 30;
+    -fx-min-height: 30;
+    -fx-max-width: 30;
+    -fx-max-height: 30;
+}
+
+.user-name {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.user-role {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 11px;
+}
+
+.status-pill {
+    -fx-background-radius: 999;
+    -fx-padding: 3 10;
+    -fx-font-size: 12px;
+    -fx-background-color: -lc-nav-2;
+    -fx-text-fill: #cbd5e1;
+}
+
+.status-pill.ok {
+    -fx-background-color: #14532d;
+    -fx-text-fill: #bbf7d0;
+}
+
+.status-pill.warn {
+    -fx-background-color: #78350f;
+    -fx-text-fill: #fde68a;
+}
+
+.status-pill.error {
+    -fx-background-color: #7f1d1d;
+    -fx-text-fill: #fecaca;
+}
+
+/* ---------- Danh sách bài bên trái ---------- */
+
+.sidebar {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: transparent -lc-border transparent transparent;
+    -fx-padding: 14 0 8 0;
+}
+
+.sidebar-header {
+    -fx-padding: 0 16 8 16;
+}
+
+.lesson-list {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0 8;
+}
+
+.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 9 10;
+}
+
+.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 8;
+}
+
+.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 8;
+}
+
+.lesson-title {
+    -fx-font-weight: bold;
+}
+
+.lesson-list .list-cell:filled:selected .lesson-title {
+    -fx-text-fill: -lc-primary-text;
+}
+
+.lesson-meta {
+    -fx-text-fill: -lc-faint;
+    -fx-font-size: 11px;
+}
+
+.empty-state {
+    -fx-padding: 40;
+}
+
+.empty-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Màn bài học ---------- */
+
+.lesson-header {
+    -fx-padding: 14 20 10 20;
+}
+
+.lesson-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0 14 14 14;
+    -fx-box-border: transparent;
+}
+
+.lesson-split > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 0 5;
+}
+
+.lesson-tabs {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.06), 14, 0, 0, 2);
+    -fx-tab-min-height: 30;
+}
+
+.lesson-tabs > .tab-header-area {
+    -fx-padding: 6 12 0 12;
+}
+
+.lesson-tabs > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-border-color: -lc-primary;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-text-fill: -lc-muted;
+    -fx-font-weight: bold;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-text-fill: -lc-primary-text;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .focus-indicator {
+    -fx-border-color: transparent;
+}
+
+.lesson-tabs > .tab-content-area {
+    -fx-background-color: transparent;
+}
+
+.editor-card {
+    -fx-padding: 0 0 6 0;
+}
+
+.card-header {
+    -fx-padding: 10 14;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+
+/* ---------- Đề bài (markdown) ---------- */
+
+.markdown {
+    -fx-padding: 16 20 20 20;
+}
+
+.md-text {
+    -fx-fill: -lc-text;
+    -fx-font-size: 14px;
+}
+
+.md-strong {
+    -fx-font-weight: bold;
+}
+
+.md-em {
+    -fx-font-style: italic;
+}
+
+.md-link {
+    -fx-fill: -lc-primary;
+    -fx-underline: true;
+}
+
+.md-h1 {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.md-h2 {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.md-h3 {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.md-heading {
+    -fx-padding: 6 0 0 0;
+}
+
+.md-code {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 13px;
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 4;
+    -fx-padding: 0 4;
+    -fx-text-fill: #be185d;
+}
+
+.md-pre {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 13px;
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+    -fx-text-fill: -lc-text;
+}
+
+.md-quote {
+    -fx-border-color: transparent transparent transparent -lc-border-strong;
+    -fx-border-width: 0 0 0 3;
+    -fx-padding: 2 0 2 12;
+}
+
+.md-table {
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.md-th {
+    -fx-background-color: -lc-surface-2;
+    -fx-padding: 7 14;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+
+.md-td {
+    -fx-padding: 7 14;
+}
+
+.md-th .md-text {
+    -fx-font-weight: bold;
+}
+
+/* ---------- Trình phát animation ---------- */
+
+.player-bar {
+    -fx-padding: 10 14 4 14;
+}
+
+.source-chip {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 999;
+    -fx-padding: 3 10;
+    -fx-text-fill: -lc-primary-text;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.source-chip.mine {
+    -fx-background-color: -lc-success-soft;
+    -fx-text-fill: -lc-success;
+}
+
+.source-chip.none {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: -lc-muted;
+}
+
+.legend {
+    -fx-padding: 4 14 0 14;
+}
+
+.legend-item {
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 11px;
+}
+
+.viz-stage {
+    -fx-padding: 14 18;
+}
+
+.viz-title {
+    -fx-font-family: "Consolas";
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: -lc-muted;
+}
+
+.viz-value {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-fill: #334155;
+}
+
+.viz-index {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+    -fx-fill: -lc-faint;
+}
+
+.viz-pointer {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-fill: -lc-primary;
+}
+
+.narration {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12;
+    -fx-text-fill: -lc-primary-text;
+    -fx-font-size: 14px;
+}
+
+.narration.warn {
+    -fx-background-color: -lc-warning-soft;
+    -fx-text-fill: -lc-warning;
+}
+
+.player-controls {
+    -fx-padding: 8 14 12 14;
+}
+
+.player-bottom {
+    -fx-padding: 0 14 0 14;
+}
+
+.button.play {
+    -fx-min-width: 86;
+}
+
+.position {
+    -fx-font-family: "Consolas";
+    -fx-text-fill: -lc-muted;
+    -fx-min-width: 56;
+    -fx-alignment: center-right;
+}
+
+.slider > .track {
+    -fx-background-color: #e2e8f0;
+    -fx-background-radius: 4;
+    -fx-padding: 2;
+}
+
+.slider > .thumb {
+    -fx-background-color: -lc-primary;
+    -fx-background-radius: 999;
+    -fx-padding: 7;
+    -fx-effect: dropshadow(gaussian, rgba(79, 70, 229, 0.4), 4, 0, 0, 1);
+}
+
+/* ---------- Chạy thử ---------- */
+
+.run-panel {
+    -fx-padding: 12 14;
+}
+
+.verdict {
+    -fx-background-radius: 999;
+    -fx-padding: 3 12;
+    -fx-font-weight: bold;
+}
+
+.verdict.pending {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: -lc-muted;
+}
+
+.verdict.ok {
+    -fx-background-color: -lc-success-soft;
+    -fx-text-fill: -lc-success;
+}
+
+.verdict.fail {
+    -fx-background-color: -lc-danger-soft;
+    -fx-text-fill: -lc-danger;
+}
+
+.console,
+.console:focused {
+    -fx-background-color: -lc-console;
+    -fx-background-radius: 8;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-effect: null;
+    -fx-text-fill: #e2e8f0;
+    -fx-prompt-text-fill: #64748b;
+    -fx-highlight-fill: #334155;
+    -fx-highlight-text-fill: white;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 13px;
+    -fx-padding: 4;
+}
+
+.console > .scroll-pane > .viewport,
+.console > .scroll-pane > .viewport > .content,
+.console .content {
+    -fx-background-color: transparent;
+}

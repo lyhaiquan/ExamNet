@@ -1,6 +1,20 @@
-/* Màu cú pháp Python cho CodeEditor */
-.keyword { -fx-fill: #8e44ad; -fx-font-weight: bold; }
-.string  { -fx-fill: #27ae60; }
-.comment { -fx-fill: #95a5a6; -fx-font-style: italic; }
-.number  { -fx-fill: #d35400; }
-.lineno  { -fx-background-color: #f4f6f7; -fx-text-fill: #95a5a6; }
+/* Ô soạn code Python (CodeEditor): chữ, lề số dòng, con trỏ, màu cú pháp */
+.code-area {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 14px;
+    -fx-background-color: white;
+    -fx-padding: 6 0 0 0;
+}
+.code-area .caret { -fx-stroke: #4f46e5; }
+.code-area .selection { -fx-fill: #c7d2fe; }
+
+.keyword { -fx-fill: #7c3aed; -fx-font-weight: bold; }
+.builtin { -fx-fill: #2563eb; }
+.string  { -fx-fill: #059669; }
+.comment { -fx-fill: #94a3b8; -fx-font-style: italic; }
+.number  { -fx-fill: #ea580c; }
+.lineno  {
+    -fx-background-color: #f8fafc;
+    -fx-text-fill: #94a3b8;
+    -fx-padding: 0 10 0 12;
+}

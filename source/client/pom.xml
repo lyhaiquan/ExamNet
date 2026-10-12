@@ -31,6 +31,14 @@
       <groupId>org.fxmisc.richtext</groupId>
       <artifactId>richtextfx</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark-ext-gfm-tables</artifactId>
+    </dependency>
     <!-- Chỉ để test đầu-cuối: dựng server thật trong cùng tiến trình -->
     <dependency>
       <groupId>labcast</groupId>

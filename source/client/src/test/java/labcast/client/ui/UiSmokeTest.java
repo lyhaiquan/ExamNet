@@ -17,15 +17,19 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TabPane;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javax.imageio.ImageIO;
 import labcast.client.journal.JournalClient;
+import labcast.client.net.DiscoveryClient;
+import labcast.common.protocol.PayloadWriter;
 import labcast.common.protocol.Role;
 import labcast.server.LabCastServer;
 import labcast.server.ServerConfig;
 import labcast.server.account.AccountModule;
 import labcast.server.account.UserRepository;
+import labcast.server.discovery.DiscoveryResponder;
 import labcast.server.journal.JournalModule;
 import labcast.server.lesson.LessonModule;
 import labcast.server.run.RunModule;
@@ -85,7 +89,14 @@ class UiSmokeTest {
     }
 
     static void chup(Scene scene, String name) throws Exception {
-        WritableImage img = fx(() -> scene.snapshot(null));
+        WritableImage img = fx(() -> {
+            // cảnh không gắn cửa sổ thì không có pulse: nút vừa tạo chưa nhận CSS, tự áp trước khi chụp
+            for (int i = 0; i < 2; i++) {
+                scene.getRoot().applyCss();
+                scene.getRoot().layout();
+            }
+            return scene.snapshot(null);
+        });
         int w = (int) img.getWidth();
         int h = (int) img.getHeight();
         BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -143,14 +154,34 @@ class UiSmokeTest {
             new UserRepository(db).create("sv", "Nguyễn Văn An", Role.STUDENT, "1");
             Platform.startup(() -> {});
 
-            Scene loginScene = fx(() -> new Scene(new LoginView(li -> {}), 520, 520));
+            // Trả lời tìm lớp ở cổng thật 7002 để màn đăng nhập hiện tên lớp (địa chỉ giả, chỉ để chụp
+            // ảnh — bước sau đăng nhập thẳng bằng LoginController). Cổng đang bận (máy đang chạy server
+            // thật) thì bỏ qua, màn đăng nhập chỉ báo không thấy lớp.
+            DiscoveryResponder discovery = null;
+            try {
+                discovery = new DiscoveryResponder(DiscoveryClient.DEFAULT_PORT, () -> new PayloadWriter()
+                        .str("Lớp D22CQCN01")
+                        .str("Cô Lan")
+                        .str("192.168.1.10")
+                        .u16(7000)
+                        .bool(false)
+                        .str("")
+                        .toBytes());
+                discovery.start();
+            } catch (Exception e) {
+                discovery = null;
+            }
+            Scene loginScene = fx(() -> new Scene(new LoginView(li -> {}), 960, 680));
             Thread.sleep(2_000); // chờ tìm lớp xong
             chup(loginScene, "1-dang-nhap");
+            if (discovery != null) {
+                discovery.close();
+            }
 
             var li = LoginController.login("127.0.0.1", server.port(), "sv", "1");
             Scene scene = fx(() -> new Scene(new HomeScreen(li, new JournalClient(li.client()), () -> {}), 1280, 800));
             @SuppressWarnings("unchecked")
-            ListView<Object> list = (ListView<Object>) fx(() -> scene.lookup(".list-view"));
+            ListView<Object> list = (ListView<Object>) fx(() -> scene.lookup("#lessons"));
             until(() -> !list.getItems().isEmpty(), "danh sách bài");
             fx(() -> {
                 list.getSelectionModel().select(0);
@@ -177,10 +208,7 @@ class UiSmokeTest {
                 throw e;
             }
             Thread.sleep(1_500); // để trình phát chạy vài bước giảng giải
-            Button play = (Button) fx(() -> scene.getRoot().lookupAll(".button").stream()
-                    .filter(n -> n instanceof Button b && b.getText().startsWith("▶ Phát"))
-                    .findFirst()
-                    .orElseThrow());
+            Button play = (Button) fx(() -> scene.lookup("#play"));
             fx(() -> {
                 play.fire();
                 return null;
@@ -193,25 +221,28 @@ class UiSmokeTest {
                 area.replaceText(CODE);
                 return null;
             });
-            Button run = (Button) fx(() -> scene.getRoot().lookupAll(".button").stream()
-                    .filter(n -> n instanceof Button b && b.getText().contains("Chạy thử"))
-                    .findFirst()
-                    .orElseThrow());
+            Button run = (Button) fx(() -> scene.lookup("#run"));
             fx(() -> {
                 run.fire();
                 return null;
             });
-            until(
-                    () -> scene.getRoot().lookupAll(".label").stream()
-                            .anyMatch(n -> n instanceof Label l && l.getText().contains("Đúng")),
-                    "kết quả chạy thử");
-            Node source = fx(() -> scene.getRoot().lookupAll(".label").stream()
-                    .filter(n -> n instanceof Label l && l.getText().startsWith("Đang xem"))
-                    .findFirst()
-                    .orElseThrow());
-            assertEquals("Đang xem: code của em", ((Label) source).getText());
+            Label verdict = (Label) fx(() -> scene.lookup("#verdict"));
+            until(() -> verdict.getText().contains("Đúng"), "kết quả chạy thử");
+            Label source = (Label) fx(() -> scene.lookup("#trace-source"));
+            assertEquals("Đang xem: code của em", fx(source::getText));
+            fx(() -> {
+                play.fire();
+                return null;
+            });
             Thread.sleep(2_500);
             chup(scene, "3-chay-thu-code-cua-em");
+
+            TabPane tabs = fx(() -> tim(scene.getRoot(), TabPane.class));
+            fx(() -> {
+                tabs.getSelectionModel().select(1);
+                return null;
+            });
+            chup(scene, "4-de-bai");
             assertTrue(Files.exists(Path.of("target/ui-smoke/3-chay-thu-code-cua-em.png")));
             li.client().close();
         }

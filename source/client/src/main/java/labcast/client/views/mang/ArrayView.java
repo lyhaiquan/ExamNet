@@ -3,49 +3,69 @@ package labcast.client.views.mang;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.animation.ParallelTransition;
 import javafx.animation.TranslateTransition;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import labcast.client.player.View;
+import labcast.client.player.VizPalette;
 import labcast.common.trace.TraceEvent;
 
 /**
- * Bộ vẽ {@code mang}: mỗi phần tử một cột cao theo giá trị. Màu theo quy ước spec §7.4: vàng là đang
- * xét, xanh dương là vừa ghi. Đổi chỗ thì hai cột trượt qua nhau cùng lúc.
+ * Bộ vẽ {@code mang}: mỗi phần tử một cột cao theo giá trị, giá trị ghi trên đầu cột, chỉ số ghi dưới
+ * chân, con trỏ ({@code con_tro}) là mũi tên dưới chỉ số. Màu theo {@link VizPalette}. Đổi chỗ thì hai
+ * cột trượt qua nhau cùng lúc. Cột co giãn theo bề ngang khung và luôn nằm giữa.
  */
 public final class ArrayView implements View {
-    static final Color NORMAL = Color.web("#9db4c0");
-    static final Color READ = Color.web("#f2c14e");
-    static final Color WRITTEN = Color.web("#4a90d9");
+    private static final double MAX_BAR_W = 46;
+    private static final double MIN_BAR_W = 8;
+    private static final double MAX_GAP = 12;
+    /** Chỗ cho tên biến và số ghi trên đầu cột cao nhất. */
+    private static final double TOP = 42;
 
-    private static final double BAR_W = 36;
-    private static final double GAP = 8;
-    private static final double MAX_H = 160;
-    private static final double BASE_Y = 190;
+    private static final double MAX_H = 180;
+    private static final double BASE_Y = TOP + MAX_H;
+    private static final double POINTER_ROW = 30;
+    /** Cột hẹp hơn mức này thì không ghi số, chữ sẽ đè lên nhau. */
+    private static final double MIN_LABEL_W = 20;
 
     private final String name;
     private final ArrayModel model = new ArrayModel();
-    private final Pane root = new Pane();
-    private final Text title = new Text();
+    private final VBox root = new VBox(4);
+    private final Pane canvas = new Pane();
+    private final Label title = new Label();
     private final List<Group> bars = new ArrayList<>();
-    private final Map<String, Text> pointers = new HashMap<>();
+    /** Tên con trỏ → chỉ số đang trỏ, giữ thứ tự xuất hiện để mỗi con trỏ một hàng. */
+    private final Map<String, Integer> pointerAt = new LinkedHashMap<>();
+
+    private final Map<String, Text> pointers = new LinkedHashMap<>();
+
+    private double barW = MAX_BAR_W;
+    private double gap = MAX_GAP;
+    private double offsetX;
 
     public ArrayView(String name) {
         this.name = name;
-        root.setPrefHeight(230);
-        root.setMinHeight(230);
         title.setText(name);
-        title.setX(0);
-        title.setY(14);
-        root.getChildren().add(title);
+        title.getStyleClass().add("viz-title");
+        double h = BASE_Y + POINTER_ROW + 2 * 16;
+        canvas.setPrefHeight(h);
+        canvas.setMinHeight(h);
+        canvas.setMaxWidth(Double.MAX_VALUE);
+        canvas.widthProperty().addListener((obs, o, n) -> rebuild());
+        canvas.getChildren().add(title);
+        root.getChildren().add(canvas);
+        root.setFillWidth(true);
     }
 
     @Override
@@ -65,12 +85,18 @@ public final class ArrayView implements View {
             snapshot.forEach(n -> vs.add(n.asInt()));
         }
         model.reset(vs);
+        pointerAt.clear();
         rebuild();
     }
 
     @Override
     public void apply(TraceEvent e, boolean animate, Duration d) {
         List<ArrayModel.Change> changes = model.apply(e);
+        for (ArrayModel.Change c : changes) {
+            if (c instanceof ArrayModel.Pointer p) {
+                pointerAt.put(p.name(), p.i());
+            }
+        }
         if (!animate) {
             rebuild();
             return;
@@ -79,28 +105,42 @@ public final class ArrayView implements View {
         // Java 17 chưa có switch theo kiểu (pattern matching) nên dùng instanceof
         for (ArrayModel.Change c : changes) {
             if (c instanceof ArrayModel.Read r) {
-                color(r.i(), READ);
+                color(r.i(), VizPalette.CURRENT);
             } else if (c instanceof ArrayModel.Set s) {
                 redrawBar(s.i(), s.value());
-                color(s.i(), WRITTEN);
+                color(s.i(), VizPalette.WRITTEN);
             } else if (c instanceof ArrayModel.Swap s) {
                 animateSwap(s.i(), s.j(), d);
-            } else if (c instanceof ArrayModel.Pointer p) {
-                movePointer(p.name(), p.i());
             }
         }
+        placePointers();
     }
 
+    /** Tính bề ngang cột theo khung, dựng lại toàn bộ cột và con trỏ (không animation). */
     private void rebuild() {
-        root.getChildren().removeAll(bars);
-        bars.clear();
         List<Integer> vs = model.values();
+        int n = Math.max(1, vs.size());
+        double width = canvas.getWidth() > 0 ? canvas.getWidth() : 480;
+        double step = width / n;
+        barW = Math.max(MIN_BAR_W, Math.min(MAX_BAR_W, step * 0.78));
+        gap = Math.max(2, Math.min(MAX_GAP, step - barW));
+        double total = vs.size() * barW + Math.max(0, vs.size() - 1) * gap;
+        offsetX = Math.max(0, (width - total) / 2);
+        title.relocate(offsetX, 0); // tên biến đứng ngay trên cột đầu
+
+        canvas.getChildren().removeAll(bars);
+        bars.clear();
         for (int i = 0; i < vs.size(); i++) {
             Group g = new Group();
             bars.add(g);
-            root.getChildren().add(g);
+            canvas.getChildren().add(g);
             redrawBar(i, vs.get(i));
         }
+        placePointers();
+    }
+
+    private double xOf(int i) {
+        return offsetX + i * (barW + gap);
     }
 
     private void redrawBar(int i, int value) {
@@ -110,21 +150,30 @@ public final class ArrayView implements View {
         }
         int max = model.values().stream().mapToInt(Math::abs).max().orElse(1);
         double h = Math.max(4, MAX_H * Math.abs(value) / Math.max(1, max));
-        Rectangle r = new Rectangle(BAR_W, h, NORMAL);
-        r.setArcWidth(6);
-        r.setArcHeight(6);
+        Rectangle r = new Rectangle(barW, h, VizPalette.NORMAL);
+        r.setArcWidth(Math.min(8, barW / 3));
+        r.setArcHeight(Math.min(8, barW / 3));
         r.setY(BASE_Y - h);
-        Text label = new Text(String.valueOf(value));
-        label.setX(BAR_W / 2 - label.getLayoutBounds().getWidth() / 2);
-        label.setY(BASE_Y - h - 4);
-        Text index = new Text(String.valueOf(i));
-        index.setFill(Color.GRAY);
-        index.setX(BAR_W / 2 - 3);
-        index.setY(BASE_Y + 14);
         Group g = bars.get(i);
-        g.getChildren().setAll(r, label, index);
+        g.getChildren().setAll(r);
+        if (barW >= MIN_LABEL_W) {
+            g.getChildren().add(centered(String.valueOf(value), "viz-value", BASE_Y - h - 6));
+        }
+        if (barW >= MIN_LABEL_W || i % 5 == 0) {
+            g.getChildren().add(centered(String.valueOf(i), "viz-index", BASE_Y + 15));
+        }
         g.setTranslateX(0);
-        g.setLayoutX(i * (BAR_W + GAP));
+        g.setLayoutX(xOf(i));
+    }
+
+    /** Chữ căn giữa theo bề ngang cột (để CSS đổi cỡ chữ vẫn giữa). */
+    private Text centered(String s, String styleClass, double baselineY) {
+        Text t = new Text(s);
+        t.getStyleClass().add(styleClass);
+        t.setTextAlignment(TextAlignment.CENTER);
+        t.setWrappingWidth(Math.max(barW, 1));
+        t.setY(baselineY);
+        return t;
     }
 
     private void color(int i, Color c) {
@@ -135,7 +184,7 @@ public final class ArrayView implements View {
 
     private void clearHighlights() {
         for (int i = 0; i < bars.size(); i++) {
-            color(i, NORMAL);
+            color(i, VizPalette.NORMAL);
         }
     }
 
@@ -146,36 +195,46 @@ public final class ArrayView implements View {
         }
         Group a = bars.get(i);
         Group b = bars.get(j);
-        double dx = (j - i) * (BAR_W + GAP);
+        double dx = (j - i) * (barW + gap);
         TranslateTransition ta = new TranslateTransition(javafx.util.Duration.millis(d.toMillis()), a);
         ta.setByX(dx);
         TranslateTransition tb = new TranslateTransition(javafx.util.Duration.millis(d.toMillis()), b);
         tb.setByX(-dx);
-        color(i, WRITTEN);
-        color(j, WRITTEN);
+        color(i, VizPalette.WRITTEN);
+        color(j, VizPalette.WRITTEN);
         ParallelTransition p = new ParallelTransition(ta, tb);
         p.setOnFinished(ev -> {
             List<Integer> vs = model.values();
-            if (i < vs.size() && j < vs.size()) {
+            if (i < vs.size() && j < vs.size() && i < bars.size() && j < bars.size()) {
                 redrawBar(i, vs.get(i));
                 redrawBar(j, vs.get(j));
-                color(i, WRITTEN);
-                color(j, WRITTEN);
+                color(i, VizPalette.WRITTEN);
+                color(j, VizPalette.WRITTEN);
             }
         });
         p.play();
     }
 
-    private void movePointer(String pname, int i) {
-        Text t = pointers.computeIfAbsent(pname, k -> {
-            Text nt = new Text(k);
-            nt.setFill(Color.web("#c0392b"));
-            root.getChildren().add(nt);
-            return nt;
-        });
-        int row = new ArrayList<>(pointers.keySet()).indexOf(pname);
-        t.setX(i * (BAR_W + GAP) + BAR_W / 2 - 3);
-        t.setY(BASE_Y + 30 + row * 14);
+    /** Mỗi con trỏ một hàng dưới chỉ số: mũi tên rồi tên, ví dụ "▲ j". */
+    private void placePointers() {
+        canvas.getChildren().removeAll(pointers.values());
+        pointers.clear();
+        int row = 0;
+        for (Map.Entry<String, Integer> e : pointerAt.entrySet()) {
+            int i = e.getValue();
+            if (i >= 0 && i < model.values().size()) {
+                Text t = new Text("▲ " + e.getKey());
+                t.getStyleClass().add("viz-pointer");
+                t.setTextAlignment(TextAlignment.CENTER);
+                double w = Math.max(barW, 40);
+                t.setWrappingWidth(w);
+                t.setX(xOf(i) + barW / 2 - w / 2);
+                t.setY(BASE_Y + POINTER_ROW + row * 16);
+                pointers.put(e.getKey(), t);
+                canvas.getChildren().add(t);
+            }
+            row++;
+        }
     }
 
     @Override

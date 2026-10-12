@@ -27,7 +27,33 @@ public final class CodeEditor {
         "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or",
         "pass", "raise", "return", "try", "while", "with", "yield"
     };
+    /** Hàm có sẵn hay gặp trong bài DSA, tô khác từ khoá để học viên phân biệt. */
+    private static final String[] BUILTINS = {
+        "abs",
+        "bool",
+        "dict",
+        "enumerate",
+        "float",
+        "input",
+        "int",
+        "len",
+        "list",
+        "map",
+        "max",
+        "min",
+        "print",
+        "range",
+        "reversed",
+        "set",
+        "sorted",
+        "str",
+        "sum",
+        "tuple",
+        "zip"
+    };
+
     private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>\\b(" + String.join("|", KEYWORDS) + ")\\b)"
+            + "|(?<BUILTIN>\\b(" + String.join("|", BUILTINS) + ")\\b(?=\\s*\\())"
             + "|(?<STRING>\"([^\"\\\\\\n]|\\\\.)*\"|'([^'\\\\\\n]|\\\\.)*')"
             + "|(?<COMMENT>#[^\\n]*)"
             + "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)");
@@ -40,7 +66,6 @@ public final class CodeEditor {
     public CodeEditor() {
         area.setParagraphGraphicFactory(LineNumberFactory.get(area));
         area.getStylesheets().add(CodeEditor.class.getResource("python.css").toExternalForm());
-        area.setStyle("-fx-font-family: 'Consolas', 'Courier New', monospace; -fx-font-size: 14px;");
         area.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.TAB) {
                 area.replaceSelection("    ");
@@ -107,7 +132,9 @@ public final class CodeEditor {
         while (m.find()) {
             String cls = m.group("KEYWORD") != null
                     ? "keyword"
-                    : m.group("STRING") != null ? "string" : m.group("COMMENT") != null ? "comment" : "number";
+                    : m.group("BUILTIN") != null
+                            ? "builtin"
+                            : m.group("STRING") != null ? "string" : m.group("COMMENT") != null ? "comment" : "number";
             b.add(Collections.emptyList(), m.start() - last);
             b.add(Collections.singleton(cls), m.end() - m.start());
             last = m.end();

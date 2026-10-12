@@ -40,8 +40,7 @@ public final class LabCastApp extends Application {
 
     private void showLogin() {
         session = null;
-        StackPane root = new StackPane(new LoginView(this::loggedIn));
-        stage.getScene().setRoot(root);
+        stage.getScene().setRoot(new LoginView(this::loggedIn));
     }
 
     private void loggedIn(LoginController.LoggedIn li) {

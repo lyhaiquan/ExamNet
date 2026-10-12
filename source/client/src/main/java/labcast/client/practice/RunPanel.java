@@ -10,13 +10,14 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import labcast.client.net.LcpClient;
 import labcast.common.protocol.ErrorMessage;
@@ -59,22 +60,33 @@ public final class RunPanel extends VBox {
      */
     public RunPanel(
             LcpClient client, String lessonId, List<String> testIds, LongSupplier flushCode, Consumer<Trace> onTrace) {
-        super(6);
+        super(10);
         this.client = client;
         this.lessonId = lessonId;
         this.flushCode = flushCode;
         this.onTrace = onTrace;
-        setPadding(new Insets(8));
+        getStyleClass().add("run-panel");
         tests.getItems().setAll(testIds);
         if (!testIds.isEmpty()) {
             tests.getSelectionModel().select(0);
         }
         output.setEditable(false);
         output.setPrefRowCount(4);
-        output.setStyle("-fx-font-family: 'Consolas', monospace;");
-        verdict.setStyle("-fx-font-weight: bold;");
+        output.setWrapText(true);
+        output.setPromptText("Kết quả in ra của code sẽ hiện ở đây");
+        output.getStyleClass().add("console");
+        verdict.setId("verdict");
+        verdict.getStyleClass().add("verdict");
+        verdict.managedProperty().bind(verdict.visibleProperty());
+        verdict.setVisible(false);
+        runBtn.setId("run");
+        runBtn.getStyleClass().add("success");
         runBtn.setOnAction(e -> run());
-        HBox bar = new HBox(8, runBtn, new Label("Test:"), tests, verdict);
+        Label testLabel = new Label("Test");
+        testLabel.getStyleClass().add("muted");
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        HBox bar = new HBox(8, runBtn, testLabel, tests, gap, verdict);
         bar.setAlignment(Pos.CENTER_LEFT);
         getChildren().addAll(bar, output);
 
@@ -104,8 +116,7 @@ public final class RunPanel extends VBox {
         inFlight = true;
         timeout.playFromStart();
         runBtn.setDisable(true);
-        verdict.setText("Đang chạy…");
-        verdict.setStyle("-fx-font-weight: bold; -fx-text-fill: #7f8c8d;");
+        showVerdict("Đang chạy…", "pending");
         client.send(
                 MessageType.RUN_REQ,
                 new PayloadWriter()
@@ -168,15 +179,15 @@ public final class RunPanel extends VBox {
             timeout.stop();
             runBtn.setDisable(false);
             String v = r.path("tests").path(0).path("verdict").asText("?");
-            verdict.setText(
+            showVerdict(
                     switch (v) {
                         case "OK" -> "✔ Đúng";
                         case "WRONG" -> "✘ Sai kết quả";
                         case "TIME_LIMIT" -> "⏱ Quá thời gian";
                         case "RUNTIME_ERROR" -> "✘ Lỗi khi chạy";
                         default -> v;
-                    });
-            verdict.setStyle("-fx-font-weight: bold; -fx-text-fill: " + (v.equals("OK") ? "#27ae60" : "#c0392b") + ";");
+                    },
+                    v.equals("OK") ? "ok" : "fail");
             String err = r.path("error").isNull() ? "" : r.path("error").asText("");
             output.setText(r.path("stdout").asText("") + (err.isEmpty() ? "" : "\n" + err));
             onTrace.accept(trace);
@@ -203,7 +214,14 @@ public final class RunPanel extends VBox {
         runId = -1;
         timeout.stop();
         runBtn.setDisable(false);
-        verdict.setText("⚠ " + message);
-        verdict.setStyle("-fx-font-weight: bold; -fx-text-fill: #c0392b;");
+        showVerdict("⚠ " + message, "fail");
+    }
+
+    /** {@code variant}: {@code pending}, {@code ok} hoặc {@code fail} — màu ở labcast.css. */
+    private void showVerdict(String text, String variant) {
+        verdict.setText(text);
+        verdict.getStyleClass().removeAll("pending", "ok", "fail");
+        verdict.getStyleClass().add(variant);
+        verdict.setVisible(true);
     }
 }

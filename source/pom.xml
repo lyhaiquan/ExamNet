@@ -36,6 +36,7 @@
     <jsqlparser.version>5.4</jsqlparser.version>
     <snakeyaml.version>2.7</snakeyaml.version>
     <jackson.version>2.22.3</jackson.version>
+    <commonmark.version>0.22.0</commonmark.version>
   </properties>
 
   <dependencyManagement>
@@ -67,6 +68,17 @@
         <groupId>org.fxmisc.richtext</groupId>
         <artifactId>richtextfx</artifactId>
         <version>${richtextfx.version}</version>
+      </dependency>
+      <!-- Đề bài viết bằng markdown, có bảng ví dụ (client.ui.markdown) -->
+      <dependency>
+        <groupId>org.commonmark</groupId>
+        <artifactId>commonmark</artifactId>
+        <version>${commonmark.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.commonmark</groupId>
+        <artifactId>commonmark-ext-gfm-tables</artifactId>
+        <version>${commonmark.version}</version>
       </dependency>
       <!-- Phân tích câu SQL để kiểm câu cho phép và tách bước (server.sqlviz) -->
       <dependency>
