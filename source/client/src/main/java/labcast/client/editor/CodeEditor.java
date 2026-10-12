@@ -66,7 +66,9 @@ public final class CodeEditor {
     private boolean loading;
 
     public CodeEditor() {
-        area.setParagraphGraphicFactory(LineNumberFactory.get(area));
+        // Số dòng luôn rộng 3 chữ số: để mặc định thì khi code vượt 9 dòng, cột số dòng của các dòng mới rộng
+        // ra còn dòng cũ chưa vẽ lại, chữ code các dòng bị lệch nhau.
+        area.setParagraphGraphicFactory(LineNumberFactory.get(area, digits -> "%" + Math.max(3, digits) + "d"));
         area.getStylesheets().add(CodeEditor.class.getResource("python.css").toExternalForm());
         area.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.TAB) {

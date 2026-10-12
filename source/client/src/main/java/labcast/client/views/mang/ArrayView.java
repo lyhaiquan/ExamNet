@@ -45,6 +45,8 @@ public final class ArrayView implements View {
     private final Pane canvas = new Pane();
     private final Label title = new Label();
     private final List<Group> bars = new ArrayList<>();
+    /** Chỉ số dưới chân cột: là VỊ TRÍ trong mảng nên đứng yên khi hai cột trượt qua nhau lúc đổi chỗ. */
+    private final List<Text> indexLabels = new ArrayList<>();
     /** Tên con trỏ → chỉ số đang trỏ, giữ thứ tự xuất hiện để mỗi con trỏ một hàng. */
     private final Map<String, Integer> pointerAt = new LinkedHashMap<>();
 
@@ -129,12 +131,20 @@ public final class ArrayView implements View {
         title.relocate(offsetX, 0); // tên biến đứng ngay trên cột đầu
 
         canvas.getChildren().removeAll(bars);
+        canvas.getChildren().removeAll(indexLabels);
         bars.clear();
+        indexLabels.clear();
         for (int i = 0; i < vs.size(); i++) {
             Group g = new Group();
             bars.add(g);
             canvas.getChildren().add(g);
             redrawBar(i, vs.get(i));
+            if (barW >= MIN_LABEL_W || i % 5 == 0) {
+                Text idx = centered(String.valueOf(i), "viz-index", BASE_Y + 15);
+                idx.setLayoutX(xOf(i));
+                indexLabels.add(idx);
+                canvas.getChildren().add(idx);
+            }
         }
         placePointers();
     }
@@ -158,9 +168,6 @@ public final class ArrayView implements View {
         g.getChildren().setAll(r);
         if (barW >= MIN_LABEL_W) {
             g.getChildren().add(centered(String.valueOf(value), "viz-value", BASE_Y - h - 6));
-        }
-        if (barW >= MIN_LABEL_W || i % 5 == 0) {
-            g.getChildren().add(centered(String.valueOf(i), "viz-index", BASE_Y + 15));
         }
         g.setTranslateX(0);
         g.setLayoutX(xOf(i));
