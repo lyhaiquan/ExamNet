@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.scene.Node;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.DragEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import labcast.common.protocol.CodeDelta;
@@ -58,7 +60,7 @@ public final class CodeEditor {
             + "|(?<COMMENT>#[^\\n]*)"
             + "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)");
 
-    private final CodeArea area = new CodeArea();
+    private final GuardedArea area = new GuardedArea();
     private final VirtualizedScrollPane<CodeArea> pane = new VirtualizedScrollPane<>(area);
     private DeltaBatcher batcher;
     private boolean loading;
@@ -69,6 +71,12 @@ public final class CodeEditor {
         area.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.TAB) {
                 area.replaceSelection("    ");
+                e.consume();
+            }
+        });
+        // Kéo thả chữ từ app khác vào (trình duyệt, Word…): khi khoá thì bỏ, như dán từ ngoài
+        area.addEventFilter(DragEvent.ANY, e -> {
+            if (area.guarded && e.getGestureSource() == null) {
                 e.consume();
             }
         });
@@ -123,6 +131,64 @@ public final class CodeEditor {
 
     public void setEditable(boolean editable) {
         area.setEditable(editable);
+    }
+
+    /**
+     * Bật khi học viên làm bài: copy/cắt/dán chỉ trong ô code (xem {@link ClipboardGuard}). Giáo viên
+     * mở bài để giảng thì không bật.
+     */
+    public void setPasteGuard(boolean on) {
+        area.guarded = on;
+    }
+
+    /** Gọi khi học viên thử dán chữ lấy từ ngoài ô code (luồng giao diện). */
+    public void onBlockedPaste(Runnable r) {
+        area.onBlocked = r;
+    }
+
+    /**
+     * CodeArea có copy/cắt/dán đi qua {@link ClipboardGuard} khi bật khoá. RichTextFX gọi đúng ba hàm
+     * này cho Ctrl+C/X/V, Ctrl+Insert, Shift+Delete, Shift+Insert — UiSmokeTest kiểm bằng phím thật.
+     */
+    private static final class GuardedArea extends CodeArea {
+        private final ClipboardGuard guard = new ClipboardGuard();
+        private boolean guarded;
+        private Runnable onBlocked = () -> {};
+
+        @Override
+        public void copy() {
+            if (!guarded) {
+                super.copy();
+                return;
+            }
+            guard.copied(getSelectedText());
+        }
+
+        @Override
+        public void cut() {
+            if (!guarded) {
+                super.cut();
+                return;
+            }
+            guard.copied(getSelectedText());
+            replaceSelection("");
+        }
+
+        @Override
+        public void paste() {
+            if (!guarded) {
+                super.paste();
+                return;
+            }
+            Clipboard cb = Clipboard.getSystemClipboard();
+            if (guard.isExternal(cb.hasString() ? cb.getString() : null)) {
+                onBlocked.run();
+            }
+            String s = guard.pasteText();
+            if (!s.isEmpty()) {
+                replaceSelection(s);
+            }
+        }
     }
 
     static StyleSpans<Collection<String>> highlight(String text) {

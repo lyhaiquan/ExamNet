@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javafx.animation.PauseTransition;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -41,6 +42,8 @@ import labcast.common.trace.TraceReader;
  * </pre>
  */
 public final class LessonScreen extends BorderPane {
+    private static final String SAVED_HINT = "Tự động lưu khi gõ";
+
     private final String lessonId;
     private final JsonNode lesson;
     private final PlayerPane player = new PlayerPane();
@@ -50,8 +53,13 @@ public final class LessonScreen extends BorderPane {
     private final Tab animTab;
     private final RunPanel runPanel;
 
-    /** {@code lesson}: payload {@code LESSON_DATA} loại "lesson". */
-    public LessonScreen(LcpClient client, JournalClient journal, JsonNode lesson) {
+    /**
+     * @param lesson payload {@code LESSON_DATA} loại "lesson"
+     * @param studentMode học viên làm bài: chỉ dán được đoạn copy trong ô code (giáo viên thì không khoá)
+     * @param onClose nút "Đóng bài"
+     */
+    public LessonScreen(
+            LcpClient client, JournalClient journal, JsonNode lesson, boolean studentMode, Runnable onClose) {
         this.lesson = lesson;
         this.lessonId = lesson.path("id").asText();
         getStyleClass().add("lesson-screen");
@@ -62,7 +70,12 @@ public final class LessonScreen extends BorderPane {
         String loai = lesson.path("loai").asText();
         HBox tags = new HBox(6, badge(loaiLabel(loai), "badge-" + loai), badge("Python", null));
         tags.setAlignment(Pos.CENTER_LEFT);
-        HBox header = new HBox(12, title, tags);
+        Region headGap = new Region();
+        HBox.setHgrow(headGap, Priority.ALWAYS);
+        Button closeBtn = new Button("✕ Đóng bài");
+        closeBtn.setId("close-lesson");
+        closeBtn.setOnAction(e -> onClose.run());
+        HBox header = new HBox(12, title, tags, headGap, closeBtn);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("lesson-header");
         setTop(header);
@@ -97,7 +110,7 @@ public final class LessonScreen extends BorderPane {
         // Phải: ô soạn code và khung chạy thử
         Label edTitle = new Label("Code của em");
         edTitle.getStyleClass().add("card-title");
-        Label saved = new Label("Tự động lưu khi gõ");
+        Label saved = new Label(SAVED_HINT);
         saved.getStyleClass().add("muted");
         Region gap2 = new Region();
         HBox.setHgrow(gap2, Priority.ALWAYS);
@@ -108,6 +121,19 @@ public final class LessonScreen extends BorderPane {
         VBox.setVgrow(editor.node(), Priority.ALWAYS);
         edCard.getStyleClass().addAll("card", "editor-card");
 
+        editor.setPasteGuard(studentMode);
+        PauseTransition clearNotice = new PauseTransition(javafx.util.Duration.seconds(4));
+        clearNotice.setOnFinished(e -> {
+            saved.setText(SAVED_HINT);
+            saved.getStyleClass().remove("notice");
+        });
+        editor.onBlockedPaste(() -> {
+            saved.setText("Không dán được chữ copy từ ngoài ô code");
+            if (!saved.getStyleClass().contains("notice")) {
+                saved.getStyleClass().add("notice");
+            }
+            clearNotice.playFromStart();
+        });
         editor.load(
                 lessonId, lesson.path("code").asText(), lesson.path("codeSeq").asLong(), journal::submit);
         client.setResumeLesson(() -> lessonId);

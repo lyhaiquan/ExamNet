@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -38,6 +40,8 @@ public final class HomeScreen extends BorderPane {
     private final ListView<JsonNode> lessons = new ListView<>();
     private final Label status = new Label();
     private LessonScreen current;
+    /** Mã bài đang mở, null khi chưa mở bài nào. LabCastApp nghe để khoá toàn màn hình. */
+    private final ReadOnlyStringWrapper openLesson = new ReadOnlyStringWrapper();
 
     public HomeScreen(LoginController.LoggedIn li, JournalClient journal, Runnable onSessionEnded) {
         this.li = li;
@@ -180,6 +184,30 @@ public final class HomeScreen extends BorderPane {
         status.setVisible(text != null && !text.isEmpty());
     }
 
+    public ReadOnlyStringProperty openLessonProperty() {
+        return openLesson.getReadOnlyProperty();
+    }
+
+    /** Nút "Đóng bài": về màn chọn bài, thả khoá toàn màn hình. */
+    public void closeLesson() {
+        if (current != null) {
+            current.dispose();
+            current = null;
+        }
+        lessons.getSelectionModel().clearSelection();
+        setCenter(emptyState());
+        openLesson.set(null);
+    }
+
+    /** Hộp thoại có chủ là cửa sổ app: không có chủ thì nó mở ra nằm sau cửa sổ toàn màn hình. */
+    private void alert(Alert.AlertType type, String msg) {
+        Alert a = new Alert(type, msg);
+        if (getScene() != null) {
+            a.initOwner(getScene().getWindow());
+        }
+        a.show();
+    }
+
     private void loadLessons() {
         LcpClient c = li.client();
         var reply = c.expect(MessageType.LESSON_DATA);
@@ -213,8 +241,9 @@ public final class HomeScreen extends BorderPane {
                         if (current != null) {
                             current.dispose();
                         }
-                        current = new LessonScreen(c, journal, lesson);
+                        current = new LessonScreen(c, journal, lesson, li.role() == Role.STUDENT, this::closeLesson);
                         setCenter(current);
+                        openLesson.set(lessonId);
                         setStatus("", null);
                     } catch (Exception e) {
                         setStatus("Bài hỏng: " + e.getMessage(), "error");
@@ -234,7 +263,7 @@ public final class HomeScreen extends BorderPane {
         try {
             csv = Files.readString(file.toPath(), StandardCharsets.UTF_8).replace("﻿", "");
         } catch (Exception e) {
-            new Alert(Alert.AlertType.ERROR, "Không đọc được file: " + e.getMessage()).show();
+            alert(Alert.AlertType.ERROR, "Không đọc được file: " + e.getMessage());
             return;
         }
         LcpClient c = li.client();
@@ -248,9 +277,9 @@ public final class HomeScreen extends BorderPane {
                                 : f.type() == MessageType.ADMIN_OK
                                         ? f.reader().str()
                                         : ErrorMessage.from(f).message();
-                        new Alert(Alert.AlertType.INFORMATION, msg).show();
+                        alert(Alert.AlertType.INFORMATION, msg);
                     } catch (Exception e) {
-                        new Alert(Alert.AlertType.ERROR, e.getMessage()).show();
+                        alert(Alert.AlertType.ERROR, e.getMessage());
                     }
                 }));
     }

@@ -20,6 +20,10 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javax.imageio.ImageIO;
 import labcast.client.journal.JournalClient;
 import labcast.client.net.DiscoveryClient;
@@ -108,6 +112,10 @@ class UiSmokeTest {
         }
         Path dir = Files.createDirectories(Path.of("target/ui-smoke"));
         ImageIO.write(out, "png", new File(dir.toFile(), name + ".png"));
+    }
+
+    static KeyEvent phim(KeyCode code, boolean shift, boolean ctrl) {
+        return new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, shift, ctrl, false, false);
     }
 
     /** Nút đầu tiên thuộc kiểu {@code type} trong cây giao diện (duyệt sâu). */
@@ -216,7 +224,32 @@ class UiSmokeTest {
             Thread.sleep(3_000);
             chup(scene, "2-bai-hoc-giang-giai");
 
+            // Học viên: chữ copy từ ngoài (clipboard của Windows) không dán được vào ô code, kể cả
+            // Shift+Insert; copy trong ô code không ra clipboard của Windows nhưng dán lại được trong
+            // ô code. Bắn phím thật để chắc RichTextFX gọi đúng copy()/paste() đã chặn.
+            // (Test này ghi đè clipboard của máy đang chạy.)
             CodeArea area = fx(() -> tim(scene.getRoot(), CodeArea.class));
+            String truoc = fx(area::getText);
+            fx(() -> {
+                ClipboardContent cc = new ClipboardContent();
+                cc.putString("print(sorted(a))");
+                Clipboard.getSystemClipboard().setContent(cc);
+                area.moveTo(area.getLength());
+                area.fireEvent(phim(KeyCode.V, false, true));
+                area.fireEvent(phim(KeyCode.INSERT, true, false));
+                return null;
+            });
+            assertEquals(truoc, fx(area::getText), "dán từ ngoài phải bị chặn");
+            fx(() -> {
+                area.selectRange(0, 6); // "import"
+                area.fireEvent(phim(KeyCode.C, false, true));
+                area.moveTo(area.getLength());
+                area.fireEvent(phim(KeyCode.V, false, true));
+                return null;
+            });
+            assertEquals(
+                    "print(sorted(a))", fx(() -> Clipboard.getSystemClipboard().getString()));
+            assertTrue(fx(area::getText).endsWith("import"), "dán đoạn copy trong ô code phải được");
             fx(() -> {
                 area.replaceText(CODE);
                 return null;
@@ -243,6 +276,15 @@ class UiSmokeTest {
                 return null;
             });
             chup(scene, "4-de-bai");
+
+            HomeScreen home = (HomeScreen) scene.getRoot();
+            assertEquals(
+                    "dsa.sap-xep.noi-bot", fx(() -> home.openLessonProperty().get()));
+            fx(() -> {
+                ((Button) scene.lookup("#close-lesson")).fire();
+                return null;
+            });
+            assertEquals(null, fx(() -> home.openLessonProperty().get()));
             assertTrue(Files.exists(Path.of("target/ui-smoke/3-chay-thu-code-cua-em.png")));
             li.client().close();
         }

@@ -9,13 +9,16 @@ import javafx.stage.Stage;
 import labcast.client.clock.ClockSync;
 import labcast.client.journal.JournalClient;
 import labcast.client.ui.HomeScreen;
+import labcast.client.ui.LessonLock;
 import labcast.client.ui.LoginController;
 import labcast.client.ui.LoginView;
+import labcast.common.protocol.Role;
 
 /** App desktop LabCast: màn đăng nhập, rồi màn chính theo vai trò. */
 public final class LabCastApp extends Application {
     private Stage stage;
     private LoginController.LoggedIn session;
+    private LessonLock lock;
     /** Giờ server nhìn từ máy này; giai đoạn 2 dùng cho phát hẹn giờ và câu hỏi nhanh. */
     private final ClockSync clock = new ClockSync();
 
@@ -39,6 +42,10 @@ public final class LabCastApp extends Application {
     }
 
     private void showLogin() {
+        if (lock != null) {
+            lock.release();
+            lock = null;
+        }
         session = null;
         stage.getScene().setRoot(new LoginView(this::loggedIn));
     }
@@ -48,12 +55,25 @@ public final class LabCastApp extends Application {
         clock.start(li.client());
         JournalClient journal = new JournalClient(li.client());
         stage.setTitle("LabCast — " + li.className() + " — " + li.fullName());
-        stage.getScene().setRoot(new HomeScreen(li, journal, () -> {
-            new Alert(
-                            Alert.AlertType.WARNING,
-                            "Phiên làm việc đã kết thúc (có thể tài khoản vừa đăng nhập ở máy khác). Hãy đăng nhập lại.")
-                    .show();
-            showLogin();
-        }));
+        HomeScreen home = new HomeScreen(li, journal, () -> {
+            showLogin(); // thả khoá toàn màn hình trước, hộp thoại mới không bị che
+            Alert a = new Alert(
+                    Alert.AlertType.WARNING,
+                    "Phiên làm việc đã kết thúc (có thể tài khoản vừa đăng nhập ở máy khác). Hãy đăng nhập lại.");
+            a.initOwner(stage);
+            a.show();
+        });
+        // Học viên mở bài thì khoá toàn màn hình; giáo viên mở bài để giảng thì không
+        if (li.role() == Role.STUDENT) {
+            lock = new LessonLock(stage, inApp -> {});
+            home.openLessonProperty().addListener((obs, was, now) -> {
+                if (now != null) {
+                    lock.engage();
+                } else {
+                    lock.release();
+                }
+            });
+        }
+        stage.getScene().setRoot(home);
     }
 }

@@ -578,6 +578,11 @@
     -fx-padding: 0 0 6 0;
 }
 
+.notice {
+    -fx-text-fill: -lc-warning;
+    -fx-font-weight: bold;
+}
+
 .card-header {
     -fx-padding: 10 14;
     -fx-border-color: transparent transparent -lc-border transparent;

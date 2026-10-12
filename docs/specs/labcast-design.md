@@ -495,7 +495,10 @@ SUBMIT_REQ(codeSeq) ─► hàng đợi ưu tiên cao ─► chạy toàn bộ t
 | Điểm của bài | 100, trừ 20 mỗi lần nộp sai, thấp nhất 40 |
 | Thành thạo | Dự đoán đúng 3 đề liên tiếp; tự mô phỏng trọn 1 đề; code qua mọi test chấm |
 | Mở bài sau | Khi bài hiện tại đạt thành thạo |
-| Dán khối lớn | Một thay đổi chèn > 200 ký tự → đánh dấu trên sơ đồ lớp để giáo viên xem; không tự phạt |
+| Toàn màn hình khi làm bài | Học viên mở bài là app chiếm toàn màn hình, Esc không thoát; nút "Đóng bài" trả về màn chọn bài. Giáo viên mở bài để giảng thì không khoá |
+| Chặn dán từ ngoài | Khi học viên làm bài, copy/cắt/dán trong ô code chỉ đi qua bộ nhớ tạm riêng của ô code: dán chữ lấy từ trình duyệt, ChatGPT… không vào được, copy code hay đề bài ra ngoài cũng không được. Kéo thả chữ từ app khác vào cũng bị bỏ |
+| Rời app | App không chặn được Alt+Tab hay phím Windows; chỉ phát hiện được. Mỗi lần rời và quay lại, app gửi `APP_FOCUS`, server ghi giờ theo đồng hồ của server và báo giáo viên (§9) |
+| Dán khối lớn | Một thay đổi chèn > 200 ký tự (dán lại đoạn copy trong chính ô code) → đánh dấu trên sơ đồ lớp để giáo viên xem; không tự phạt |
 
 Thời gian chờ và trạng thái khoá lưu trong bảng `progress`, nên khởi động lại app hay đổi máy cũng không thoát được.
 
@@ -948,7 +951,7 @@ Riêng 6 bài mẫu do **chủ bộ vẽ** làm ngay trong giai đoạn 1–3 đ
 3. Độ lệch giữa các màn hình không nhỏ hơn một khung hình JavaFX (~16,7 ms ở 60 fps).
 4. Tracer làm code chậm đi nhiều lần; vì vậy chỉ bật cho test nhỏ và trung bình.
 5. Kiểm hàm cấm bằng `ast` có thể bị lách (ví dụ `getattr`); luật soi trace là lớp kiểm thứ hai.
-6. Dấu hiệu "dán khối lớn" chỉ là gợi ý cho giáo viên, không phải bằng chứng gian lận.
+6. Dấu hiệu "dán khối lớn" và "rời app" chỉ là gợi ý cho giáo viên, không phải bằng chứng gian lận. Chặn dán và toàn màn hình không ngăn được học viên gõ lại code nhìn từ điện thoại hay máy khác; Alt+Tab và phím Windows vẫn dùng được, app chỉ ghi lại.
 7. `QUIZ_OPEN` tới máy trước `opensAt` khoảng 0,5 s; một app bị sửa có thể đọc câu hỏi sớm chừng đó.
 8. Animation SQL chi tiết chỉ áp dụng cho phạm vi ở §7.6.
 9. Sandbox phụ thuộc Docker trên máy server.
