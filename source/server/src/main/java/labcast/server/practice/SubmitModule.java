@@ -96,17 +96,20 @@ public final class SubmitModule implements ServerModule {
         Lesson l = repo.get(lessonId)
                 .orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không có bài " + lessonId));
 
-        long left = progress.cooldownLeft(s.userId(), lessonId, System.currentTimeMillis());
-        if (left > 0) {
-            c.error(ErrorCode.COOLDOWN, "Chờ " + (left + 999) / 1000 + " s nữa mới được nộp lại", (int) left);
-            return;
-        }
+        // Giữ chỗ TRƯỚC rồi mới đọc thời gian chờ: đọc trước thì một lượt có thể thấy "không phải chờ" trong
+        // lúc lượt trước còn đang chấm, rồi lọt vào ngay khi lượt trước vừa nhả chỗ (trước khi kịp ghi chờ).
         String key = s.userId() + "|" + lessonId;
         if (!inFlight.add(key)) {
             c.error(ErrorCode.RATE_LIMITED, "Lượt nộp trước của bài này đang được chấm", 2_000);
             return;
         }
         try {
+            long left = progress.cooldownLeft(s.userId(), lessonId, System.currentTimeMillis());
+            if (left > 0) {
+                inFlight.remove(key);
+                c.error(ErrorCode.COOLDOWN, "Chờ " + (left + 999) / 1000 + " s nữa mới được nộp lại", (int) left);
+                return;
+            }
             // Chấm đúng phiên bản code học viên đang thấy: delta có thể còn trên đường tới, chờ tối đa 1 s.
             CodeStore store = ctx.require(CodeStore.class);
             CodeStore.Snapshot snap = store.current(s.userId(), lessonId);

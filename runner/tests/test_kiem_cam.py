@@ -16,6 +16,14 @@ def test_bat_dung_gian_tiep():
     assert kiem("__builtins__.__dict__['sorted']\n", SAP_XEP)
 
 
+def test_bat_doi_ten_qua_builtins_va_importlib():
+    assert kiem("from builtins import sorted as s\nprint(s([2, 1]))\n", SAP_XEP)
+    assert kiem("import builtins\nf = getattr(builtins, 'sor' + 'ted')\n", SAP_XEP)
+    assert kiem("import importlib\nb = importlib.import_module('builtins')\n", SAP_XEP)
+    # bài không cấm gì thì import builtins vẫn được
+    assert kiem("import builtins\n") == []
+
+
 def test_khong_bat_ten_giong():
     assert kiem("sorted_list = [1]\nprint(sorted_list)\n", SAP_XEP) == []
     assert kiem("def sort(a):\n    return a\nsort([1])\n", SAP_XEP) == []

@@ -13,6 +13,8 @@ Hàm tự viết trùng tên (`def sort(a): ...`) là code của học viên, kh
 import ast
 
 NE_KIEM_TRA = ("eval", "exec", "compile", "__import__", "__builtins__")
+# Lấy lại hàm cấm dưới tên khác: from builtins import sorted as s, importlib.import_module(...)
+IMPORT_NE_KIEM_TRA = ("builtins", "importlib")
 
 
 def _ten_tu_dinh_nghia(cay):
@@ -65,12 +67,18 @@ def kiem(code, cam_dung=(), cam_import=(), cam_cu_phap=()):
                     bao(nut, f"Không được dùng {doi.value}")
         elif isinstance(nut, ast.Import):
             for ten in nut.names:
-                if ten.name in cam_import or ten.name.split(".")[0] in cam_import:
+                goc = ten.name.split(".")[0]
+                if ten.name in cam_import or goc in cam_import:
                     bao(nut, f"Không được import {ten.name}")
+                elif co_danh_sach_cam and goc in IMPORT_NE_KIEM_TRA:
+                    bao(nut, f"Không được import {ten.name} trong bài này")
         elif isinstance(nut, ast.ImportFrom):
             goc = nut.module or ""
             if goc in cam_import or goc.split(".")[0] in cam_import:
                 bao(nut, f"Không được import {goc}")
+            elif co_danh_sach_cam and goc.split(".")[0] in IMPORT_NE_KIEM_TRA:
+                # from builtins import sorted as s: đổi tên thì kiểm theo tên không bắt được
+                bao(nut, f"Không được import từ {goc} trong bài này")
         if type(nut).__name__ in cam_cu_phap:
             bao(nut if hasattr(nut, "lineno") else _cha_co_dong(cay, nut), _ten_cu_phap(type(nut).__name__))
     return loi
