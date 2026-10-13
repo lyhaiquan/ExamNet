@@ -299,3 +299,30 @@ def test_sap_xep_loi_giai_qua_luat_cach_khac_thi_khong():
         kq2, v = luat_bai(thu_muc, views, cach_khac)
         assert kq2["stdout"] == kq["stdout"], (bai, kq2)
         assert not v["ok"] and loi in v["loi"], (bai, v)
+
+
+def test_tim_kiem_dslk_dia_chi_mo_qua_luat_cach_lach_thi_khong():
+    dsa = RUNNER.parent / "content" / "dsa"
+    tuan_tu = ("import viz\nn, q = map(int, input().split())\na = viz.Mang(list(map(int, input().split())), ten='a')\n"
+               "for x in map(int, input().split()):\n    kq = -1\n    for i in range(n):\n"
+               "        if a[i] == x:\n            kq = i\n            break\n    print(kq)\n")
+    dung_lai = ("import viz\nn, q = map(int, input().split())\nds = viz.DSLK.tu(map(int, input().split()), ten='ds')\n"
+                "l = list(ds)\nfor _ in range(q):\n    c = input().split()\n"
+                "    if c[0] == 'chen':\n        l.insert(int(c[1]), int(c[2]))\n    else:\n        del l[int(c[1])]\n"
+                "ds2 = viz.DSLK.tu(l, ten='ds')\nprint(*l) if l else print('RONG')\n")
+    list_rieng = ("import viz\nm, q = map(int, input().split())\nT = viz.BangBam(m, mo=True, ten='T')\nl = []\n"
+                  "for _ in range(q):\n    c, x = input().split()\n    x = int(x)\n"
+                  "    if c == 'them' and x not in l:\n        l.append(x)\n"
+                  "    elif c == 'xoa' and x in l:\n        l.remove(x)\n"
+                  "    elif c == 'tim':\n        print('YES' if x in l else 'NO')\n")
+    cases = [
+        ("tim-kiem/nhi-phan", [{"v": "a", "kieu": "mang"}], tuan_tu, "log₂"),
+        ("dslk/chen-xoa", [{"v": "ds", "kieu": "dslk"}], dung_lai, "dựng lại"),
+        ("bam/dia-chi-mo", [{"v": "T", "kieu": "bam"}], list_rieng, "dò tuyến tính"),
+    ]
+    for bai, views, cach_lach, loi in cases:
+        kq, v = luat_bai(dsa / bai, views, (dsa / bai / "loi_giai.py").read_text(encoding="utf-8"))
+        assert kq["ok"] and v["ok"], (bai, v)
+        kq2, v = luat_bai(dsa / bai, views, cach_lach)
+        assert kq2["stdout"] == kq["stdout"], (bai, kq2)
+        assert not v["ok"] and loi in v["loi"], (bai, v)
