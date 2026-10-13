@@ -265,3 +265,37 @@ def test_hang_doi_vong_qua_luat_doi_mang_hay_list_rieng_thi_khong():
     rieng = doi.replace("a.clear()\n", "h = []\n").replace("a.", "h.").replace("len(a)", "len(h)").replace(" if a ", " if h ")
     kq_rieng, v = luat_bai(bai, views, rieng)
     assert kq_rieng["stdout"] == kq["stdout"] and not v["ok"] and "mảng a" in v["loi"]
+
+
+SAP_XEP = RUNNER.parent / "content" / "dsa" / "sap-xep"
+NOI_BOT_A = ("import viz\na = viz.Mang(list(map(int, input().split())), ten='a')\nn = len(a)\n"
+             "for i in range(n - 1):\n    for j in range(n - 1 - i):\n        if a[j] > a[j + 1]:\n"
+             "            a[j], a[j + 1] = a[j + 1], a[j]\nprint(*a)\n")
+CHON_A = ("import viz\na = viz.Mang(list(map(int, input().split())), ten='a')\nn = len(a)\n"
+          "for i in range(n - 1):\n    m = i\n    for j in range(i + 1, n):\n        if a[j] < a[m]:\n            m = j\n"
+          "    if m != i:\n        a[i], a[m] = a[m], a[i]\nprint(*a)\n")
+CHEN_DOI = ("import viz\na = viz.Mang(list(map(int, input().split())), ten='a')\n"
+            "for i in range(1, len(a)):\n    x, j = a[i], i\n    while j > 0 and a[j - 1] > x:\n"
+            "        a[j] = a[j - 1]\n        j -= 1\n    a[j] = x\nprint(*a)\n")
+
+
+def test_sap_xep_loi_giai_qua_luat_cach_khac_thi_khong():
+    cases = {
+        "chon": ([{"v": "a", "kieu": "mang"}], NOI_BOT_A, "không quá"),
+        "chen": ([{"v": "a", "kieu": "mang"}], CHON_A, "kề nhau"),
+        "tron": ([{"v": "a", "kieu": "mang"}, {"v": "tron", "kieu": "cay-goi"}], CHEN_DOI, "chia đôi"),
+        "nhanh": ([{"v": "a", "kieu": "mang"}, {"v": "nhanh", "kieu": "cay-goi"}],
+                  "import sys\nsys.setrecursionlimit(5000)\n" + CHEN_DOI.replace(
+                      "for i in", "def nhanh(lo, hi):\n    return\nnhanh(0, 0)\nnhanh(0, 0)\nnhanh(0, 0)\nfor i in"),
+                  "đổi chỗ"),
+        "vun-dong": ([{"v": "a", "kieu": "heap"}], NOI_BOT_A, "cha với nút con"),
+        "dem": ([{"v": "a", "kieu": "mang"}, {"v": "dem", "kieu": "mang"}, {"v": "kq", "kieu": "mang"}],
+                NOI_BOT_A, "mảng dem"),
+    }
+    for bai, (views, cach_khac, loi) in cases.items():
+        thu_muc = SAP_XEP / bai
+        kq, v = luat_bai(thu_muc, views, (thu_muc / "loi_giai.py").read_text(encoding="utf-8"))
+        assert kq["ok"] and v["ok"], (bai, v)
+        kq2, v = luat_bai(thu_muc, views, cach_khac)
+        assert kq2["stdout"] == kq["stdout"], (bai, kq2)
+        assert not v["ok"] and loi in v["loi"], (bai, v)
