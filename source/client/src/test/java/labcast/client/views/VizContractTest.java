@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import labcast.client.views.bam.HashModel;
 import labcast.client.views.cay.TreeModel;
+import labcast.client.views.caygoi.CallTreeModel;
+import labcast.client.views.codebien.CodeVarModel;
 import labcast.client.views.dothi.GraphModel;
 import labcast.client.views.dslk.LinkedListModel;
 import labcast.client.views.luoi.GridModel;
@@ -53,6 +55,11 @@ class VizContractTest {
 
     /** Chạy {@code code} với {@code input}, có ghi trace; trả các dòng sự kiện (bỏ hdr/end/result). */
     static List<TraceEvent> chay(String code, String input) throws Exception {
+        return chay(code, input, null);
+    }
+
+    /** @param views khai báo bộ vẽ dạng JSON (như khung_nhin), null nếu không cần */
+    static List<TraceEvent> chay(String code, String input, String views) throws Exception {
         String py = LocalPythonSandbox.detectPython();
         assumeTrue(py != null, "máy không có Python 3");
         ObjectNode job = M.createObjectNode();
@@ -60,6 +67,9 @@ class VizContractTest {
         job.put("input", input);
         job.put("trace", true);
         job.put("time_limit_ms", 5000);
+        if (views != null) {
+            job.set("views", M.readTree(views));
+        }
         Process p = new ProcessBuilder(
                         py, repo().resolve("runner").resolve("run.py").toString())
                 .redirectErrorStream(true)
@@ -434,5 +444,82 @@ class VizContractTest {
             in.append(k % 3 == 2 ? "\ntim " : k % 5 == 4 ? "\nxoa " : "\nthem ").append((k * 7) % 23);
         }
         kiem(bai(p, "loi_giai.py"), in + "\n", "T", VizContractTest::hashFrom, HashModel::apply, HashModel::describe);
+    }
+
+    // ---------- cây lời gọi, chạy từng dòng ----------
+
+    /** Chạy với khai báo bộ vẽ (cây lời gọi và chạy từng dòng chỉ ghi khi bài khai báo). */
+    static <T> void kiemCoViews(
+            String code,
+            String input,
+            String views,
+            String var,
+            Function<JsonNode, T> resetFrom,
+            java.util.function.BiConsumer<T, TraceEvent> apply,
+            Function<T, String> state)
+            throws Exception {
+        List<TraceEvent> evs = chay(code + CHUP_CUOI, input, views);
+        List<Integer> s = snaps(evs);
+        assertTrue(s.size() >= 2, "cần ảnh chụp đầu và cuối");
+        String expected = state.apply(
+                resetFrom.apply(evs.get(s.get(s.size() - 1)).get("state").get(var)));
+        for (int from : s) {
+            assertEquals(
+                    expected,
+                    phatTu(evs, from, var, resetFrom, apply, state),
+                    "dựng lại từ ảnh chụp ở sự kiện " + from);
+        }
+    }
+
+    static CallTreeModel callsFrom(JsonNode snap) {
+        CallTreeModel m = new CallTreeModel();
+        m.reset(snap);
+        return m;
+    }
+
+    static CodeVarModel codeFrom(JsonNode snap) {
+        CodeVarModel m = new CodeVarModel();
+        m.reset(snap);
+        return m;
+    }
+
+    static final String FIB_VIEWS = "[{\"v\":\"fib\",\"kieu\":\"cay-goi\"},{\"v\":\"code\",\"kieu\":\"code-bien\"}]";
+
+    @Test
+    void baiFibonacci_traceVaoDungBoVeCayLoiGoiVaChayTungDong() throws Exception {
+        String p = "dsa/de-quy/fibonacci";
+        for (String in : List.of(bai(p, "demo.in"), "25\n")) {
+            kiemCoViews(
+                    bai(p, "loi_giai.py"),
+                    in,
+                    FIB_VIEWS,
+                    "fib",
+                    VizContractTest::callsFrom,
+                    CallTreeModel::apply,
+                    CallTreeModel::describe);
+            kiemCoViews(
+                    bai(p, "loi_giai.py"),
+                    in,
+                    FIB_VIEWS,
+                    "code",
+                    VizContractTest::codeFrom,
+                    (m, e) -> m.apply(e),
+                    CodeVarModel::describe);
+        }
+        // bản không ghi nhớ: cây lời gọi to hẳn
+        String khongNho =
+                """
+                def fib(n):
+                    return n if n < 2 else fib(n - 1) + fib(n - 2)
+                print(fib(int(input())))
+                """;
+        List<TraceEvent> evs = chay(khongNho, "10\n", FIB_VIEWS);
+        CallTreeModel m = callsFrom(evs.get(0).get("state").get("fib"));
+        for (TraceEvent e : evs) {
+            if ("fib".equals(e.var())) {
+                m.apply(e);
+            }
+        }
+        assertEquals(177, m.size());
     }
 }

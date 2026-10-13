@@ -841,7 +841,7 @@
 .position {
     -fx-font-family: "JetBrains Mono";
     -fx-text-fill: -lc-muted;
-    -fx-min-width: 56;
+    -fx-min-width: 76; /* đủ cho "999 / 999" */
     -fx-alignment: center-right;
 }
 

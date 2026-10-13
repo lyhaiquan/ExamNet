@@ -9,6 +9,8 @@ import labcast.client.views.bam.HashView;
 import labcast.client.views.bangsql.SqlTableView;
 import labcast.client.views.cay.HeapView;
 import labcast.client.views.cay.TreeView;
+import labcast.client.views.caygoi.CallTreeView;
+import labcast.client.views.codebien.CodeVarView;
 import labcast.client.views.dothi.GraphView;
 import labcast.client.views.dslk.LinkedListView;
 import labcast.client.views.luoi.GridView;
@@ -18,8 +20,19 @@ import labcast.client.views.nganxep.StackView;
 /** Dựng bộ vẽ theo khai báo {@code [{tên biến, kieu}]}. Bộ vẽ chưa có thì bỏ qua biến đó. */
 public final class Views {
     /** Mọi {@code kieu} đã có bộ vẽ. Bài khai báo {@code kieu} khác thì biến đó không được vẽ. */
-    public static final Set<String> KINDS =
-            Set.of("mang", "ngan-xep", "hang-doi", "luoi", "bang-sql", "cay", "heap", "do-thi", "dslk", "bam");
+    public static final Set<String> KINDS = Set.of(
+            "mang",
+            "ngan-xep",
+            "hang-doi",
+            "luoi",
+            "bang-sql",
+            "cay",
+            "heap",
+            "do-thi",
+            "dslk",
+            "bam",
+            "cay-goi",
+            "code-bien");
 
     private Views() {}
 
@@ -53,6 +66,9 @@ public final class Views {
             case "do-thi" -> new GraphView(name);
             case "dslk" -> new LinkedListView(name);
             case "bam" -> new HashView(name);
+                // bien là tên hàm cần dựng cây lời gọi
+            case "cay-goi" -> new CallTreeView(name);
+            case "code-bien" -> new CodeVarView(name);
             default -> null;
         };
     }
