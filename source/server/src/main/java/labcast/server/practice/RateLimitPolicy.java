@@ -22,8 +22,14 @@ import labcast.server.session.Session;
  *   <tr><td>{@code RUN_REQ}</td><td>6 lượt/phút, đợt tối đa 3</td><td>người (nối lại không được thùng mới);
  *       giáo viên không giới hạn để chạy mẫu khi giảng</td></tr>
  *   <tr><td>{@code PREDICT_ANSWER}</td><td>1 lượt / 3 s</td><td>người</td></tr>
+ *   <tr><td>{@code CAST_NACK}</td><td>100 / s, đợt 300; vượt thì bỏ im lặng</td><td>kết nối</td></tr>
  *   <tr><td>mọi loại khác</td><td>50 / s</td><td>kết nối</td></tr>
  * </table>
+ *
+ * <p>{@code CAST_NACK} có thùng riêng: trace lớn trên mạng mất gói nhiều thì app xin lại cả trăm dải gói
+ * trong một giây (mỗi 10 ms một lượt), chặn ở 50 / s sẽ làm sai số liệu đo khả năng sửa gói của chiếu
+ * multicast. NACK bị bỏ thì app tự xin lại sau 200 ms, quá 3 lần thì khung khoá kế tiếp bù. {@code
+ * CAST_CONTROL} của giáo viên không bị đếm: tua bằng phím mũi tên giữ lâu gửi liên tục.
  *
  * <p>Không đếm {@code CODE_DELTA}: chặn một delta là đứt mạch {@code seq}, mọi delta sau phải chờ tới lần nối
  * lại kế tiếp (app chỉ gửi lại khi nối lại). Cũng không đếm {@code HEARTBEAT_ACK}, {@code TIME_SYNC_REQ},
@@ -39,6 +45,7 @@ public final class RateLimitPolicy implements FramePolicy {
     public static final Limit RUN = new Limit(3, Duration.ofSeconds(10));
     public static final Limit PREDICT = new Limit(1, Duration.ofSeconds(3));
     public static final Limit OTHER = new Limit(50, Duration.ofMillis(20));
+    public static final Limit NACK = new Limit(300, Duration.ofMillis(10));
 
     private static final Set<MessageType> FREE =
             EnumSet.of(MessageType.CODE_DELTA, MessageType.HEARTBEAT_ACK, MessageType.TIME_SYNC_REQ, MessageType.BYE);
@@ -55,10 +62,12 @@ public final class RateLimitPolicy implements FramePolicy {
     /** Chỉ luồng đọc của chính kết nối đó đụng tới. */
     private static final class PerConnection {
         final TokenBucket other;
+        final TokenBucket nack;
         long notifiedAt = Long.MIN_VALUE / 2;
 
-        PerConnection(TokenBucket other) {
+        PerConnection(TokenBucket other, TokenBucket nack) {
             this.other = other;
+            this.nack = nack;
         }
     }
 
@@ -81,8 +90,17 @@ public final class RateLimitPolicy implements FramePolicy {
         long now = clock.getAsLong();
         PerConnection pc = (PerConnection) c.attr(ATTR);
         if (pc == null) {
-            pc = new PerConnection(new TokenBucket(other.burst(), other.every(), now));
+            pc = new PerConnection(
+                    new TokenBucket(other.burst(), other.every(), now),
+                    new TokenBucket(NACK.burst(), NACK.every(), now));
             c.setAttr(ATTR, pc);
+        }
+        Session s = c.session();
+        if (t == MessageType.CAST_NACK) {
+            return pc.nack.tryTake(now) == 0 ? Decision.ALLOW : Decision.DROP;
+        }
+        if (t == MessageType.CAST_CONTROL && s != null && s.role() == Role.TEACHER) {
+            return Decision.ALLOW;
         }
         long wait = pc.other.tryTake(now);
         if (wait > 0) {
@@ -93,7 +111,7 @@ public final class RateLimitPolicy implements FramePolicy {
             pc.notifiedAt = now;
             return Decision.deny(ErrorCode.RATE_LIMITED, (int) wait, "Gửi quá nhiều thông điệp, server tạm bỏ qua");
         }
-        return perUser(c.session(), t, now);
+        return perUser(s, t, now);
     }
 
     @Override

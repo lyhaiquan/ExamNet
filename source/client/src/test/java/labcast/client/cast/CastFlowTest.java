@@ -33,6 +33,7 @@ import labcast.server.account.UserRepository;
 import labcast.server.cast.CastModule;
 import labcast.server.cast.CastSender;
 import labcast.server.lesson.DemoTraces;
+import labcast.server.practice.PracticeModule;
 import labcast.server.store.Database;
 import labcast.server.sync.SyncModule;
 import org.junit.jupiter.api.Test;
@@ -177,6 +178,8 @@ class CastFlowTest {
                         List.of(
                                 new AccountModule(),
                                 new SyncModule(),
+                                // giới hạn tốc độ như server thật: NACK dồn khi mất gói không được bị chặn
+                                new PracticeModule(),
                                 ctx -> ctx.register(
                                         DemoTraces.class,
                                         id -> CompletableFuture.completedFuture(id.equals(BAI) ? trace : List.of())),

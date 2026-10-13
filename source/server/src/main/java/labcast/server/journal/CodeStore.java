@@ -35,7 +35,7 @@ public final class CodeStore {
      * #PASTE_CHARS} ký tự, hoặc cộng dồn hơn ngần ấy ký tự trong {@link #BURST_MS} ms theo giờ app ghi trên
      * delta ({@code burst = true}) — kiểu phần mềm gõ phím tự động gõ thẳng code chép từ ngoài vào, việc mà
      * chặn dán ở app không thấy. Không tính chữ đã có sẵn trong code hoặc vừa bị xoá (chép lại đoạn của chính
-     * mình, cắt rồi dán chỗ khác, Ctrl+Z). Chỉ là gợi ý cho giáo viên, không phạt.
+     * mình, cắt rồi dán chỗ khác, chọn cả khối xoá rồi Ctrl+Z; giữ Backspace xoá dần rồi Ctrl+Z thì vẫn bị tính). Chỉ là gợi ý cho giáo viên, không phạt.
      */
     public record LargeInsert(long userId, String lessonId, int chars, boolean burst) {}
 

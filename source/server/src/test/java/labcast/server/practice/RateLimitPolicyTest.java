@@ -124,4 +124,32 @@ class RateLimitPolicyTest {
             assertTrue(policy.check(c, MessageType.HEARTBEAT_ACK).allowed());
         }
     }
+
+    @Test
+    void xinLaiGoiChieu_thungRieng_choDot300_vuotThiBoImLang() {
+        var c = ketNoi(nguoi(9, Role.STUDENT));
+        for (int i = 0; i < 300; i++) {
+            assertTrue(policy.check(c, MessageType.CAST_NACK).allowed(), "lượt " + (i + 1));
+        }
+        Decision d = policy.check(c, MessageType.CAST_NACK);
+        assertFalse(d.allowed());
+        assertNull(d.code(), "app chiếu không đọc ERROR: bỏ im lặng");
+        // NACK không ăn vào thùng chung: các thông điệp khác vẫn qua
+        assertTrue(policy.check(c, MessageType.LESSON_FETCH).allowed());
+        now.addAndGet(10);
+        assertTrue(policy.check(c, MessageType.CAST_NACK).allowed());
+    }
+
+    @Test
+    void giaoVienTuaLienTuc_khongBiDem_hocVienGuiDieuKhienThiVanDem() {
+        var gv = ketNoi(nguoi(10, Role.TEACHER));
+        for (int i = 0; i < 500; i++) {
+            assertTrue(policy.check(gv, MessageType.CAST_CONTROL).allowed());
+        }
+        var sv = ketNoi(nguoi(11, Role.STUDENT));
+        for (int i = 0; i < 50; i++) {
+            policy.check(sv, MessageType.CAST_CONTROL);
+        }
+        assertFalse(policy.check(sv, MessageType.CAST_CONTROL).allowed());
+    }
 }
