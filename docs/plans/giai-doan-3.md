@@ -129,7 +129,7 @@ void forward(Connection teacher, long studentId, CodeDelta d) {
 > **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `CodeStore.onLargeInsert` → `ClassEvents.flagPaste` (bản tối thiểu, xem task 2.12), một dòng `audit_log` `PASTE_FLAG` (tối đa 1 dòng/giây mỗi học viên), cột "Dán khối lớn" trên dashboard web. Chưa có sơ đồ lớp trong app (task 2.12). **Khác kế hoạch:**
 >
 > - Thêm luật **cộng dồn**: hơn 200 ký tự mới trong 2 s → cờ "nhanh hơn người gõ". App gộp phím mỗi 100 ms, nên phần mềm gõ phím tự động (gõ thẳng code chép từ ChatGPT, việc chặn dán ở app không thấy) chỉ tạo các delta ~100 ký tự, luật "một delta > 200" bỏ lọt. Tính theo `clientTs` app ghi trên delta, để app gửi bù cả loạt delta sau khi mất mạng không bị coi là gõ nhanh. Người cố tình cho máy gõ chậm lại vẫn lách được.
-> - Không tính chữ **đã có trong code** hoặc **vừa bị xoá** (khối ≥ 20 ký tự): chép lại đoạn của chính mình, cắt rồi dán chỗ khác, Ctrl+Z. Spec §8.4 cũ đánh dấu cả các trường hợp này; bỏ vì chỉ gây nhiễu, giáo viên sẽ quen bỏ qua cờ.
+> - Không tính chữ **đã có trong code** hoặc **vừa bị xoá** (khối ≥ 20 ký tự): chép lại đoạn của chính mình, cắt rồi dán chỗ khác, chọn cả khối xoá rồi Ctrl+Z. Giữ Backspace xoá dần một khối dài rồi Ctrl+Z thì vẫn bị đánh dấu: server chỉ thấy các lần xoá vài ký tự, còn ô soạn gộp chúng thành một bước hoàn tác. Spec §8.4 cũ đánh dấu cả các trường hợp này; bỏ vì chỉ gây nhiễu, giáo viên sẽ quen bỏ qua cờ.
 > - Đếm theo ký tự Unicode, không theo độ dài chuỗi Java. Delta app gửi lại không đánh dấu lần nữa. Giáo viên không bị đánh dấu. Cờ mất khi nộp đúng bài đó.
 >
 > Test: bổ sung `CodeStoreTest` (8 test), `PasteFlagFlowTest`.

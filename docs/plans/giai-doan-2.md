@@ -508,6 +508,7 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 > - Vượt 50 / s: trả `ERROR(RATE_LIMITED)` một lần mỗi giây, các frame còn lại bỏ im lặng (`Decision.DROP`). `Decision` có thêm lời báo tiếng Việt cho học viên.
 > - Ngắt kết nối khi dồn > 500 / s suốt 5 s nằm ở `Connection` (tầng mạng chung), không ở `RateLimitPolicy`: đếm cả frame bị chặn và frame trước khi đăng nhập, ghi `audit_log` `TOO_MANY_MESSAGES`.
 > - `SUBMIT_REQ`: mỗi **người** một lượt đang chấm (trước là mỗi bài một lượt), để nộp 5 bài cùng lúc không chiếm 5 luồng chạy code.
+> - `CAST_NACK` có thùng riêng theo kết nối (100 / s, đợt 300, vượt thì bỏ im lặng): trace lớn trên mạng mất gói nhiều thì app xin lại cả trăm dải gói mỗi giây. `CAST_CONTROL` của giáo viên không bị đếm.
 > - Lượt cũ bị thay giữ chỗ của nó trong hàng (bấm lại không bị đẩy xuống cuối). Lời giải mẫu chạy như việc ưu tiên, không phải chạy thử của "người 0".
 > - App: bị chặn thì nút Chạy thử đếm ngược "Chạy lại sau N s".
 >
