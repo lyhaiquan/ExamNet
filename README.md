@@ -198,6 +198,8 @@ java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien 
 # trạng thái: http://localhost:8080/version
 ```
 
+**Mỗi lần thư mục `runner/` đổi thì build lại image runner** (lệnh `docker build` ở trên): image chứa các script chạy và chấm bài. Ví dụ nộp bài SQL cần `runner/sinh_csdl.py` để sinh database ẩn; image build trước khi có file này thì mọi lượt nộp bài SQL báo "Server chưa chấm được bài" (không tính lượt).
+
 Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard), và phát chiếu lên nhóm multicast `239.255.70.1:7001` (UDP, TTL 1) trên card LAN.
 
 **Tên có dấu tiếng Việt:** trên Windows, chữ như ớ, ư, ạ không đi qua được dòng lệnh (Java nhận thành `?`), nên `--lop "Lớp D22CQCN01"` bị server từ chối kèm hướng dẫn. Ghi tên lớp, họ tên giáo viên, đường dẫn có dấu vào một file UTF-8 (Notepad lưu UTF-8 mặc định):

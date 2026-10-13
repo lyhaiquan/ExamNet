@@ -216,6 +216,7 @@ public final class RunPanel extends VBox {
                         case "WRONG" -> "✘ Sai kết quả";
                         case "TIME_LIMIT" -> "⏱ Quá thời gian";
                         case "RUNTIME_ERROR" -> "✘ Lỗi khi chạy";
+                        case "NO_EXPECTED" -> "✔ Chạy xong (bài chưa có đáp án để so)";
                         default -> v;
                     },
                     v.equals("OK") ? "ok" : "fail");

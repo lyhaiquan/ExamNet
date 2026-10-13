@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import labcast.common.protocol.JsonPayload;
@@ -48,6 +50,8 @@ import net.sf.jsqlparser.statement.update.Update;
  * trước) thì bỏ các bước, chỉ hiện kết quả cuối kèm lời giải thích — animation không bao giờ dạy sai.
  */
 public final class StepPlanner {
+    private static final Logger LOG = Logger.getLogger(StepPlanner.class.getName());
+
     /** Bảng gốc hay bảng sau JOIN dài hơn thế thì không làm animation, chỉ hiện kết quả. */
     static final int MAX_ANIM_ROWS = 60;
     /** Bảng từ ngần này dòng trở xuống thì đánh dấu WHERE/HAVING, ghép JOIN từng dòng một. */
@@ -69,10 +73,32 @@ public final class StepPlanner {
         }
     }
 
+    /** Tổng thời gian cho mọi câu phụ khi tách bước một câu: một câu chậm không giữ luồng chạy quá lâu. */
+    static final Duration BUDGET = Duration.ofSeconds(3);
+    /** Câu chính chạy lâu hơn thế thì không tách bước (mỗi bước lại chạy một câu tương tự). */
+    static final Duration SLOW_QUERY = Duration.ofSeconds(1);
+
+    private final Duration budget;
+    private long deadline;
+
     public StepPlanner(SqliteEngine engine, Path db, Duration timeout) {
+        this(engine, db, timeout, BUDGET);
+    }
+
+    StepPlanner(SqliteEngine engine, Path db, Duration timeout, Duration budget) {
         this.engine = engine;
         this.db = db;
         this.timeout = timeout;
+        this.budget = budget;
+    }
+
+    /** Câu phụ khi tách bước: chung một hạn cho cả lượt; hết hạn thì thôi tách, chỉ hiện kết quả. */
+    private QueryResult q(String sql) throws SqlRejected, Unsupported {
+        long left = deadline - System.nanoTime();
+        if (left <= 0) {
+            throw new Unsupported("Câu lệnh chạy khá lâu nên không tách từng bước.");
+        }
+        return engine.query(db, sql, Duration.ofNanos(Math.min(timeout.toNanos(), left)));
     }
 
     /**
@@ -80,11 +106,17 @@ public final class StepPlanner {
      * SqlRejected} như khi chạy thật.
      */
     public List<String> explainSelect(String lessonId, SqlGuard.Checked c) throws SqlRejected {
+        long t0 = System.nanoTime();
         QueryResult real = engine.query(db, c.sql(), timeout);
+        long took = System.nanoTime() - t0;
+        deadline = System.nanoTime() + budget.toNanos();
         out.clear();
         try {
             if (real.truncated()) {
                 throw new Unsupported("Kết quả có hơn " + SqliteEngine.MAX_ROWS + " dòng.");
+            }
+            if (took > SLOW_QUERY.toNanos()) {
+                throw new Unsupported("Câu lệnh chạy khá lâu nên không tách từng bước.");
             }
             Statement st = c.statement();
             if (st instanceof PlainSelect ps && ps.getWithItemsList() == null) {
@@ -95,12 +127,20 @@ public final class StepPlanner {
                 throw new Unsupported("Câu dùng WITH hoặc truy vấn con ở FROM: phần này chưa làm animation từng bước.");
             }
         } catch (Unsupported | SqlRejected e) {
-            out.clear();
-            say("Chỉ hiện kết quả cuối. " + e.getMessage());
-            ObjectNode r = ev("sql.result");
-            putTable(r, real.columns(), real.rows());
+            finalOnly(real, e.getMessage());
+        } catch (RuntimeException e) {
+            // Lỗi lập trình ở bộ tách bước: học viên vẫn thấy kết quả đúng, không bị báo lỗi oan
+            LOG.log(Level.WARNING, "Tách bước câu SQL lỗi: " + c.sql(), e);
+            finalOnly(real, "Chưa tách được từng bước cho câu này.");
         }
         return lines(lessonId, out);
+    }
+
+    private void finalOnly(QueryResult real, String why) {
+        out.clear();
+        say("Chỉ hiện kết quả cuối. " + why);
+        ObjectNode r = ev("sql.result");
+        putTable(r, real.columns(), real.rows());
     }
 
     // ------------------------------------------------------------------ SELECT đơn
@@ -216,8 +256,7 @@ public final class StepPlanner {
             grouped(ps, w, used, fromText, where, aliases);
         } else {
             String items = selectList(ps.getSelectItems());
-            QueryResult p =
-                    engine.query(db, "SELECT " + rowidList(used) + ", " + items + " FROM " + fromText + where, timeout);
+            QueryResult p = q("SELECT " + rowidList(used) + ", " + items + " FROM " + fromText + where);
             Map<String, List<Object>> byKey = new HashMap<>();
             for (List<Object> r : p.rows()) {
                 byKey.put(keyOf(r.subList(0, used.size())), r.subList(used.size(), r.size()));
@@ -271,7 +310,7 @@ public final class StepPlanner {
                 ps.setLimit(limit);
                 ps.setOffset(offset);
             }
-            QueryResult sorted = engine.query(db, full, timeout);
+            QueryResult sorted = q(full);
             List<Integer> perm = match(w.rows, sorted.rows());
             key("ORDER BY " + joinText(order));
             say("ORDER BY " + joinText(order) + ": sắp lại các dòng.");
@@ -313,7 +352,7 @@ public final class StepPlanner {
         }
         String name = t.getFullyQualifiedName();
         String qual = t.getAlias() != null ? t.getAlias().getName() : name;
-        QueryResult r = engine.query(db, "SELECT rowid AS __rid, * FROM " + name, timeout);
+        QueryResult r = q("SELECT rowid AS __rid, * FROM " + name);
         if (r.rows().size() > MAX_ANIM_ROWS) {
             throw new Unsupported("Bảng " + name + " có " + r.rows().size() + " dòng, quá nhiều để làm animation.");
         }
@@ -385,7 +424,7 @@ public final class StepPlanner {
                 ev("sql.table").put("name", right.name).put("alias", right.qual).put("side", true);
         putTable(t, right.cols, right.rows);
 
-        QueryResult r = engine.query(db, "SELECT " + rowidList(used) + " FROM " + fromText, timeout);
+        QueryResult r = q("SELECT " + rowidList(used) + " FROM " + fromText);
         if (r.rows().size() > MAX_ANIM_ROWS * 3) {
             throw new Unsupported("Phép ghép ra " + r.rows().size() + " dòng, quá nhiều để làm animation.");
         }
@@ -485,14 +524,13 @@ public final class StepPlanner {
             key("Hàm gộp trên cả bảng");
             say("Không có GROUP BY nhưng có hàm gộp: cả bảng (" + w.size() + " dòng) là một nhóm.");
         } else {
-            QueryResult k =
-                    engine.query(db, "SELECT " + rowidList(used) + ", " + gList + " FROM " + fromText + where, timeout);
+            QueryResult k = q("SELECT " + rowidList(used) + ", " + gList + " FROM " + fromText + where);
             Map<String, List<Object>> keyOfRow = new HashMap<>();
             for (List<Object> r : k.rows()) {
                 keyOfRow.put(keyOf(r.subList(0, used.size())), r.subList(used.size(), r.size()));
             }
             // Thứ tự nhóm theo thứ tự SQLite trả kết quả GROUP BY
-            QueryResult order = engine.query(db, "SELECT " + gList + " FROM " + fromText + where + groupBy, timeout);
+            QueryResult order = q("SELECT " + gList + " FROM " + fromText + where + groupBy);
             Map<String, Integer> pos = new LinkedHashMap<>();
             for (List<Object> r : order.rows()) {
                 pos.put(keyOf(r), groups.size());
@@ -523,10 +561,8 @@ public final class StepPlanner {
 
         // Hàm gộp + SELECT: mỗi nhóm thành một dòng
         String items = selectList(ps.getSelectItems());
-        QueryResult agg = engine.query(
-                db,
-                "SELECT " + (gs.isEmpty() ? "" : gList + ", ") + items + " FROM " + fromText + where + groupBy,
-                timeout);
+        QueryResult agg =
+                q("SELECT " + (gs.isEmpty() ? "" : gList + ", ") + items + " FROM " + fromText + where + groupBy);
         Map<String, List<Object>> aggByKey = new HashMap<>();
         for (List<Object> r : agg.rows()) {
             aggByKey.put(keyOf(r.subList(0, gs.size())), r.subList(gs.size(), r.size()));
@@ -552,11 +588,8 @@ public final class StepPlanner {
         // HAVING: SQLite tính điều kiện cho từng nhóm
         if (ps.getHaving() != null) {
             String cond = aliases.expand(ps.getHaving().toString());
-            QueryResult h = engine.query(
-                    db,
-                    "SELECT " + (gs.isEmpty() ? "" : gList + ", ") + "CASE WHEN (" + cond + ") THEN 1 ELSE 0 END FROM "
-                            + fromText + where + groupBy,
-                    timeout);
+            QueryResult h = q("SELECT " + (gs.isEmpty() ? "" : gList + ", ") + "CASE WHEN (" + cond
+                    + ") THEN 1 ELSE 0 END FROM " + fromText + where + groupBy);
             Map<String, Boolean> pass = new HashMap<>();
             for (List<Object> r : h.rows()) {
                 pass.put(keyOf(r.subList(0, gs.size())), Long.valueOf(1).equals(r.get(gs.size())));
@@ -584,7 +617,7 @@ public final class StepPlanner {
         }
         String op = so.getOperations().get(0).toString().trim().toUpperCase(Locale.ROOT);
         for (int i = 0; i < 2; i++) {
-            QueryResult r = engine.query(db, sides.get(i).toString(), timeout);
+            QueryResult r = q(sides.get(i).toString());
             if (r.rows().size() > MAX_ANIM_ROWS) {
                 throw new Unsupported("Vế " + (i + 1) + " có quá nhiều dòng để làm animation.");
             }
@@ -639,6 +672,19 @@ public final class StepPlanner {
             putTable(r, cols, strip(after.rows()));
             return lines(lessonId, out);
         }
+        try {
+            diff(name, cols, before, after, c);
+        } catch (RuntimeException e) {
+            LOG.log(Level.WARNING, "Tách bước câu DML lỗi: " + c.sql(), e);
+            out.clear();
+            say("Chỉ hiện bảng sau khi chạy. Câu lệnh đổi " + changed + " dòng.");
+            putTable(ev("sql.result"), cols, strip(after.rows()));
+        }
+        return lines(lessonId, out);
+    }
+
+    /** Bảng trước khi chạy, rồi các dòng thêm/sửa (đúng ô)/xoá theo rowid. */
+    private void diff(String name, List<String> cols, QueryResult before, QueryResult after, SqlGuard.Checked c) {
         key("Bảng " + name + " trước khi chạy");
         say("Bảng " + name + " trước khi chạy câu lệnh (" + before.rows().size() + " dòng).");
         ObjectNode t = ev("sql.table").put("name", name).put("alias", name);
@@ -684,7 +730,6 @@ public final class StepPlanner {
                 + (them + sua + xoa == 0 ? " (không dòng nào thoả điều kiện)." : "."));
         ev("sql.diff").set("changes", changes);
         say("Bảng " + name + " sau khi chạy: " + after.rows().size() + " dòng.");
-        return lines(lessonId, out);
     }
 
     private static String statementKind(Statement s) {
@@ -783,7 +828,7 @@ public final class StepPlanner {
     /** Cờ đúng/sai cho từng dòng đang làm việc, theo cột cuối của câu {@code SELECT <rowids>, <cờ> FROM …}. */
     private List<Boolean> flags(String select, String fromText, String where, Work w, int n)
             throws Unsupported, SqlRejected {
-        QueryResult r = engine.query(db, "SELECT " + select + " FROM " + fromText + where, timeout);
+        QueryResult r = q("SELECT " + select + " FROM " + fromText + where);
         Map<String, Boolean> byKey = new HashMap<>();
         for (List<Object> row : r.rows()) {
             byKey.put(keyOf(row.subList(0, n)), Long.valueOf(1).equals(row.get(n)));

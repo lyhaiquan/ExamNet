@@ -67,6 +67,10 @@ public final class SqlLab {
         } catch (IOException | SqlRejected e) {
             LOG.log(Level.WARNING, "Đáp án bài " + l.id() + " không chạy được: " + e.getMessage());
             return List.of();
+        } catch (RuntimeException e) {
+            // Lỗi lập trình ở bộ tách bước: bài vẫn mở được, chỉ không có animation giảng giải
+            LOG.log(Level.WARNING, "Không dựng được animation giảng giải bài " + l.id(), e);
+            return List.of();
         }
     }
 
@@ -81,9 +85,17 @@ public final class SqlLab {
                 Path answer = SqliteEngine.copy(db, work);
                 try {
                     List<String> trace = new StepPlanner(engine, db, TIMEOUT).explainDml(l.id(), c, mine);
-                    engine.execute(
-                            answer, SqlGuard.check(file(l, "dap_an.sql"), true).sql(), TIMEOUT);
-                    String verdict = sameState(mine, answer) ? "OK" : "WRONG";
+                    String verdict;
+                    try {
+                        engine.execute(
+                                answer,
+                                SqlGuard.check(file(l, "dap_an.sql"), true).sql(),
+                                TIMEOUT);
+                        verdict = sameState(mine, answer) ? "OK" : "WRONG";
+                    } catch (SqlRejected e) {
+                        LOG.warning("Đáp án bài " + l.id() + " không chạy được: " + e.getMessage());
+                        verdict = "NO_EXPECTED";
+                    }
                     return new RunResult(true, stateText(mine, c), null, trace, verdict, ms(t0));
                 } finally {
                     Files.deleteIfExists(mine);
@@ -92,9 +104,16 @@ public final class SqlLab {
             }
             QueryResult r = engine.query(db, c.sql(), TIMEOUT);
             List<String> trace = new StepPlanner(engine, db, TIMEOUT).explainSelect(l.id(), c);
-            QueryResult expect = engine.query(
-                    db, SqlGuard.check(file(l, "dap_an.sql"), false).sql(), TIMEOUT);
-            String verdict = ResultComparer.same(r, expect, l.thuTu()) ? "OK" : "WRONG";
+            String verdict;
+            try {
+                QueryResult expect = engine.query(
+                        db, SqlGuard.check(file(l, "dap_an.sql"), false).sql(), TIMEOUT);
+                verdict = ResultComparer.same(r, expect, l.thuTu()) ? "OK" : "WRONG";
+            } catch (SqlRejected e) {
+                // Đáp án hỏng là lỗi của người soạn bài: vẫn cho học viên xem kết quả của mình, không phán đúng/sai
+                LOG.warning("Đáp án bài " + l.id() + " không chạy được: " + e.getMessage());
+                verdict = "NO_EXPECTED";
+            }
             return new RunResult(true, TextTable.render(r), null, trace, verdict, ms(t0));
         } catch (SqlRejected e) {
             return new RunResult(false, "", e.getMessage(), List.of(), verdict(e), ms(t0));
@@ -131,38 +150,62 @@ public final class SqlLab {
         for (int i = 0; i <= hiddenData.size(); i++) {
             boolean hidden = i > 0;
             String id = hidden ? "an-" + i : SAMPLE_TEST;
-            long t0 = System.nanoTime();
             Path db = null;
+            Path mine = null;
+            Path ans = null;
             try {
-                db = hidden ? SqliteEngine.build(work, file(l, "schema.sql"), hiddenData.get(i - 1)) : sample(l);
-                boolean same;
-                if (c.kind() == SqlGuard.Kind.DML) {
-                    Path mine = SqliteEngine.copy(db, work);
-                    Path ans = SqliteEngine.copy(db, work);
-                    try {
-                        engine.execute(mine, c.sql(), TIMEOUT);
+                // Phần của server và người soạn bài: hỏng thì ném IOException → báo "chưa chấm được", KHÔNG tính
+                // lượt nộp, không bắt học viên chờ
+                Object expect;
+                try {
+                    db = hidden ? SqliteEngine.build(work, file(l, "schema.sql"), hiddenData.get(i - 1)) : sample(l);
+                    if (c.kind() == SqlGuard.Kind.DML) {
+                        mine = SqliteEngine.copy(db, work);
+                        ans = SqliteEngine.copy(db, work);
                         engine.execute(ans, answer, TIMEOUT);
-                        same = sameState(mine, ans);
-                    } finally {
-                        Files.deleteIfExists(mine);
-                        Files.deleteIfExists(ans);
+                        expect = ans;
+                    } else {
+                        expect = engine.query(db, answer, TIMEOUT);
                     }
-                } else {
-                    QueryResult mine = engine.query(db, c.sql(), TIMEOUT);
-                    QueryResult expect = engine.query(db, answer, TIMEOUT);
-                    same = ResultComparer.same(mine, expect, l.thuTu());
+                } catch (SqlRejected e) {
+                    throw new IOException("Bài " + l.id() + ": đáp án hoặc dữ liệu " + id + " lỗi: " + e.getMessage());
+                }
+                // Phần của học viên
+                long t0 = System.nanoTime();
+                boolean same;
+                try {
+                    if (c.kind() == SqlGuard.Kind.DML) {
+                        engine.execute(mine, c.sql(), TIMEOUT);
+                        same = sameState(mine, ans);
+                    } else {
+                        same = ResultComparer.same(engine.query(db, c.sql(), TIMEOUT), (QueryResult) expect, l.thuTu());
+                    }
+                } catch (SqlRejected e) {
+                    Verdict v = Verdict.valueOf(verdict(e));
+                    tests.add(new Grader.TestResult(id, hidden, v, ms(t0), hidden ? null : e.getMessage()));
+                    // Database ẩn: chỉ báo loại lỗi. Lời của SQLite có thể chứa giá trị trong bảng (ví dụ đường dẫn
+                    // của json_extract), câu cố ý gây lỗi sẽ moi được dữ liệu ẩn ra từng lượt nộp.
+                    String msg = !hidden
+                            ? e.getMessage()
+                            : v == Verdict.TIME_LIMIT
+                                    ? "Câu lệnh chạy quá giờ trên bộ dữ liệu ẩn " + i + "."
+                                    : "Câu lệnh báo lỗi khi chạy trên bộ dữ liệu ẩn " + i
+                                            + " (chạy được trên dữ liệu mẫu). Kiểm lại phép tính có thể lỗi với"
+                                            + " NULL, chuỗi rỗng hoặc giá trị lạ.";
+                    return new Grader.Result(v, msg, tests, id);
                 }
                 Verdict v = same ? Verdict.OK : Verdict.WRONG;
                 tests.add(new Grader.TestResult(id, hidden, v, ms(t0), null));
                 if (!same) {
                     return new Grader.Result(v, wrongMessage(hidden, i), tests, id);
                 }
-            } catch (SqlRejected e) {
-                Verdict v = Verdict.valueOf(verdict(e));
-                tests.add(new Grader.TestResult(id, hidden, v, ms(t0), hidden ? null : e.getMessage()));
-                return new Grader.Result(
-                        v, (hidden ? "Lỗi trên bộ dữ liệu ẩn " + i + ": " : "") + e.getMessage(), tests, id);
             } finally {
+                if (mine != null) {
+                    Files.deleteIfExists(mine);
+                }
+                if (ans != null) {
+                    Files.deleteIfExists(ans);
+                }
                 if (hidden && db != null) {
                     Files.deleteIfExists(db);
                 }
