@@ -191,6 +191,30 @@ class CastModuleTest {
     }
 
     @Test
+    void hocVienBaoKhongNhanDuocMulticast_baHeartbeat_nhanChieuQuaTcp() throws Exception {
+        try (var gv = TestClient.connect(server.port());
+                var sv = TestClient.connect(server.port())) {
+            gv.login("gv", "2");
+            sv.login("sv1", "1");
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.LOAD, BAI, 0, 1000));
+            gv.readUntil(MessageType.CAST_CONTROL);
+            var s = server.context().sessions().all().stream()
+                    .filter(x -> x.username().equals("sv1"))
+                    .findFirst()
+                    .orElseThrow();
+            long now = System.currentTimeMillis();
+            for (int i = 0; i < 3; i++) {
+                server.context().presence().ack(s, now, java.util.Map.of("lastCastSeq", -1L), now);
+            }
+            Frame kf = sv.readUntil(MessageType.CAST_KEYFRAME);
+            assertTrue(kf.has(Frame.FLAG_VIA_TCP));
+            assertEquals(1, cast.status().get("mayQuaTcp"));
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.PLAY, BAI, 0, 1000));
+            assertTrue(sv.readUntil(MessageType.CAST_CONTROL).has(Frame.FLAG_VIA_TCP), "từ đó mọi gói chiếu đi cả TCP");
+        }
+    }
+
+    @Test
     void phatRoiKhungKhoa_mangTrangThaiDangChay() throws Exception {
         try (var gv = TestClient.connect(server.port())) {
             gv.login("gv", "2");

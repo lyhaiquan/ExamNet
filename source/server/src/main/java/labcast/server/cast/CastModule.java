@@ -28,6 +28,7 @@ import labcast.server.ServerModule;
 import labcast.server.discovery.LanInterface;
 import labcast.server.discovery.NicInfo;
 import labcast.server.lesson.DemoTraces;
+import labcast.server.net.Connection;
 import labcast.server.net.Ctx;
 import labcast.server.net.Priority;
 import labcast.server.session.Session;
@@ -40,7 +41,9 @@ import labcast.server.session.Session;
  * chiếm luồng nghiệp vụ hay luồng hẹn giờ chung. Socket multicast chỉ mở ở lần chiếu đầu.
  *
  * <p>Giáo viên luôn nhận thêm một bản mọi gói chiếu qua TCP (cờ {@code VIA_TCP}): màn giáo viên thấy
- * ngay kết quả lệnh của mình, kể cả khi máy giáo viên không nghe được multicast.
+ * ngay kết quả lệnh của mình, kể cả khi máy giáo viên không nghe được multicast. Học viên cũng vậy khi
+ * {@link TcpFallback} thấy máy đó không theo kịp multicast. Gói thiếu thì sửa theo {@code CAST_NACK},
+ * nhiều máy cùng thiếu thì phát lại một lần ({@link NackAggregator}).
  */
 public final class CastModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(CastModule.class.getName());
@@ -66,6 +69,7 @@ public final class CastModule implements ServerModule {
     private ServerContext ctx;
     private ExecutorService exec;
     private NackAggregator nacks;
+    private final TcpFallback fallback = new TcpFallback(System::currentTimeMillis);
     private final AtomicLong nacksReceived = new AtomicLong();
     private final AtomicLong repairsUnicast = new AtomicLong();
     private final AtomicLong repairsMulticast = new AtomicLong();
@@ -102,6 +106,7 @@ public final class CastModule implements ServerModule {
         this.nacks = new NackAggregator(this::classSize, System::currentTimeMillis);
         ctx.router().on(MessageType.CAST_CONTROL, Set.of(Role.TEACHER), this::onControl);
         ctx.router().on(MessageType.CAST_NACK, this::onNack);
+        ctx.presence().onHeartbeat(this::onHeartbeat);
         ctx.scheduler()
                 .scheduleAtFixedRate(
                         () -> exec.execute(this::keyframe), KEYFRAME_MS, KEYFRAME_MS, TimeUnit.MILLISECONDS);
@@ -127,7 +132,28 @@ public final class CastModule implements ServerModule {
         m.put("nackNhan", nacksReceived.get());
         m.put("suaRieng", repairsUnicast.get());
         m.put("phatLai", repairsMulticast.get());
+        m.put("mayQuaTcp", fallback.count());
         return m;
+    }
+
+    /** Heartbeat của học viên mang {@code lastCastSeq}: máy không theo kịp multicast thì chuyển sang TCP. */
+    private void onHeartbeat(Session s, Map<String, Long> fields) {
+        Long last = fields.get("lastCastSeq");
+        Connection c = s.connection();
+        if (s.role() != Role.STUDENT || last == null || c == null) {
+            return;
+        }
+        if (fallback.onHeartbeat(s.userId(), c.id(), last, state.loaded() != null)) {
+            LOG.info("Chuyển " + s.username() + " sang nhận chiếu qua TCP: không nhận được multicast");
+            ctx.audit().record(s.username(), "CAST_VIA_TCP", "lastCastSeq=" + last);
+            exec.execute(this::keyframe); // máy vừa chuyển có ngay trạng thái, khỏi chờ chu kỳ 2 s
+        }
+    }
+
+    /** Máy này nhận chiếu qua TCP: giáo viên luôn luôn, học viên khi multicast không tới. */
+    private boolean wantsTcp(Session s) {
+        Connection c = s.connection();
+        return s.online() && c != null && (s.role() == Role.TEACHER || fallback.viaTcp(s.userId(), c.id()));
     }
 
     /**
@@ -141,8 +167,16 @@ public final class CastModule implements ServerModule {
             return; // xin gói của lần chạy server trước, hoặc chưa chiếu gì
         }
         nacksReceived.incrementAndGet();
-        for (Map.Entry<Integer, NackAggregator.Mode> e :
-                nacks.onNack(c.session().userId(), n.from(), n.to()).entrySet()) {
+        // Máy nhận qua TCP không nghe được bản phát lại multicast: luôn gửi riêng, không tính vào ngưỡng gộp
+        Map<Integer, NackAggregator.Mode> plan = new LinkedHashMap<>();
+        if (wantsTcp(c.session())) {
+            for (int seq = n.from(); seq <= n.to(); seq++) {
+                plan.put(seq, NackAggregator.Mode.UNICAST);
+            }
+        } else {
+            plan = nacks.onNack(c.session().userId(), n.from(), n.to());
+        }
+        for (Map.Entry<Integer, NackAggregator.Mode> e : plan.entrySet()) {
             Optional<byte[]> d = datagram(s, e.getKey());
             if (d.isEmpty()) {
                 continue; // đã trôi khỏi vòng đệm và không phải khúc dữ liệu: khung khoá kế tiếp bù
@@ -272,9 +306,9 @@ public final class CastModule implements ServerModule {
             return;
         }
         try {
-            publish(
-                    MessageType.CAST_KEYFRAME,
-                    state.keyframe(castId, sender().lastSeq()).encode());
+            int last = sender().lastSeq();
+            fallback.recordServerSeq(last);
+            publish(MessageType.CAST_KEYFRAME, state.keyframe(castId, last).encode());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (RuntimeException e) {
@@ -291,7 +325,7 @@ public final class CastModule implements ServerModule {
         Frame f = sender().publish(t, payload);
         Frame viaTcp = new Frame(f.type(), Frame.FLAG_VIA_TCP, f.seq(), f.payload());
         for (Session s : ctx.sessions().all()) {
-            if (s.online() && s.role() == Role.TEACHER) {
+            if (wantsTcp(s)) {
                 // DROPPABLE: luồng phát không bao giờ phải chờ một máy chậm; mất thì máy đó tự xin lại
                 s.send(viaTcp, Priority.DROPPABLE);
             }
