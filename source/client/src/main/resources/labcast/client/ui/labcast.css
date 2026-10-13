@@ -439,6 +439,16 @@
     -fx-text-fill: #cbd5e1;
 }
 
+/* Báo mức phóng khi bấm Ctrl +/−, nằm ngoài phần được phóng nên luôn cùng cỡ */
+.zoom-toast {
+    -fx-background-color: rgba(20, 26, 46, 0.92);
+    -fx-background-radius: 999;
+    -fx-padding: 6 14;
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
 .status-pill.ok {
     -fx-background-color: #14532d;
     -fx-text-fill: #bbf7d0;

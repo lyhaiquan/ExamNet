@@ -97,11 +97,15 @@ public final class LessonScreen extends BorderPane {
         boolean sql = lesson.path("mon").asText().equals("sql") || lessonId.startsWith("sql.");
         HBox tags = new HBox(6, badge(loaiLabel(loai), "badge-" + loai), badge(sql ? "SQL" : "Python", null));
         tags.setAlignment(Pos.CENTER_LEFT);
+        // Khung hẹp (phóng chữ to): tên bài rút gọn bằng "…", nhãn và nút giữ đủ chữ
+        title.setMinWidth(0);
+        tags.setMinWidth(Region.USE_PREF_SIZE);
         Region headGap = new Region();
         HBox.setHgrow(headGap, Priority.ALWAYS);
         Button closeBtn = new Button("✕ Đóng bài");
         closeBtn.setId("close-lesson");
         closeBtn.setOnAction(e -> onClose.run());
+        closeBtn.setMinWidth(Region.USE_PREF_SIZE);
         HBox header = new HBox(12, title, tags, headGap, closeBtn);
         if (this.cast != null) {
             // Nút chiếu nằm trên thanh tiêu đề bài: thanh trên trình phát hẹp, chữ dễ bị cắt

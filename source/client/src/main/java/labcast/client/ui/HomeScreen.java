@@ -39,6 +39,7 @@ public final class HomeScreen extends BorderPane {
     private final LoginController.LoggedIn li;
     private final JournalClient journal;
     private final ListView<JsonNode> lessons = new ListView<>();
+    private final VBox sidebar;
     private final Label status = new Label();
     private LessonScreen current;
     /** Mã bài đang mở, null khi chưa mở bài nào. LabCastApp nghe để khoá toàn màn hình. */
@@ -82,23 +83,30 @@ public final class HomeScreen extends BorderPane {
         lessons.setId("lessons");
         lessons.getStyleClass().add("lesson-list");
         lessons.setPlaceholder(new Label("Đang tải danh sách bài…"));
-        lessons.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(JsonNode n, boolean empty) {
-                super.updateItem(n, empty);
-                setText(null);
-                setGraphic(empty || n == null ? null : lessonCell(n));
-            }
+        lessons.setCellFactory(lv -> {
+            ListCell<JsonNode> cell = new ListCell<>() {
+                @Override
+                protected void updateItem(JsonNode n, boolean empty) {
+                    super.updateItem(n, empty);
+                    setText(null);
+                    setGraphic(empty || n == null ? null : lessonCell(n));
+                }
+            };
+            // Ô rộng đúng bằng danh sách để tên bài dài xuống dòng. Để mặc định thì ô rộng bằng tên bài
+            // trên một dòng và phần thừa bị cắt ở mép phải.
+            cell.setPrefWidth(0);
+            return cell;
         });
         lessons.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
             if (n != null) {
                 open(n.path("id").asText());
             }
         });
-        VBox sidebar = new VBox(sideHeader, lessons);
+        sidebar = new VBox(sideHeader, lessons);
         VBox.setVgrow(lessons, Priority.ALWAYS);
         sidebar.getStyleClass().add("sidebar");
         sidebar.setPrefWidth(260);
+        widthProperty().addListener((obs, o, w) -> updateSidebar());
         setLeft(sidebar);
         setCenter(emptyState());
 
@@ -162,6 +170,19 @@ public final class HomeScreen extends BorderPane {
             }
         }
         return id;
+    }
+
+    /**
+     * Cửa sổ hẹp hoặc phóng chữ to: danh sách bài hẹp lại (tên bài tự xuống dòng); hẹp hơn nữa mà đang mở
+     * bài thì ẩn hẳn để animation và ô code đủ chỗ nằm cạnh nhau. Nút "Đóng bài" đưa danh sách trở lại.
+     */
+    private void updateSidebar() {
+        double w = getWidth();
+        sidebar.setPrefWidth(w < 1100 ? 200 : 260);
+        boolean show = current == null || w <= 0 || w >= 1060;
+        if (show != (getLeft() == sidebar)) {
+            setLeft(show ? sidebar : null);
+        }
     }
 
     /** Thanh trên cùng: logo, tên lớp, trạng thái kết nối, người đang đăng nhập. */
@@ -266,6 +287,7 @@ public final class HomeScreen extends BorderPane {
         lessons.getSelectionModel().clearSelection();
         setCenter(emptyState());
         openLesson.set(null);
+        updateSidebar();
     }
 
     /** Hộp thoại có chủ là cửa sổ app: không có chủ thì nó mở ra nằm sau cửa sổ toàn màn hình. */
@@ -319,6 +341,7 @@ public final class HomeScreen extends BorderPane {
                                 c, journal, lesson, li.role() == Role.STUDENT, this::closeLesson, cast);
                         setCenter(current);
                         openLesson.set(lessonId);
+                        updateSidebar();
                         setStatus("", null);
                     } catch (Exception e) {
                         setStatus("Bài hỏng: " + e.getMessage(), "error");

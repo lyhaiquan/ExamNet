@@ -4,7 +4,6 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import labcast.client.cast.CastClient;
 import labcast.client.clock.ClockSync;
@@ -15,6 +14,7 @@ import labcast.client.ui.LessonLock;
 import labcast.client.ui.LoginController;
 import labcast.client.ui.LoginView;
 import labcast.client.ui.Theme;
+import labcast.client.ui.ZoomPane;
 import labcast.common.protocol.Role;
 
 /** App desktop LabCast: màn đăng nhập, rồi màn chính theo vai trò. */
@@ -26,6 +26,8 @@ public final class LabCastApp extends Application {
     private CastClient cast;
     /** Giờ server nhìn từ máy này; giai đoạn 2 dùng cho phát hẹn giờ và câu hỏi nhanh. */
     private final ClockSync clock = new ClockSync();
+    /** Gốc cố định của cửa sổ; đổi màn thì thay nội dung bên trong để giữ mức phóng chữ. */
+    private ZoomPane root;
 
     public static void main(String[] args) {
         launch(args);
@@ -36,7 +38,10 @@ public final class LabCastApp extends Application {
         Theme.loadFonts(); // font đóng gói phải nạp trước khi dựng màn đầu tiên
         this.stage = stage;
         stage.setTitle("LabCast");
-        stage.setScene(new Scene(new StackPane(), 1200, 760));
+        root = new ZoomPane();
+        Scene scene = new Scene(root, 1200, 760);
+        root.install(scene);
+        stage.setScene(scene);
         showLogin();
         stage.setOnCloseRequest(e -> {
             if (session != null) {
@@ -57,7 +62,7 @@ public final class LabCastApp extends Application {
             cast = null;
         }
         session = null;
-        stage.getScene().setRoot(new LoginView(this::loggedIn));
+        root.setContent(new LoginView(this::loggedIn));
     }
 
     private void loggedIn(LoginController.LoggedIn li) {
@@ -93,6 +98,6 @@ public final class LabCastApp extends Application {
                 }
             });
         }
-        stage.getScene().setRoot(home);
+        root.setContent(home);
     }
 }
