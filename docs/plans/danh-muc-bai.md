@@ -372,7 +372,7 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `xep-loai` | Xếp loại điểm bằng CASE; sinh viên chưa thi hiện "Chưa thi" | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 12 |
-| `chua-co-lop` | Sinh viên chưa được xếp lớp | BT◆ | `truong-hoc` | dự đoán · code | `IS NULL`, không phải `= NULL` |
+| `chua-co-lop` | Sinh viên chưa được xếp lớp | BT◆ | `truong-hoc` | dự đoán · code | `IS NULL`, không phải `= NULL`. **Đã làm** (13/10/2026) |
 | `chua-phan-phong` | Số nhân viên mỗi phòng; người chưa có phòng gom vào "Chưa phân" | BT◆ | `nhan-su` | code | `COALESCE` |
 | `muc-ton-kho` | Phân loại tồn kho Hết / Ít / Nhiều | BT | `ban-hang` | code | `CASE` |
 | `dem-co-diem` | Đếm sinh viên có điểm và chưa có điểm | LT | `truong-hoc` | code | `COUNT(*)` khác `COUNT(cột)` |
@@ -397,7 +397,7 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `sinh-vien-lop` | Họ tên sinh viên kèm tên lớp | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 4 |
+| `sinh-vien-lop` | Họ tên sinh viên kèm tên lớp | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 4. **Đã làm** (13/10/2026) |
 | `so-don-khach` | Mọi khách hàng kèm số đơn, kể cả khách chưa mua | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 5 |
 | `nhan-vien-quan-ly` | Nhân viên kèm tên người quản lý | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 6 |
 | `bang-diem` | Họ tên, tên môn, điểm của mọi lần thi | BT◆ | `truong-hoc` | dự đoán · code | Nối 3 bảng |

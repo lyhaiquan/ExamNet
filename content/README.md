@@ -7,7 +7,7 @@ content/
 ├── dsa/<chương>/<bài>/   lesson.yaml, de.md, loi_giai.py, khung.py, sinh_test.py,
 │                         du_doan.py, luat.py, demo.in, tests/
 └── sql/<chương>/<bài>/   lesson.yaml, de.md, dap_an.sql, schema.sql, du_lieu_mau.sql,
-                          sinh_du_lieu.py, du_doan.py
+                          khung.sql, sinh_du_lieu.py, du_doan.py
 ```
 
 - Định dạng từng file và các trường của `lesson.yaml`: spec §7.1.
@@ -22,3 +22,13 @@ content/
 - `luat.py` (tuỳ chọn) định nghĩa `kiem(su_kien, dau_vao) -> str | None`: nhận danh sách sự kiện trace (dict) của code học viên chạy test `tb`, trả `None` nếu đạt hoặc một câu giải thích vi phạm. Lời giải mẫu phải qua luật của chính nó — xem `runner/tests/test_chuan_bi_luat.py`.
 
 Mỗi bài phải qua kiểm nội dung trên CI trước khi merge: lời giải mẫu qua hết test, trace không vượt trần, `lesson.yaml` hợp lệ. genAI được dùng để soạn đề, lời giải mẫu và bộ sinh test; người soạn chịu trách nhiệm kiểm lại.
+
+**Bài SQL** (bộ máy SQL, spec §7.6):
+
+- `schema.sql`, `du_lieu_mau.sql`: chép từ CSDL dùng chung `sql/_csdl/<tên>/` (thư mục bắt đầu bằng `_` không phải bài). Dữ liệu mẫu nên ≤ 12 dòng mỗi bảng: animation đánh dấu WHERE/HAVING và nối JOIN từng dòng khi bảng nhỏ như vậy. Mọi file `.sql` lưu UTF-8.
+- `dap_an.sql`: đúng một câu (SELECT, hoặc INSERT/UPDATE/DELETE nếu `loai_cau: dml`). Bài giảng giải lấy animation từ chính câu này chạy trên dữ liệu mẫu.
+- `khung.sql`: câu khởi đầu đưa cho học viên.
+- `sinh_du_lieu.py <seed>` in ra các câu INSERT (chạy sau `schema.sql`) của một database ẩn; server gọi seed 1, 2, 3. Ba bộ phải có NULL, dòng trùng và một bảng rỗng (spec §7.6) — chép bộ sinh của CSDL dùng chung là đủ.
+- `lesson.yaml` thêm `loai_cau: select | dml` và `thu_tu: co | khong` (`co`: so kết quả theo đúng thứ tự dòng, dùng cho bài có ORDER BY). `khung_nhin` mặc định là bảng SQL.
+- Chấm: câu học viên và đáp án chạy trên dữ liệu mẫu rồi 3 database ẩn; SELECT so kết quả như đa tập (số thực tới 1e-6), DML so toàn bộ nội dung database sau khi chạy.
+

@@ -524,6 +524,8 @@ Quá 500 thông điệp/s trong 5 s → `BYE(TOO_MANY_MESSAGES)` và đóng kế
 
 ### Task 3.12: Bộ máy SQL bản đầu
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`) cùng task 3.14:** `SqlGuard`, `SqliteEngine`, `ResultComparer`, `StepPlanner`, `SqlLab`; bài SQL đi qua `RUN_REQ`/`SUBMIT_REQ` như bài DSA (rẽ nhánh trong `RunModule`/`SubmitModule`). **Khác kế hoạch:** không có giao diện `SqlEngine` ba hàm — `SqliteEngine` chạy câu, `StepPlanner` tách bước; ngắt câu quá giờ bằng progress handler của SQLite (không dựa vào `setQueryTimeout`), thêm trần độ dài chuỗi/blob và cấm `ATTACH`. Test đầu–cuối: `SqlFlowTest`.
+
 **Files:**
 - Create: `source/server/src/main/java/labcast/server/sqlviz/SqlEngine.java`, `SqliteEngine.java`, `SqlGuard.java`, `ResultComparer.java`
 - Modify: `source/server/pom.xml` — thêm `jsqlparser`
@@ -541,6 +543,8 @@ Quá 500 thông điệp/s trong 5 s → `BYE(TOO_MANY_MESSAGES)` và đóng kế
 **Commit:** `feat(server): bộ máy SQL bản đầu — chặn câu nguy hiểm, chấm, tách bước FROM/JOIN/WHERE`
 
 ### Task 3.13: Màn các bậc học và bộ vẽ `bang-sql`
+
+> **Đã làm một phần (13/10/2026):** bộ vẽ `bang-sql` (`SqlTableModel`, `SqlTableView` trong `client.views.bangsql`), ô soạn SQL có tô màu. **Chưa làm:** tab các bậc học và bậc dự đoán (`PracticeController`, `PredictPane`).
 
 **Files:**
 - Create: `source/client/src/main/java/labcast/client/practice/PracticeController.java`, `PredictPane.java`, `RunPanel.java`, `ResultPane.java`

@@ -262,6 +262,8 @@ Hiện code (lấy từ ô soạn hoặc `LESSON_DATA`), tô sáng dòng theo s�
 
 ### Task 3.14: SQL — các bước còn lại
 
+> **Đã làm sớm (13/10/2026, cùng task 3.12):** GROUP BY (theo biểu thức, số thứ tự cột, tên gọi khác), hàm gộp kể cả không có GROUP BY, HAVING, DISTINCT, ORDER BY, LIMIT/OFFSET, UNION/INTERSECT/EXCEPT (hai vế rồi kết quả), INSERT/UPDATE/DELETE (`sql.diff`). Câu ngoài phạm vi (WITH, truy vấn con ở FROM, hàm cửa sổ, bảng > 60 dòng) và mọi trường hợp các bước tách ra không khớp kết quả chạy thật chỉ hiện kết quả cuối kèm lời giải thích. **Chưa làm:** hiện câu con (IN, EXISTS) thành bảng tạm (`sql.sub`) — câu có truy vấn con trong WHERE vẫn tách bước, SQLite tính điều kiện, chỉ không vẽ riêng câu con. Bài `diem-trung-binh-lop` đã có.
+
 **Files:**
 - Modify: `source/server/src/main/java/labcast/server/sqlviz/SqliteEngine.java`
 - Create: `source/server/src/main/java/labcast/server/sqlviz/StepPlanner.java`, `Grouping.java`

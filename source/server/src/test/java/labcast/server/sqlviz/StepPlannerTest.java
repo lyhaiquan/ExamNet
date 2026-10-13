@@ -189,6 +189,17 @@ class StepPlannerTest {
     }
 
     @Test
+    void truyVanConTrongWhere_inVaExistsTuongQuan_vanTachBuoc() throws Exception {
+        var in = explain("SELECT ho_ten FROM sinh_vien WHERE id IN (SELECT sinh_vien_id FROM ket_qua WHERE diem >= 8)");
+        stepped(in);
+        assertEquals("[0,2]", of(in, "sql.keep").get(0).path("rows").toString(), "An 8 và 9, Cường 9");
+        var ex = explain("SELECT s.ho_ten FROM sinh_vien s WHERE EXISTS"
+                + " (SELECT 1 FROM ket_qua k WHERE k.sinh_vien_id = s.id AND k.lan_thi = 2)");
+        stepped(ex);
+        assertEquals("[0]", of(ex, "sql.keep").get(0).path("rows").toString(), "chỉ An thi lại");
+    }
+
+    @Test
     void cauCoWith_khongLoi_chiCoKetQuaCuoi() throws Exception {
         var ev = explain("WITH t AS (SELECT ho_ten FROM sinh_vien) SELECT * FROM t");
         assertTrue(said(ev).contains("Chỉ hiện kết quả cuối"));

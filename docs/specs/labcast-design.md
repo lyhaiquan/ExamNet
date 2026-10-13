@@ -326,7 +326,7 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | Cây, đồ thị | `node`, `edge`, `mark` (đổi màu), `rotate` |
 | Lời gọi | `call` (hàm, tham số, id, id cha), `ret` (id, giá trị) |
 | Bảng 2 chiều | `cell_r`, `cell_w` |
-| SQL | `sql.table`, `sql.pairs`, `sql.keep`, `sql.group`, `sql.agg`, `sql.having`, `sql.project`, `sql.distinct`, `sql.order`, `sql.limit`, `sql.sub`, `sql.diff` |
+| SQL | `sql.table` (bảng gốc; `side` = bảng bên phải khi ghép), `sql.rename`, `sql.pair` (nối một cặp dòng), `sql.join`, `sql.mark` (✓/✗ từng dòng hoặc nhóm), `sql.keep`, `sql.group`, `sql.agg`, `sql.project`, `sql.distinct`, `sql.order`, `sql.limit`, `sql.setop`, `sql.diff`, `sql.result`. Chỉ số dòng luôn là chỉ số trong bảng đang làm việc lúc đó (HAVING dùng `sql.mark` + `sql.keep` trên dòng nhóm) |
 
 - **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
 - **Trần**: 10 000 sự kiện và 2 MB mỗi trace. Vượt trần thì dừng ghi và đặt `truncated: true`. App báo "code có thể lặp vô hạn hoặc chậm hơn mức cần thiết".
