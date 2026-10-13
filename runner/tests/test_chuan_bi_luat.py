@@ -326,3 +326,33 @@ def test_tim_kiem_dslk_dia_chi_mo_qua_luat_cach_lach_thi_khong():
         kq2, v = luat_bai(dsa / bai, views, cach_lach)
         assert kq2["stdout"] == kq["stdout"], (bai, kq2)
         assert not v["ok"] and loi in v["loi"], (bai, v)
+
+
+def test_cay_bst_heap_avl_qua_luat_cay_tu_viet_hay_mang_sap_thi_khong():
+    cay = RUNNER.parent / "content" / "dsa" / "cay"
+    # cây tự viết bằng lớp riêng: kết quả đúng nhưng cây T không có gì
+    lop_rieng = (cay / "avl" / "luat.py").read_text(encoding="utf-8").split("def kiem")[0]
+    bst_rieng = (cay / "bst" / "luat.py").read_text(encoding="utf-8").split("def kiem")[0] + (
+        "import viz\nT = viz.Cay(ten='T')\ngoc = None\nfor _ in range(int(input())):\n"
+        "    l, k = input().split()\n    k = int(k)\n    if l == 'chen':\n        goc = _chen(goc, k)\n"
+        "    elif l == 'xoa':\n        goc = _xoa(goc, k)\n    else:\n        p = goc\n"
+        "        while p and p.k != k:\n            p = p.l if k < p.k else p.r\n        print('YES' if p else 'NO')\n"
+        "ra = []\n_truoc(goc, ra)\nprint(*ra) if ra else print('RONG')\n")
+    avl_rieng = lop_rieng + (
+        "import viz\nT = viz.Cay(ten='T')\nso = input() and list(map(int, input().split()))\ngoc = None\n"
+        "for k in so:\n    goc = _chen(goc, k)\nra = []\n_truoc(goc, ra)\nprint(*ra)\n")
+    mang_sap = ("import viz\nh = viz.Mang([], ten='h')\nfor _ in range(int(input())):\n    l = input().split()\n"
+                "    if l[0] == 'them':\n        x = int(l[1])\n        i = 0\n"
+                "        while i < len(h) and h[i] <= x:\n            i += 1\n        h.insert(i, x)\n"
+                "    elif not h:\n        print('RONG')\n    else:\n        print(h.pop(0))\n")
+    cases = [
+        ("bst", [{"v": "T", "kieu": "cay"}], bst_rieng, "chính cây T"),
+        ("heap", [{"v": "h", "kieu": "heap"}], mang_sap, "cha với nút con"),
+        ("avl", [{"v": "T", "kieu": "cay"}], avl_rieng, "chính cây T"),
+    ]
+    for bai, views, cach_lach, loi in cases:
+        kq, v = luat_bai(cay / bai, views, (cay / bai / "loi_giai.py").read_text(encoding="utf-8"))
+        assert kq["ok"] and v["ok"], (bai, v)
+        kq2, v = luat_bai(cay / bai, views, cach_lach)
+        assert kq2["stdout"] == kq["stdout"], (bai, kq2)
+        assert not v["ok"] and loi in v["loi"], (bai, v)

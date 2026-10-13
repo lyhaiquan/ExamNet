@@ -1,0 +1,17 @@
+id: dsa.cay.heap
+mon: dsa
+chuong: cay
+ten: "Đống nhị phân: thêm và lấy min"
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: h
+    kieu: heap            # viz.Mang vẽ thành cây nhị phân đầy đủ, bên dưới là mảng
+cam_dung: [sorted, sort, min]
+cam_import: [heapq, bisect]  # heapq viết bằng C, đổi mảng mà không ghi lại được; phải tự vun
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: [dsa.cay.avl]
