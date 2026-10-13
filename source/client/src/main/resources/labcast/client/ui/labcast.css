@@ -700,6 +700,70 @@
     -fx-text-fill: -lc-muted;
 }
 
+/* Chiếu cho cả lớp (ĐG1) */
+.source-chip.casting {
+    -fx-background-color: -lc-danger-soft;
+    -fx-text-fill: -lc-danger;
+}
+
+.button.cast {
+    -fx-background-color: -lc-danger;
+    -fx-border-color: -lc-danger;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button.cast:hover {
+    -fx-background-color: #991b1b;
+    -fx-border-color: #991b1b;
+}
+
+.button.cast-chip {
+    -fx-background-color: -lc-danger;
+    -fx-border-color: -lc-danger;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 3 12;
+}
+
+.cast-header {
+    -fx-padding: 14 20 10 20;
+    -fx-spacing: 10;
+}
+
+.cast-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.follow-chip {
+    -fx-background-radius: 999;
+    -fx-padding: 3 10;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-color: -lc-success-soft;
+    -fx-text-fill: -lc-success;
+}
+
+.follow-chip.detached {
+    -fx-background-color: -lc-warning-soft;
+    -fx-text-fill: -lc-warning;
+}
+
+.follow-chip.ended {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: -lc-muted;
+}
+
+.cast-body {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+}
+
 .legend {
     -fx-padding: 4 14 0 14;
 }

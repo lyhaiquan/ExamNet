@@ -72,34 +72,39 @@ public final class CastReceiver implements AutoCloseable {
     }
 
     /**
-     * Mở socket và tham gia nhóm trên từng card; trả số card tham gia được. 0 card vẫn chạy: không nhận
-     * được multicast thì {@code lastCastSeq} đứng ở −1 và server chuyển máy này sang nhận qua TCP.
+     * Bắt đầu hẹn giờ xin gói thiếu, mở socket và tham gia nhóm trên từng card; trả số card tham gia
+     * được. Không mở được socket hay 0 card vẫn chạy: gói qua TCP vẫn nhận, {@code lastCastSeq} đứng ở
+     * −1 và server chuyển máy này sang nhận chiếu qua TCP.
      */
-    public int start() throws IOException {
-        MulticastSocket s = new MulticastSocket(null);
-        s.setReuseAddress(true); // trước khi bind: nhiều app trên một máy cùng nghe (khi đo, khi demo)
-        s.setReceiveBufferSize(1 << 20); // chịu được đợt CAST_DATA (spec §11)
-        s.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
-        s.bind(new InetSocketAddress(group.getPort())); // bind cổng, KHÔNG bind địa chỉ nhóm (Windows từ chối)
-        int joined = 0;
-        for (NetworkInterface n : nics) {
-            try {
-                s.joinGroup(group, n);
-                joined++;
-            } catch (IOException e) {
-                LOG.fine("Không tham gia nhóm chiếu trên " + n.getName() + ": " + e.getMessage());
-            }
-        }
-        socket = s;
-        Thread t = new Thread(this::receiveLoop, "nghe-chieu");
-        t.setDaemon(true);
-        t.start();
+    public int start() {
         timer = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread th = new Thread(r, "xin-goi-chieu");
             th.setDaemon(true);
             return th;
         });
         timer.scheduleAtFixedRate(this::sendNacks, 10, 10, TimeUnit.MILLISECONDS);
+        int joined = 0;
+        try {
+            MulticastSocket s = new MulticastSocket(null);
+            s.setReuseAddress(true); // trước khi bind: nhiều app trên một máy cùng nghe (khi đo, khi demo)
+            s.setReceiveBufferSize(1 << 20); // chịu được đợt CAST_DATA (spec §11)
+            s.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
+            s.bind(new InetSocketAddress(group.getPort())); // bind cổng, KHÔNG bind địa chỉ nhóm (Windows từ chối)
+            for (NetworkInterface n : nics) {
+                try {
+                    s.joinGroup(group, n);
+                    joined++;
+                } catch (IOException e) {
+                    LOG.fine("Không tham gia nhóm chiếu trên " + n.getName() + ": " + e.getMessage());
+                }
+            }
+            socket = s;
+            Thread t = new Thread(this::receiveLoop, "nghe-chieu");
+            t.setDaemon(true);
+            t.start();
+        } catch (IOException e) {
+            LOG.warning("Không nghe được nhóm chiếu " + group + ": " + e.getMessage() + " — sẽ nhận qua TCP");
+        }
         LOG.info("Nghe chiếu " + group + " trên " + joined + "/" + nics.size() + " card");
         return joined;
     }

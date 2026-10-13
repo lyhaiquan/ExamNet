@@ -20,6 +20,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import labcast.client.cast.CastSession;
 import labcast.client.journal.JournalClient;
 import labcast.client.net.LcpClient;
 import labcast.common.protocol.ErrorMessage;
@@ -42,9 +43,25 @@ public final class HomeScreen extends BorderPane {
     private LessonScreen current;
     /** Mã bài đang mở, null khi chưa mở bài nào. LabCastApp nghe để khoá toàn màn hình. */
     private final ReadOnlyStringWrapper openLesson = new ReadOnlyStringWrapper();
+    /** Phiên chiếu của app (ĐG1); null thì màn này không có phần chiếu. */
+    private final CastSession cast;
+
+    private final Button castChip = new Button("📡 Giáo viên đang chiếu");
+    private CastView castView;
+    private boolean castShown;
+    private boolean castWasActive;
 
     public HomeScreen(LoginController.LoggedIn li, JournalClient journal, Runnable onSessionEnded) {
+        this(li, journal, onSessionEnded, null);
+    }
+
+    /**
+     * @param cast phiên chiếu: học viên thấy màn giáo viên chiếu (tự mở khi đang không làm bài), giáo viên
+     *     có nút "Chiếu cho lớp" trong màn bài học
+     */
+    public HomeScreen(LoginController.LoggedIn li, JournalClient journal, Runnable onSessionEnded, CastSession cast) {
         this.li = li;
+        this.cast = cast;
         Theme.apply(this);
         this.journal = journal;
         LcpClient client = li.client();
@@ -101,6 +118,50 @@ public final class HomeScreen extends BorderPane {
             }
         });
         loadLessons();
+        if (cast != null && li.role() == Role.STUDENT) {
+            cast.onChange(this::onCastChange);
+        }
+    }
+
+    /** Giáo viên bắt đầu/dừng chiếu. Học viên đang không làm bài thì tự mở màn chiếu. */
+    private void onCastChange() {
+        boolean active = cast.active();
+        if (active && !castWasActive && !castShown && current == null) {
+            showCast();
+        }
+        castWasActive = active;
+        castChip.setVisible(active && !castShown);
+    }
+
+    /** Mở màn chiếu; đang làm bài thì đóng bài (code đã lưu liên tục lên server). */
+    private void showCast() {
+        if (current != null) {
+            closeLesson();
+        }
+        if (castView == null) {
+            castView = new CastView(cast, this::lessonName, this::hideCast);
+        }
+        setCenter(castView);
+        castShown = true;
+        castChip.setVisible(false);
+        cast.attach(castView);
+    }
+
+    private void hideCast() {
+        cast.detachScreen();
+        castShown = false;
+        setCenter(emptyState());
+        castChip.setVisible(cast.active());
+    }
+
+    /** Tên bài theo mã, lấy từ danh sách bài bên trái. */
+    private String lessonName(String id) {
+        for (JsonNode n : lessons.getItems()) {
+            if (n.path("id").asText().equals(id)) {
+                return n.path("ten").asText();
+            }
+        }
+        return id;
     }
 
     /** Thanh trên cùng: logo, tên lớp, trạng thái kết nối, người đang đăng nhập. */
@@ -128,6 +189,14 @@ public final class HomeScreen extends BorderPane {
         who.setAlignment(Pos.CENTER_LEFT);
 
         HBox bar = new HBox(10, mark, brand, cls, spacer, status);
+        if (cast != null && li.role() == Role.STUDENT) {
+            castChip.setId("cast-chip");
+            castChip.getStyleClass().add("cast-chip");
+            castChip.managedProperty().bind(castChip.visibleProperty());
+            castChip.setVisible(false);
+            castChip.setOnAction(e -> showCast());
+            bar.getChildren().add(castChip);
+        }
         if (li.role() == Role.TEACHER) {
             Button importBtn = new Button("Nhập danh sách lớp (CSV)…");
             importBtn.getStyleClass().add("on-dark");
@@ -241,7 +310,13 @@ public final class HomeScreen extends BorderPane {
                         if (current != null) {
                             current.dispose();
                         }
-                        current = new LessonScreen(c, journal, lesson, li.role() == Role.STUDENT, this::closeLesson);
+                        if (castShown) {
+                            cast.detachScreen();
+                            castShown = false;
+                            castChip.setVisible(cast.active());
+                        }
+                        current = new LessonScreen(
+                                c, journal, lesson, li.role() == Role.STUDENT, this::closeLesson, cast);
                         setCenter(current);
                         openLesson.set(lessonId);
                         setStatus("", null);

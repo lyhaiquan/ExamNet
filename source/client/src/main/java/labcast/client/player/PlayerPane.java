@@ -36,6 +36,7 @@ public final class PlayerPane extends BorderPane {
     private final ComboBox<String> speedBox =
             new ComboBox<>(FXCollections.observableArrayList("0,5×", "1×", "2×", "4×"));
     private Player player;
+    private PlayerControls controls = PlayerControls.LOCAL;
     private boolean updatingSlider;
 
     private final AnimationTimer timer = new AnimationTimer() {
@@ -73,16 +74,16 @@ public final class PlayerPane extends BorderPane {
                 return;
             }
             if (player.playing()) {
-                player.pause();
+                controls.pause(player);
             } else {
-                player.play();
+                controls.play(player);
             }
         });
         Button keyBtn = new Button("⏭");
         keyBtn.setTooltip(new Tooltip("Tới bước quan trọng kế tiếp"));
         keyBtn.setOnAction(e -> {
             if (player != null) {
-                player.nextKeyStep();
+                controls.nextKey(player);
             }
         });
         keyBtn.setMinWidth(Region.USE_PREF_SIZE);
@@ -91,7 +92,8 @@ public final class PlayerPane extends BorderPane {
         speedBox.getSelectionModel().select(1);
         speedBox.setOnAction(e -> {
             if (player != null) {
-                player.speed(
+                controls.speed(
+                        player,
                         switch (speedBox.getSelectionModel().getSelectedIndex()) {
                             case 0 -> 0.5;
                             case 2 -> 2;
@@ -103,12 +105,12 @@ public final class PlayerPane extends BorderPane {
         // Kéo thanh tua: chỉ tua khi thả tay, không tua liên tục trong lúc kéo
         slider.valueChangingProperty().addListener((obs, was, now) -> {
             if (!now && player != null) {
-                player.seek((int) slider.getValue());
+                controls.seek(player, (int) slider.getValue());
             }
         });
         slider.valueProperty().addListener((obs, o, n) -> {
             if (!updatingSlider && !slider.isValueChanging() && player != null) {
-                player.seek(n.intValue());
+                controls.seek(player, n.intValue());
             }
         });
         posLabel.getStyleClass().add("position");
@@ -181,5 +183,10 @@ public final class PlayerPane extends BorderPane {
 
     public Player player() {
         return player;
+    }
+
+    /** Đổi việc các nút làm (chiếu, theo giáo viên); null là điều khiển trình phát trên máy này. */
+    public void setControls(PlayerControls c) {
+        this.controls = c == null ? PlayerControls.LOCAL : c;
     }
 }

@@ -3,7 +3,6 @@ package labcast.client.ui;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.animation.PauseTransition;
@@ -19,13 +18,18 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import labcast.client.cast.CastSession;
 import labcast.client.editor.CodeEditor;
 import labcast.client.journal.JournalClient;
 import labcast.client.net.LcpClient;
+import labcast.client.player.Player;
+import labcast.client.player.PlayerControls;
 import labcast.client.player.PlayerPane;
 import labcast.client.player.View;
 import labcast.client.practice.RunPanel;
-import labcast.client.views.mang.ArrayView;
+import labcast.client.presenter.PresenterController;
+import labcast.client.views.Views;
+import labcast.common.protocol.MessageType;
 import labcast.common.trace.Trace;
 import labcast.common.trace.TraceReader;
 
@@ -52,6 +56,15 @@ public final class LessonScreen extends BorderPane {
     private final TabPane tabs = new TabPane();
     private final Tab animTab;
     private final RunPanel runPanel;
+    /** Chiếu cho cả lớp (chỉ giáo viên, khi app có phần nhận chiếu); null nếu không chiếu được. */
+    private final CastSession cast;
+
+    private final PresenterController presenter;
+    private final Button castBtn = new Button(CAST_START);
+    private final Button demoBtn = new Button("↺ Xem lời giải mẫu");
+
+    private static final String CAST_START = "📡 Chiếu cho lớp";
+    private static final String CAST_STOP = "■ Dừng chiếu";
 
     /**
      * @param lesson payload {@code LESSON_DATA} loại "lesson"
@@ -60,6 +73,19 @@ public final class LessonScreen extends BorderPane {
      */
     public LessonScreen(
             LcpClient client, JournalClient journal, JsonNode lesson, boolean studentMode, Runnable onClose) {
+        this(client, journal, lesson, studentMode, onClose, null);
+    }
+
+    /** @param cast phiên chiếu của app; giáo viên có thêm nút "Chiếu cho lớp" khi khác null */
+    public LessonScreen(
+            LcpClient client,
+            JournalClient journal,
+            JsonNode lesson,
+            boolean studentMode,
+            Runnable onClose,
+            CastSession cast) {
+        this.cast = studentMode ? null : cast;
+        this.presenter = new PresenterController(r -> client.send(MessageType.CAST_CONTROL, r.encode()));
         this.lesson = lesson;
         this.lessonId = lesson.path("id").asText();
         getStyleClass().add("lesson-screen");
@@ -76,6 +102,22 @@ public final class LessonScreen extends BorderPane {
         closeBtn.setId("close-lesson");
         closeBtn.setOnAction(e -> onClose.run());
         HBox header = new HBox(12, title, tags, headGap, closeBtn);
+        if (this.cast != null) {
+            // Nút chiếu nằm trên thanh tiêu đề bài: thanh trên trình phát hẹp, chữ dễ bị cắt
+            castBtn.setId("cast-toggle");
+            castBtn.getStyleClass().add("cast");
+            castBtn.setMinWidth(Region.USE_PREF_SIZE);
+            castBtn.setDisable(lesson.path("trace").size() == 0);
+            castBtn.setOnAction(e -> {
+                if (presenter.casting()) {
+                    presenter.stop();
+                    endCast();
+                } else {
+                    startCast();
+                }
+            });
+            header.getChildren().add(header.getChildren().indexOf(closeBtn), castBtn);
+        }
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("lesson-header");
         setTop(header);
@@ -83,12 +125,12 @@ public final class LessonScreen extends BorderPane {
         // Trái: hai thẻ Animation và Đề bài
         traceSource.setId("trace-source");
         traceSource.getStyleClass().add("source-chip");
-        Button demoBtn = new Button("↺ Xem lời giải mẫu");
         demoBtn.getStyleClass().add("ghost");
         demoBtn.setOnAction(e -> showDemo());
         demoBtn.setDisable(lesson.path("trace").size() == 0);
         Region gap = new Region();
         HBox.setHgrow(gap, Priority.ALWAYS);
+        demoBtn.setMinWidth(Region.USE_PREF_SIZE);
         HBox playerBar = new HBox(8, traceSource, gap, demoBtn);
         playerBar.setAlignment(Pos.CENTER_LEFT);
         playerBar.getStyleClass().add("player-bar");
@@ -161,7 +203,49 @@ public final class LessonScreen extends BorderPane {
     public void dispose() {
         editor.flush();
         runPanel.dispose();
+        if (presenter.casting()) {
+            presenter.stop();
+            endCast();
+        }
     }
+
+    /**
+     * Giáo viên bấm "Chiếu cho lớp": server phát trace giảng giải của bài cho cả lớp. Trình phát trên máy
+     * giáo viên chuyển sang theo buổi chiếu (nhận bản sao qua TCP), các nút của nó gửi lệnh cho server.
+     */
+    private void startCast() {
+        presenter.start(lessonId);
+        player.setControls(presenter);
+        castBtn.setText(CAST_STOP);
+        demoBtn.setDisable(true);
+        setSource("📡 Đang gửi bài cho cả lớp…", "casting");
+        cast.attach(castScreen);
+    }
+
+    private void endCast() {
+        cast.detachScreen();
+        player.setControls(PlayerControls.LOCAL);
+        castBtn.setText(CAST_START);
+        demoBtn.setDisable(lesson.path("trace").size() == 0);
+        showDemo();
+    }
+
+    private final CastSession.Screen castScreen = new CastSession.Screen() {
+        @Override
+        public Player show(String traceId, Trace trace) {
+            Player p = player.load(trace, Views.create(trace.header().path("views"), "v"));
+            setSource("📡 Đang chiếu cho cả lớp", "casting");
+            return p;
+        }
+
+        @Override
+        public void stopped() {
+            if (presenter.casting()) {
+                presenter.stop(); // lệnh dừng đến từ chỗ khác (máy giáo viên khác)
+            }
+            endCast();
+        }
+    };
 
     private static Label badge(String text, String variant) {
         Label l = new Label(text);
@@ -183,7 +267,7 @@ public final class LessonScreen extends BorderPane {
 
     private void setSource(String text, String variant) {
         traceSource.setText(text);
-        traceSource.getStyleClass().removeAll("mine", "none");
+        traceSource.getStyleClass().removeAll("mine", "none", "casting");
         if (variant != null) {
             traceSource.getStyleClass().add(variant);
         }
@@ -205,6 +289,10 @@ public final class LessonScreen extends BorderPane {
     }
 
     private void showStudentTrace(Trace t) {
+        if (presenter.casting()) {
+            presenter.stop(); // giáo viên chạy thử code: trình phát chuyển sang trace đó, thôi chiếu
+            endCast();
+        }
         tabs.getSelectionModel().select(animTab);
         if (t.size() == 0) {
             setSource("Lượt chạy không có trace (code chưa dùng cấu trúc viz?)", "none");
@@ -216,14 +304,6 @@ public final class LessonScreen extends BorderPane {
 
     /** Một bộ vẽ cho mỗi biến khai báo trong khung_nhin. Bộ vẽ chưa có thì bỏ qua. */
     private Map<String, View> views() {
-        Map<String, View> m = new LinkedHashMap<>();
-        for (JsonNode v : lesson.path("khungNhin")) {
-            String bien = v.path("bien").asText();
-            String kieu = v.path("kieu").asText();
-            if (kieu.equals("mang")) {
-                m.put(bien, new ArrayView(bien));
-            }
-        }
-        return m;
+        return Views.create(lesson.path("khungNhin"), "bien");
     }
 }

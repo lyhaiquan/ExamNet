@@ -146,6 +146,12 @@ public final class LcpClient implements AutoCloseable {
         return heartbeat;
     }
 
+    /** Địa chỉ cục bộ của kết nối tới server (để nghe multicast trên đúng card); null khi chưa nối. */
+    public java.net.InetAddress localAddress() {
+        Socket s = socket;
+        return s == null ? null : s.getLocalAddress();
+    }
+
     public void onStateChange(Consumer<State> l) {
         stateListeners.add(l);
     }
