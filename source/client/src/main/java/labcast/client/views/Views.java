@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import labcast.client.player.View;
+import labcast.client.views.bangsql.SqlTableView;
 import labcast.client.views.mang.ArrayView;
 
 /** Dựng bộ vẽ theo khai báo {@code [{tên biến, kieu}]}. Bộ vẽ chưa có thì bỏ qua biến đó. */
@@ -29,6 +30,7 @@ public final class Views {
     static View create(String kieu, String name) {
         return switch (kieu) {
             case "mang" -> new ArrayView(name);
+            case "bang-sql" -> new SqlTableView();
             default -> null;
         };
     }
