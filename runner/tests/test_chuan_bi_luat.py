@@ -87,3 +87,20 @@ def test_luat_bat_sap_xep_chon_va_cach_lach():
 def test_bai_khong_co_luat_thi_dat(tmp_path):
     kq = json.loads(chay("kiem_luat.py", {"input": "", "trace": []}, tmp_path)[0])
     assert kq == {"t": "luat", "co_luat": False, "ok": True}
+
+
+DAO = RUNNER.parent / "content" / "dsa" / "dslk" / "dao-nguoc"
+
+
+def test_dao_nguoc_loi_giai_qua_luat_in_nguoc_thi_khong():
+    du_lieu = "6\n4 8 15 16 23 42\n"
+    loi_giai = (DAO / "loi_giai.py").read_text(encoding="utf-8")
+    trace, kq = trace_cua(loi_giai, du_lieu)
+    assert kq["stdout"].split() == ["42", "23", "16", "15", "8", "4"]
+    assert json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": trace}, DAO)[0])["ok"]
+
+    in_nguoc = (DAO / "khung.py").read_text(encoding="utf-8").replace("print(*ds)", "print(*list(ds)[::-1])")
+    trace, kq = trace_cua(in_nguoc, du_lieu)
+    assert kq["stdout"].split() == ["42", "23", "16", "15", "8", "4"]
+    v = json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": trace}, DAO)[0])
+    assert not v["ok"] and "đảo thật" in v["loi"]

@@ -13,6 +13,9 @@ class Recorder:
     def __init__(self, out, max_events=10_000, max_bytes=2_000_000, enabled=True):
         self.out, self.max_events, self.max_bytes, self.enabled = out, max_events, max_bytes, enabled
         self.count, self.bytes, self.structures = 0, 0, {}
+        # Đang chụp trạng thái: trang_thai() có thể chạy code của bài làm (ví dụ hàm học viên viết); bộ theo dõi
+        # từng dòng không được ghi sự kiện chen vào giữa, nếu không ảnh chụp lệch với chuỗi sự kiện
+        self.dang_chup = False
 
     def register(self, name, structure):
         """Cấu trúc gắn camera tự đăng ký khi tạo, để keyframe chụp được trạng thái của nó."""
@@ -30,10 +33,14 @@ class Recorder:
 
     def _state(self):
         # Cấu trúc có trạng thái riêng (ngăn xếp, bảng 2 chiều…) tự mô tả qua trang_thai(); mảng thì là list
-        return {
-            name: s.trang_thai() if hasattr(s, "trang_thai") else list(s)
-            for name, s in self.structures.items()
-        }
+        self.dang_chup = True
+        try:
+            return {
+                name: s.trang_thai() if hasattr(s, "trang_thai") else list(s)
+                for name, s in self.structures.items()
+            }
+        finally:
+            self.dang_chup = False
 
     def _write(self, obj):
         # default=str: học viên đẩy vào một giá trị lạ (object, set…) thì ghi dạng chữ, không làm hỏng bài chạy

@@ -20,7 +20,7 @@ import math
 import sys
 import time
 
-from viz import recorder
+from viz import recorder, theo_doi
 
 MAX_STDOUT = 1_000_000  # ký tự; in nhiều hơn thì cắt, tránh tràn bộ nhớ
 
@@ -83,6 +83,7 @@ def chay(job, out):
     else:
         recorder.current = recorder.Recorder(out=None, enabled=False)
 
+    theo_doi.tat()
     code = job.get("code", "")
     stdout_hv = GioiHanStdout()
     stdin_goc, stdout_goc = sys.stdin, sys.stdout
@@ -100,6 +101,7 @@ def chay(job, out):
     except BaseException as e:  # noqa: BLE001 — mọi lỗi của bài làm đều phải báo về
         ok, loi = False, loi_rut_gon(e, code)
     finally:
+        theo_doi.tat()
         sys.stdin, sys.stdout = stdin_goc, stdout_goc
     thoi_gian = round((time.perf_counter() - bat_dau) * 1000)
 
