@@ -1,0 +1,19 @@
+id: dsa.ngan-xep.trung-to-hau-to
+mon: dsa
+chuong: ngan-xep
+ten: Trung tố → hậu tố
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: st
+    kieu: ngan-xep
+  - bien: ra
+    kieu: hang-doi
+cam_dung: []
+cam_import: []
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: [dsa.ngan-xep.tinh-hau-to]

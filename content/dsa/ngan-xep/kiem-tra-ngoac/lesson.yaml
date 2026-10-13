@@ -14,4 +14,4 @@ gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
 test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
 test_cham: tat-ca
 so_test_an: 10
-mo_khoa: []               # bài kế (dsa.ngan-xep.trung-to-hau-to) chưa soạn — xem docs/plans/danh-muc-bai.md
+mo_khoa: [dsa.ngan-xep.trung-to-hau-to]
