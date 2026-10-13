@@ -104,3 +104,31 @@ def test_dao_nguoc_loi_giai_qua_luat_in_nguoc_thi_khong():
     assert kq["stdout"].split() == ["42", "23", "16", "15", "8", "4"]
     v = json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": trace}, DAO)[0])
     assert not v["ok"] and "đảo thật" in v["loi"]
+
+
+BAM = RUNNER.parent / "content" / "dsa" / "bam" / "day-chuyen"
+
+
+def test_bam_loi_giai_qua_luat_dung_list_rieng_thi_khong():
+    du_lieu = (BAM / "demo.in").read_text(encoding="utf-8")
+    views = [{"v": "T", "kieu": "bam"}]
+    loi_giai = (BAM / "loi_giai.py").read_text(encoding="utf-8")
+    dong = chay("run.py", {"code": loi_giai, "input": du_lieu, "trace": True, "views": views})
+    assert json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": dong[:-1]}, BAM)[0])["ok"]
+
+    list_rieng = """
+m, q = map(int, input().split())
+tap = []
+for _ in range(q):
+    lenh, x = input().split()
+    if lenh == "them" and x not in tap:
+        tap.append(x)
+    elif lenh == "xoa" and x in tap:
+        tap.remove(x)
+    elif lenh == "tim":
+        print("YES" if x in tap else "NO")
+"""
+    dong = chay("run.py", {"code": list_rieng, "input": du_lieu, "trace": True, "views": views})
+    assert json.loads(dong[-1])["stdout"].split() == ["YES", "NO", "YES", "NO"]
+    v = json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": dong[:-1]}, BAM)[0])
+    assert not v["ok"] and "x mod m" in v["loi"]
