@@ -498,7 +498,7 @@ SUBMIT_REQ(codeSeq) ─► hàng đợi ưu tiên cao ─► chạy toàn bộ t
 | Toàn màn hình khi làm bài | Học viên mở bài là app chiếm toàn màn hình, Esc không thoát; nút "Đóng bài" trả về màn chọn bài. Giáo viên mở bài để giảng thì không khoá |
 | Chặn dán từ ngoài | Khi học viên làm bài, copy/cắt/dán trong ô code chỉ đi qua bộ nhớ tạm riêng của ô code: dán chữ lấy từ trình duyệt, ChatGPT… không vào được, copy code hay đề bài ra ngoài cũng không được. Kéo thả chữ từ app khác vào cũng bị bỏ |
 | Rời app | App không chặn được Alt+Tab hay phím Windows; chỉ phát hiện được. Mỗi lần rời và quay lại, app gửi `APP_FOCUS`, server ghi giờ theo đồng hồ của server và báo giáo viên (§9) |
-| Dán khối lớn | Một thay đổi chèn > 200 ký tự (dán lại đoạn copy trong chính ô code) → đánh dấu trên sơ đồ lớp để giáo viên xem; không tự phạt |
+| Dán khối lớn | Chữ mới hiện ra nhiều hơn người gõ được — một thay đổi chèn > 200 ký tự, hoặc cộng dồn > 200 ký tự trong 2 s (phần mềm gõ phím tự động) — → đánh dấu trên sơ đồ lớp để giáo viên xem; không tự phạt. Không tính đoạn đã có trong code hoặc vừa bị xoá (chép lại code của chính mình, cắt rồi dán, Ctrl+Z) |
 
 Thời gian chờ và trạng thái khoá lưu trong bảng `progress`, nên khởi động lại app hay đổi máy cũng không thoát được.
 

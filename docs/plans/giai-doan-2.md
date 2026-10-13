@@ -501,6 +501,18 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 
 ### Task 3.11: Giới hạn tốc độ và hàng đợi chạy công bằng
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `TokenBucket`, `RateLimitPolicy`, `PracticeModule` (hiện chỉ cài luật; bậc dự đoán của task 3.10 thêm vào sau), hàng đợi chạy công bằng trong `RunService`. **Khác kế hoạch:**
+>
+> - "Mọi thông điệp khác 50 / s" đếm theo **kết nối**, kể cả trước khi đăng nhập: thêm hàm mặc định `FramePolicy.check(Connection, type)` (gọi bản cũ), luật giữ số đếm trong `Connection.attr`. `RUN_REQ`, `PREDICT_ANSWER` đếm theo **người**, nối lại không được thùng mới. Giáo viên không bị giới hạn `RUN_REQ` (chạy mẫu khi giảng).
+> - Không đếm `CODE_DELTA` (chặn một delta là đứt mạch `seq`, app chỉ gửi lại khi nối lại), `HEARTBEAT_ACK`, `TIME_SYNC_REQ`, `BYE`.
+> - Vượt 50 / s: trả `ERROR(RATE_LIMITED)` một lần mỗi giây, các frame còn lại bỏ im lặng (`Decision.DROP`). `Decision` có thêm lời báo tiếng Việt cho học viên.
+> - Ngắt kết nối khi dồn > 500 / s suốt 5 s nằm ở `Connection` (tầng mạng chung), không ở `RateLimitPolicy`: đếm cả frame bị chặn và frame trước khi đăng nhập, ghi `audit_log` `TOO_MANY_MESSAGES`.
+> - `SUBMIT_REQ`: mỗi **người** một lượt đang chấm (trước là mỗi bài một lượt), để nộp 5 bài cùng lúc không chiếm 5 luồng chạy code.
+> - Lượt cũ bị thay giữ chỗ của nó trong hàng (bấm lại không bị đẩy xuống cuối). Lời giải mẫu chạy như việc ưu tiên, không phải chạy thử của "người 0".
+> - App: bị chặn thì nút Chạy thử đếm ngược "Chạy lại sau N s".
+>
+> Test: `TokenBucketTest`, `RateLimitPolicyTest`, `RunQueueTest`, `ConnectionFloodTest`, `RateLimitFlowTest`.
+
 **Files:**
 - Create: `source/server/src/main/java/labcast/server/practice/RateLimitPolicy.java` (`implements FramePolicy`)
 - Create: `source/server/src/main/java/labcast/server/practice/TokenBucket.java`
@@ -589,6 +601,8 @@ Có công tắc `--heartbeat co-dinh` để đo thí nghiệm 9 (chu kỳ cố �
 **Commit:** `feat(server): heartbeat thích nghi theo SRTT/RTTVAR/RTO`
 
 ### Task 2.12: Sơ đồ lớp và giao bài
+
+> **Một phần đã có (13/10/2026, cùng task 1.14):** `ClassEvents` đúng chữ ký dưới đây, đăng ký sẵn trong `LabCastServer.installCore`. Hiện giữ trạng thái mới nhất và cờ dán khối lớn trong bộ nhớ, `onChange(userId)` để đẩy `CLASS_STATE`; `SubmitModule` đã gọi `publish` (`DA_QUA` / `SAI_TEST`). Dashboard web đọc cờ dán. **Còn lại:** `ClassroomState`, `ClassroomModule`, `CLASS_STATE`, `LESSON_PUSH`, `ClassMapPane`, giơ tay.
 
 **Files:**
 - Create: `source/server/src/main/java/labcast/server/classroom/ClassEvents.java`, `ClassroomState.java`, `ClassroomModule.java`
