@@ -217,9 +217,12 @@ public final class Player {
             case "snap" -> {
                 // keyframe chỉ dùng khi tua
             }
-            case "say" -> {
+                // key là bước quan trọng (nút ⏭ nhảy tới); lời ghi kèm cũng hiện như thuyết minh
+            case "say", "key" -> {
                 String s = e.text("s");
-                narration.forEach(l -> l.accept(s));
+                if (s != null && !s.isEmpty()) {
+                    narration.forEach(l -> l.accept(s));
+                }
             }
             case "line", "vars" -> {
                 for (View v : viewsByVar.values()) {
