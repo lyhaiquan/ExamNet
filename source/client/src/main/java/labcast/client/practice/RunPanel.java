@@ -38,13 +38,14 @@ import labcast.common.trace.TraceReader;
  */
 public final class RunPanel extends VBox {
     private static final String SUBMIT_TEXT = "⬆ Nộp bài";
+    private static final String RUN_TEXT = "▶ Chạy thử";
 
     private final LcpClient client;
     private final String lessonId;
     private final LongSupplier flushCode;
     private final Consumer<Trace> onTrace;
     private final ComboBox<String> tests = new ComboBox<>();
-    private final Button runBtn = new Button("▶ Chạy thử");
+    private final Button runBtn = new Button(RUN_TEXT);
     private final Button submitBtn = new Button(SUBMIT_TEXT);
     private final Label verdict = new Label();
     private final TextArea output = new TextArea();
@@ -56,6 +57,8 @@ public final class RunPanel extends VBox {
     private volatile boolean submitting;
     /** Mốc (ms, đồng hồ máy này) được nộp lại sau lần nộp sai; 0 = nộp được. */
     private long cooldownUntil;
+    /** Mốc được chạy thử lại sau khi server báo chạy nhanh quá (6 lượt/phút); 0 = chạy được. */
+    private long runCooldownUntil;
 
     private final PauseTransition timeout = new PauseTransition(javafx.util.Duration.seconds(30));
     /** Chấm chạy cả test ẩn, lần đầu còn phải sinh test ẩn: chờ lâu hơn chạy thử. */
@@ -217,6 +220,7 @@ public final class RunPanel extends VBox {
                         case "TIME_LIMIT" -> "⏱ Quá thời gian";
                         case "RUNTIME_ERROR" -> "✘ Lỗi khi chạy";
                         case "NO_EXPECTED" -> "✔ Chạy xong (bài chưa có đáp án để so)";
+                        case "REPLACED" -> "Lượt này bị lượt chạy thử mới hơn thay";
                         default -> v;
                     },
                     v.equals("OK") ? "ok" : "fail");
@@ -238,10 +242,16 @@ public final class RunPanel extends VBox {
         }
         ErrorMessage err = e;
         boolean cooldown = submitting && err.code() == ErrorCode.COOLDOWN;
+        boolean runLimited = !submitting && err.code() == ErrorCode.RATE_LIMITED && err.retryAfterMs() > 0;
         Platform.runLater(() -> {
             fail(err.message());
             if (cooldown) {
                 startCooldown(err.retryAfterMs());
+            }
+            if (runLimited) {
+                runCooldownUntil = System.currentTimeMillis() + err.retryAfterMs();
+                tickCooldown();
+                cooldownTicker.play();
             }
         });
     }
@@ -353,22 +363,36 @@ public final class RunPanel extends VBox {
         cooldownTicker.play();
     }
 
+    /** Đếm ngược trên nút Nộp (sau lần nộp sai) và nút Chạy thử (sau khi chạy nhanh quá). */
     private void tickCooldown() {
-        long left = cooldownUntil - System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        long left = cooldownUntil - now;
         if (left <= 0) {
             cooldownUntil = 0;
-            cooldownTicker.stop();
             submitBtn.setText(SUBMIT_TEXT);
             submitBtn.setDisable(inFlight || submitting);
-            return;
+        } else {
+            submitBtn.setText("Nộp lại sau " + (left + 999) / 1000 + " s");
+            submitBtn.setDisable(true);
         }
-        submitBtn.setText("Nộp lại sau " + (left + 999) / 1000 + " s");
-        submitBtn.setDisable(true);
+        long runLeft = runCooldownUntil - now;
+        if (runLeft <= 0) {
+            runCooldownUntil = 0;
+            runBtn.setText(RUN_TEXT);
+            runBtn.setDisable(inFlight || submitting);
+        } else {
+            runBtn.setText("Chạy lại sau " + (runLeft + 999) / 1000 + " s");
+            runBtn.setDisable(true);
+        }
+        if (cooldownUntil == 0 && runCooldownUntil == 0) {
+            cooldownTicker.stop();
+        }
     }
 
     private void setBusy(boolean busy) {
-        runBtn.setDisable(busy);
-        submitBtn.setDisable(busy || cooldownUntil > System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        runBtn.setDisable(busy || runCooldownUntil > now);
+        submitBtn.setDisable(busy || cooldownUntil > now);
     }
 
     /** {@code variant}: {@code pending}, {@code ok} hoặc {@code fail} — màu ở labcast.css. */
