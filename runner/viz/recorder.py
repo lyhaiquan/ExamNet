@@ -29,10 +29,15 @@ class Recorder:
             self._write({"t": "snap", "n": self.count, "state": self._state()})
 
     def _state(self):
-        return {name: list(s) for name, s in self.structures.items()}
+        # Cấu trúc có trạng thái riêng (ngăn xếp, bảng 2 chiều…) tự mô tả qua trang_thai(); mảng thì là list
+        return {
+            name: s.trang_thai() if hasattr(s, "trang_thai") else list(s)
+            for name, s in self.structures.items()
+        }
 
     def _write(self, obj):
-        line = json.dumps(obj, ensure_ascii=False)
+        # default=str: học viên đẩy vào một giá trị lạ (object, set…) thì ghi dạng chữ, không làm hỏng bài chạy
+        line = json.dumps(obj, ensure_ascii=False, default=str)
         self.bytes += len(line) + 1
         if self.count >= self.max_events or self.bytes > self.max_bytes:
             raise TraceLimit()
