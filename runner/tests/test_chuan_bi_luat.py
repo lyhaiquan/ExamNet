@@ -154,3 +154,32 @@ def test_fib_ghi_nho_qua_luat_vong_lap_va_khong_nho_thi_khong():
     khong_nho = "def fib(n):\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\nprint(fib(int(input())))\n"
     kq, v = luat_fib(khong_nho)
     assert kq["stdout"] == "55\n" and not v["ok"] and "ghi nhớ" in v["loi"]
+
+
+def luat_bai(bai, views, code, du_lieu=None):
+    """Chạy `code` có ghi trace rồi soi bằng luat.py của bài; mặc định dùng đúng test `tb` mà server dùng."""
+    if du_lieu is None:
+        du_lieu = json.loads(chay("chuan_bi.py", {"so_test_an": 0}, bai)[0])["tb"]["input"]
+    dong = chay("run.py", {"code": code, "input": du_lieu, "trace": True, "views": views})
+    return json.loads(dong[-1]), json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": dong[:-1]}, bai)[0])
+
+
+QUAY_LUI = RUNNER.parent / "content" / "dsa" / "quay-lui"
+TONG = QUAY_LUI / "tong-tap-con"
+TONG_VIEWS = [{"v": "thu", "kieu": "cay-goi"}, {"v": "a", "kieu": "mang"}]
+DAU_TONG = 'import viz\nn, S = map(int, input().split())\na = viz.Mang(sorted(map(int, input().split())), ten="a")\n'
+
+
+def test_tong_tap_con_cat_nhanh_qua_luat_duyet_het_thi_khong():
+    kq, v = luat_bai(TONG, TONG_VIEWS, (TONG / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["ok"] and v["ok"], v
+
+    duyet_het = DAU_TONG + (
+        "def thu(i, tong):\n    if i == n:\n        return 1 if tong == S else 0\n"
+        "    return thu(i + 1, tong + a[i]) + thu(i + 1, tong)\nprint(thu(0, 0))\n")
+    kq, v = luat_bai(TONG, TONG_VIEWS, duyet_het)
+    assert kq["ok"] and not v["ok"] and "cắt nhánh" in v["loi"]
+
+    bit = DAU_TONG + "print(sum(1 for m in range(1 << n) if sum(a[i] for i in range(n) if m >> i & 1) == S))\n"
+    kq, v = luat_bai(TONG, TONG_VIEWS, bit)
+    assert kq["ok"] and not v["ok"] and "đệ quy" in v["loi"]
