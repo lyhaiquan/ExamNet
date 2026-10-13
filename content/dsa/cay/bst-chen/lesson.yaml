@@ -1,0 +1,18 @@
+id: dsa.cay.bst-chen
+mon: dsa
+chuong: cay
+ten: Chèn vào cây nhị phân tìm kiếm
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: T
+    kieu: cay
+cay_goi: []
+cam_dung: [sorted, sort]  # thứ tự duyệt trước phụ thuộc hình cây, phải dựng cây thật
+cam_import: []
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []

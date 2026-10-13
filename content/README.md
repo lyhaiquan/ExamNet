@@ -25,10 +25,12 @@ content/
 
 | Lớp Python | `kieu` | Thao tác sinh sự kiện |
 | --- | --- | --- |
-| `viz.Mang(ds, ten="a")` | `mang` | `a[i]` đọc, `a[i] = x` ghi, `a.con_tro("i", i)` |
+| `viz.Mang(ds, ten="a")` | `mang` | `a[i]` đọc, `a[i] = x` ghi, `a.con_tro("i", i)`. `append`, `pop`, `insert`, `sort`, `reverse`, `extend`, `del`… cũng được ghi lại |
 | `viz.NganXep(ten="st")` | `ngan-xep` | `push`/`append`, `pop`, xem đỉnh `top()`/`st[-1]` |
 | `viz.HangDoi(ten="q")` | `hang-doi` | `enq`/`append`, `deq`/`popleft`, xem đầu `dau()`/`q[0]` |
 | `viz.Bang(hang, cot, ten="dp", nhan_hang=…, nhan_cot=…)`, `viz.Bang.tu(luoi)` | `luoi` | `dp[i][j]` đọc/ghi (mũi tên từ ô vừa đọc tới ô được ghi), `dp.danh_dau(i, j)` tô xanh lá |
+| `viz.Cay(ten="T")`, nút `T.Nut(k)` | `cay` | `T.goc = …`, `nut.trai`/`nut.phai = …` gắn hay cắt nhánh, đọc `nut.khoa` tô vàng nút đang xét, `T.danh_dau(nut, "xong")`. Tên tiếng Anh `left`/`right`/`key`/`T.root` cũng được |
+| `viz.Mang(ds, ten="h")` | `heap` | Như `mang`, vẽ thành cây nhị phân đầy đủ. Bài heap cấm `heapq` (`cam_import`): `heapq` viết bằng C, đổi mảng mà không ghi lại được |
 
 Thêm vào đó `viz.say("…")` (lời thuyết minh) và `viz.key("…")` (bước quan trọng, nút ⏭ nhảy tới; lời kèm theo cũng hiện như thuyết minh). Ngăn xếp, hàng đợi, bảng không kế thừa `list`: học viên không có cách nào đổi dữ liệu mà không sinh sự kiện. Muốn đọc bảng mà không làm rối hình (ví dụ khi truy vết trong lời giải mẫu) thì dùng `dp.trang_thai()["o"]`.
 
