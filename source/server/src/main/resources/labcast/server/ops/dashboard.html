@@ -92,6 +92,7 @@ select { font: inherit; background: var(--surface); color: var(--text); border: 
     <div class="tile" id="tileWeak"><div class="label">Mạng chập chờn / mất kết nối</div><div class="value" id="tWeak">—</div></div>
     <div class="tile"><div class="label">Lượt chạy code 10 phút qua</div><div class="value" id="tRuns">—</div></div>
     <div class="tile" id="tileWarn"><div class="label">Cảnh báo trong log</div><div class="value" id="tWarn">—</div></div>
+    <div class="tile" id="tileCast" title="Chiếu animation qua multicast (ĐG1)"><div class="label" id="lCast">Chiếu cho lớp</div><div class="value" id="tCast">—</div></div>
   </section>
 
   <section class="card">
@@ -215,6 +216,19 @@ function render(d) {
   $("tWeak").textContent = weak;
   $("tRuns").textContent = runs10;
   $("tWarn").textContent = warns;
+  const c = d.cast;
+  if (!c) {
+    $("lCast").textContent = "Chiếu cho lớp";
+    $("tCast").textContent = "—";
+  } else if (c.dangChieu) {
+    $("lCast").textContent = "Đang chiếu " + c.traceId;
+    $("tCast").textContent = "Bước " + (c.buoc + 1);
+    $("tileCast").title = c.goiDaPhat + " gói multicast (" + Math.round(c.byteDaPhat / 1024) + " KB) · NACK "
+      + c.nackNhan + " · sửa riêng " + c.suaRieng + " · phát lại " + c.phatLai + " · máy nhận qua TCP " + c.mayQuaTcp;
+  } else {
+    $("lCast").textContent = "Chiếu cho lớp";
+    $("tCast").textContent = "Không chiếu";
+  }
   $("tileAway").classList.toggle("alert", away > 0);
   $("tileWeak").classList.toggle("alert", weak > 0);
   $("tileWarn").classList.toggle("alert", warns > 0);

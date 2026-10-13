@@ -105,7 +105,11 @@ class DashboardTest {
                 var server = new LabCastServer(
                         ServerConfig.forTest().withLop("Lớp D22CQCN01"),
                         db,
-                        List.of(new AccountModule(), new SyncModule(), new AppFocusModule()))) {
+                        List.of(
+                                new AccountModule(),
+                                new SyncModule(),
+                                new AppFocusModule(),
+                                new labcast.server.cast.CastModule()))) {
             server.start();
             var users = new UserRepository(db);
             users.create("sv1", "Nguyễn Văn An", Role.STUDENT, "1");
@@ -131,6 +135,7 @@ class DashboardTest {
 
                 JsonNode d = JsonPayload.MAPPER.readTree(json);
                 assertEquals("Lớp D22CQCN01", d.path("server").path("lop").asText());
+                assertFalse(d.path("cast").path("dangChieu").asBoolean(true), "chưa chiếu");
                 JsonNode an = d.path("students").get(0);
                 assertEquals("sv1", an.path("username").asText());
                 assertTrue(an.path("online").asBoolean());

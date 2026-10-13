@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import labcast.common.protocol.PayloadWriter;
 import labcast.server.account.User;
 import labcast.server.account.UserRepository;
+import labcast.server.cast.CastModule;
 import labcast.server.discovery.DiscoveryResponder;
 import labcast.server.discovery.LanInterface;
 import labcast.server.discovery.NicInfo;
@@ -91,6 +92,9 @@ public final class ServerMain {
         System.out.println("  Lớp:            " + cfg.lop());
         System.out.println("  App nối tới:    " + host + ":" + server.port() + " (TCP)");
         System.out.println("  Tìm server:     UDP " + discovery.port());
+        System.out.println("  Chiếu bài:      multicast "
+                + CastModule.DEFAULT_GROUP.getAddress().getHostAddress() + ":" + CastModule.DEFAULT_GROUP.getPort()
+                + " (UDP, TTL 1, trên card LAN)");
         System.out.println("  Bài học:        " + cfg.content().toAbsolutePath().normalize());
         System.out.println("  Trạng thái:     http://0.0.0.0:" + status.port() + "/version");
         System.out.println(

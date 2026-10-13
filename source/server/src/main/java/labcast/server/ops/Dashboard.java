@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import labcast.common.protocol.JsonPayload;
 import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
+import labcast.server.cast.CastModule;
 import labcast.server.presence.AppFocus;
 import labcast.server.session.Session;
 
@@ -51,6 +52,8 @@ public final class Dashboard {
         server.put("lop", ctx.config().lop());
         server.put("tcpPort", tcpPort);
         server.put("sandbox", ctx.config().khongSandbox() ? "Python trên máy server (--khong-sandbox)" : "Docker");
+
+        ctx.find(CastModule.class).ifPresent(c -> root.set("cast", JsonPayload.MAPPER.valueToTree(c.status())));
 
         Map<Long, Session> sessions = new HashMap<>();
         for (Session s : ctx.sessions().all()) {
