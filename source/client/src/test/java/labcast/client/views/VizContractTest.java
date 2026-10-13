@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import labcast.client.views.bam.HashModel;
 import labcast.client.views.cay.TreeModel;
 import labcast.client.views.dothi.GraphModel;
 import labcast.client.views.dslk.LinkedListModel;
@@ -408,5 +409,30 @@ class VizContractTest {
                 VizContractTest::listFrom,
                 LinkedListModel::apply,
                 LinkedListModel::describe);
+    }
+
+    // ---------- bảng băm ----------
+
+    static HashModel hashFrom(JsonNode snap) {
+        HashModel m = new HashModel();
+        m.reset(snap);
+        return m;
+    }
+
+    @Test
+    void baiBamDayChuyen_traceVaoDungBoVeBam() throws Exception {
+        String p = "dsa/bam/day-chuyen";
+        kiem(
+                bai(p, "loi_giai.py"),
+                bai(p, "demo.in"),
+                "T",
+                VizContractTest::hashFrom,
+                HashModel::apply,
+                HashModel::describe);
+        StringBuilder in = new StringBuilder("4 60");
+        for (int k = 0; k < 60; k++) {
+            in.append(k % 3 == 2 ? "\ntim " : k % 5 == 4 ? "\nxoa " : "\nthem ").append((k * 7) % 23);
+        }
+        kiem(bai(p, "loi_giai.py"), in + "\n", "T", VizContractTest::hashFrom, HashModel::apply, HashModel::describe);
     }
 }

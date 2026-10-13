@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import labcast.client.player.View;
+import labcast.client.views.bam.HashView;
 import labcast.client.views.bangsql.SqlTableView;
 import labcast.client.views.cay.HeapView;
 import labcast.client.views.cay.TreeView;
@@ -18,7 +19,7 @@ import labcast.client.views.nganxep.StackView;
 public final class Views {
     /** Mọi {@code kieu} đã có bộ vẽ. Bài khai báo {@code kieu} khác thì biến đó không được vẽ. */
     public static final Set<String> KINDS =
-            Set.of("mang", "ngan-xep", "hang-doi", "luoi", "bang-sql", "cay", "heap", "do-thi", "dslk");
+            Set.of("mang", "ngan-xep", "hang-doi", "luoi", "bang-sql", "cay", "heap", "do-thi", "dslk", "bam");
 
     private Views() {}
 
@@ -51,6 +52,7 @@ public final class Views {
             case "heap" -> new HeapView(name);
             case "do-thi" -> new GraphView(name);
             case "dslk" -> new LinkedListView(name);
+            case "bam" -> new HashView(name);
             default -> null;
         };
     }
