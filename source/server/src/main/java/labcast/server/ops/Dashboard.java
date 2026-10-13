@@ -12,6 +12,7 @@ import labcast.common.protocol.JsonPayload;
 import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.cast.CastModule;
+import labcast.server.classroom.ClassEvents;
 import labcast.server.presence.AppFocus;
 import labcast.server.session.Session;
 
@@ -159,5 +160,16 @@ public final class Dashboard {
         if (f.isPresent() && !f.get().inApp()) {
             n.put("leftAt", f.get().since());
         }
+        ArrayNode pastes = n.putArray("pasteFlags");
+        ctx.find(ClassEvents.class).ifPresent(e -> {
+            for (ClassEvents.PasteFlag p : e.pasteFlags(id)) {
+                pastes.addObject()
+                        .put("lessonId", p.lessonId())
+                        .put("times", p.times())
+                        .put("chars", p.chars())
+                        .put("detail", p.detail())
+                        .put("at", p.at());
+            }
+        });
     }
 }

@@ -16,6 +16,7 @@ import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
 import labcast.server.account.AccountModule;
 import labcast.server.cast.CastModule;
+import labcast.server.classroom.ClassEvents;
 import labcast.server.journal.JournalModule;
 import labcast.server.lesson.LessonModule;
 import labcast.server.net.Connection;
@@ -71,6 +72,7 @@ public final class LabCastServer implements AutoCloseable {
     }
 
     private void installCore() {
+        ctx.register(ClassEvents.class, new ClassEvents(System::currentTimeMillis));
         // App thoát có báo trước: đóng kết nối. Phiên vẫn giữ để đăng nhập lại.
         ctx.router().on(MessageType.BYE, (c, f) -> c.connection().close());
         // HEARTBEAT_ACK(i64 echoServerTime, list<{str key, i64 value}> fields)

@@ -101,7 +101,7 @@ select { font: inherit; background: var(--surface); color: var(--text); border: 
     <div class="scroll">
       <table>
         <thead><tr><th>Học viên</th><th>Kết nối</th><th class="num">RTT</th><th>App</th>
-          <th class="num">Số lần rời</th><th class="num">Tổng thời gian ngoài</th><th>Bài</th></tr></thead>
+          <th class="num">Số lần rời</th><th class="num">Tổng thời gian ngoài</th><th>Dán khối lớn</th><th>Bài</th></tr></thead>
         <tbody id="students"></tbody>
       </table>
     </div>
@@ -192,6 +192,7 @@ const ACTION = {
   AUTH_OK: ["Đăng nhập", "ok"], AUTH_FAIL: ["Đăng nhập sai", "bad"],
   LOGGED_IN_ELSEWHERE: ["Đăng nhập ở máy khác", "warn"], BAD_FRAME: ["Gói tin hỏng", "bad"],
   APP_LEAVE: ["Rời app", "warn"], APP_RETURN: ["Quay lại app", "ok"],
+  PASTE_FLAG: ["Dán khối lớn", "warn"], TOO_MANY_MESSAGES: ["Gửi dồn, bị ngắt", "bad"],
   ADMIN_ROSTER_IMPORT: ["Nhập danh sách lớp", "idle"],
 };
 // Học viên cần chú ý lên đầu
@@ -245,6 +246,14 @@ function render(d) {
       app.appendChild(pill("Rời app", "bad"));
       if (s.leftAt) app.appendChild(el("span", "  từ " + time(s.leftAt) + " (" + duration(now - s.leftAt) + ")", "sub"));
     }
+    // Chỉ là gợi ý: giáo viên xem code rồi tự xét. Cờ mất khi học viên nộp đúng bài đó.
+    let paste = el("span", "—", "sub");
+    if (s.pasteFlags && s.pasteFlags.length) {
+      const times = s.pasteFlags.reduce((n, x) => n + x.times, 0);
+      paste = pill("📋 " + times + " lần", "warn");
+      paste.title = s.pasteFlags.map((x) => x.lessonId + ": " + x.times + " lần, gần nhất " + time(x.at)
+        + " — " + x.detail).join("\n");
+    }
     return row([
       td(person(s.fullName, s.username)),
       td(pill(p[0], p[1])),
@@ -252,9 +261,10 @@ function render(d) {
       td(app),
       td(s.leaves, "num"),
       td(s.awayMs ? duration(s.awayMs) : "—", "num"),
+      td(paste),
       td(s.lessonId || "—", "sub"),
     ]);
-  }), "Chưa có học viên nào. Giáo viên nhập danh sách lớp trong app.", 7);
+  }), "Chưa có học viên nào. Giáo viên nhập danh sách lớp trong app.", 8);
 
   fill($("runs"), d.runs.map((r) => {
     const v = VERDICT[r.verdict] || [r.verdict, "idle"];

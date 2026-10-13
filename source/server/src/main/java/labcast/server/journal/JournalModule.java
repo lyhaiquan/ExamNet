@@ -1,13 +1,21 @@
 package labcast.server.journal;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import labcast.common.protocol.CodeDelta;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadWriter;
+import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
+import labcast.server.classroom.ClassEvents;
+import labcast.server.session.Session;
 
 /** Dòng code tin cậy (ĐG2). Chủ: Người 1. */
 public final class JournalModule implements ServerModule {
+    /** Ghi {@code audit_log} tối đa một dòng mỗi giây cho mỗi học viên, như cờ rời app. */
+    static final long AUDIT_MIN_GAP_MS = 1_000;
 
     @Override
     public void install(ServerContext ctx) {
@@ -17,6 +25,28 @@ public final class JournalModule implements ServerModule {
         CodeStore store = new CodeStore(ctx.db(), starter, System::currentTimeMillis);
         ctx.register(CodeStore.class, store);
         ctx.sessions().setCodeSeqLookup(store::lastSeq);
+
+        // Dán khối lớn (task 1.14): cờ trên sơ đồ lớp và dashboard, một dòng nhật ký
+        Map<Long, Long> lastAudit = new ConcurrentHashMap<>();
+        ctx.find(ClassEvents.class)
+                .ifPresent(events -> store.onLargeInsert(li -> {
+                    Optional<Session> s = ctx.sessions().byUser(li.userId());
+                    if (s.isPresent() && s.get().role() == Role.TEACHER) {
+                        return; // giáo viên dán code mẫu là chuyện thường
+                    }
+                    String detail = li.burst()
+                            ? li.chars() + " ký tự hiện ra trong " + CodeStore.BURST_MS / 1000
+                                    + " s (nhanh hơn người gõ)"
+                            : "chèn một khối " + li.chars() + " ký tự";
+                    events.flagPaste(li.userId(), li.lessonId(), li.chars(), detail);
+                    long now = System.currentTimeMillis();
+                    Long last = lastAudit.get(li.userId());
+                    if (last == null || now - last >= AUDIT_MIN_GAP_MS) {
+                        lastAudit.put(li.userId(), now);
+                        String who = s.map(Session::username).orElse("user#" + li.userId());
+                        ctx.audit().record(who, "PASTE_FLAG", li.lessonId() + ", " + detail);
+                    }
+                }));
 
         // CODE_DELTA(str lessonId, i64 seq, i32 pos, i32 delLen, str insText, i64 clientTs)
         //   → CODE_ACK(str lessonId, i64 lastSeq)

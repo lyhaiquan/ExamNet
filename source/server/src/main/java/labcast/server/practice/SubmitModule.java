@@ -21,6 +21,7 @@ import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
+import labcast.server.classroom.ClassEvents;
 import labcast.server.grade.Grader;
 import labcast.server.grade.Verdict;
 import labcast.server.journal.CodeStore;
@@ -50,8 +51,8 @@ import labcast.server.sqlviz.SqlLab;
  *   <li>Lỗi hạ tầng (Docker, Python, bài hỏng) → {@code ERROR(SANDBOX_DOWN)}, KHÔNG tính là nộp sai.
  * </ul>
  *
- * <p>Chưa gọi {@code CodeStore.checkpoint} (task 1.7) và {@code ClassEvents.publish} (task 2.12) vì hai phần đó
- * chưa có; kết quả đã nằm trong bảng {@code submissions} để hai task đó đọc lại.
+ * <p>Chấm xong thì gọi {@code ClassEvents.publish} (đúng → {@code DA_QUA}, xoá cờ dán khối lớn của bài). Chưa gọi
+ * {@code CodeStore.checkpoint} (task 1.7) vì phần đó chưa có; kết quả đã nằm trong bảng {@code submissions}.
  */
 public final class SubmitModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(SubmitModule.class.getName());
@@ -185,6 +186,14 @@ public final class SubmitModule implements ServerModule {
             s.send(new ErrorMessage(ErrorCode.INTERNAL, "Không ghi được kết quả nộp", 0).toFrame(), Priority.NORMAL);
             return;
         }
+        // Sơ đồ lớp: đúng thì xoá cờ dán khối lớn của bài này (task 1.14)
+        boolean ok = res.verdict() == Verdict.OK;
+        ctx.find(ClassEvents.class)
+                .ifPresent(e -> e.publish(
+                        s.userId(),
+                        l.id(),
+                        ok ? ClassEvents.StudentStatus.DA_QUA : ClassEvents.StudentStatus.SAI_TEST,
+                        ok ? null : res.failedTest()));
         LessonRepository repo = ctx.require(LessonRepository.class);
         ObjectNode n = JsonPayload.MAPPER.createObjectNode();
         n.put("lessonId", l.id());

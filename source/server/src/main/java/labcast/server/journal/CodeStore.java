@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.logging.Logger;
 import labcast.common.protocol.CodeDelta;
@@ -20,6 +22,7 @@ import labcast.server.store.Database;
  *       (user_id, lesson_id, seq)}: app gửi lại bao nhiêu lần cũng chỉ một dòng.
  *   <li>Chỉ <b>áp</b> delta khi {@code seq == lastSeq + 1}. Delta đến sớm thì lưu bảng, chờ delta
  *       còn thiếu tới rồi áp tiếp cả chuỗi.
+ *   <li>Chữ mới hiện ra quá nhiều cùng lúc thì báo {@link #onLargeInsert} (task 1.14, xem {@link LargeInsert}).
  * </ul>
  */
 public final class CodeStore {
@@ -27,17 +30,36 @@ public final class CodeStore {
 
     public record Snapshot(String code, long seq) {}
 
+    /**
+     * Chữ mới hiện ra trong code nhiều hơn người gõ được (task 1.14, spec §8.4): một delta chèn hơn {@link
+     * #PASTE_CHARS} ký tự, hoặc cộng dồn hơn ngần ấy ký tự trong {@link #BURST_MS} ms theo giờ app ghi trên
+     * delta ({@code burst = true}) — kiểu phần mềm gõ phím tự động gõ thẳng code chép từ ngoài vào, việc mà
+     * chặn dán ở app không thấy. Không tính chữ đã có sẵn trong code hoặc vừa bị xoá (chép lại đoạn của chính
+     * mình, cắt rồi dán chỗ khác, Ctrl+Z). Chỉ là gợi ý cho giáo viên, không phạt.
+     */
+    public record LargeInsert(long userId, String lessonId, int chars, boolean burst) {}
+
+    public static final int PASTE_CHARS = 200;
+    public static final long BURST_MS = 2_000;
+    /** Đoạn ngắn hơn thế thì "đã có trong code" chỉ là trùng ngẫu nhiên, vẫn tính là chữ mới. */
+    static final int OWN_TEXT_MIN = 20;
+
     private record Key(long userId, String lessonId) {}
 
     private static final class Buffer {
         String code;
         long seq;
+        // theo dõi chữ mới hiện ra (task 1.14)
+        long burstFrom = Long.MIN_VALUE / 2;
+        int burstChars;
+        String lastRemoved = "";
     }
 
     private final Database db;
     private final StarterCode starter;
     private final LongSupplier clock;
     private final Map<Key, Buffer> buffers = new ConcurrentHashMap<>();
+    private final List<Consumer<LargeInsert>> largeInsertListeners = new CopyOnWriteArrayList<>();
 
     public CodeStore(Database db, StarterCode starter, LongSupplier clock) {
         this.db = db;
@@ -48,14 +70,63 @@ public final class CodeStore {
     /** Lưu delta, áp nếu liền mạch; trả {@code seq} liền mạch cuối cùng (dùng cho CODE_ACK). */
     public long accept(long userId, CodeDelta d) throws SQLException {
         Buffer b = buffer(userId, d.lessonId());
+        LargeInsert flag = null;
+        long last;
         synchronized (b) {
-            insertIgnore(userId, d);
+            // delta gửi lại (đã có trong bảng) thì không xét lần nữa
+            if (insertIgnore(userId, d) > 0) {
+                flag = watch(userId, d, b);
+            }
             if (d.seq() == b.seq + 1) {
                 applyOne(b, d);
                 applyFollowing(userId, d.lessonId(), b);
             }
-            return b.seq;
+            last = b.seq;
         }
+        if (flag != null) {
+            for (Consumer<LargeInsert> l : largeInsertListeners) {
+                l.accept(flag);
+            }
+        }
+        return last;
+    }
+
+    /** Nghe chữ mới hiện ra quá nhiều cùng lúc. Gọi trên luồng nghiệp vụ đang nhận delta, ngoài khoá. */
+    public void onLargeInsert(Consumer<LargeInsert> listener) {
+        largeInsertListeners.add(listener);
+    }
+
+    /** Gọi trong khoá của {@code b}, TRƯỚC khi áp delta. */
+    private LargeInsert watch(long userId, CodeDelta d, Buffer b) {
+        String ins = d.insText() == null ? "" : d.insText();
+        boolean inOrder =
+                d.seq() == b.seq + 1 && d.pos() >= 0 && d.delLen() >= 0 && d.pos() + d.delLen() <= b.code.length();
+        String removed = inOrder ? b.code.substring(d.pos(), d.pos() + d.delLen()) : "";
+        LargeInsert out = null;
+        int n = ins.codePointCount(0, ins.length());
+        if (n > 0 && !ownText(b, ins)) {
+            if (d.clientTs() < b.burstFrom || d.clientTs() - b.burstFrom > BURST_MS) {
+                b.burstFrom = d.clientTs();
+                b.burstChars = 0;
+            }
+            b.burstChars += n;
+            if (n > PASTE_CHARS) {
+                out = new LargeInsert(userId, d.lessonId(), n, false);
+                b.burstChars = 0;
+            } else if (b.burstChars > PASTE_CHARS) {
+                out = new LargeInsert(userId, d.lessonId(), b.burstChars, true);
+                b.burstChars = 0;
+            }
+        }
+        // chỉ nhớ đoạn xoá đủ dài: một lần Backspace không được xoá mất khối vừa cắt
+        if (removed.length() >= OWN_TEXT_MIN) {
+            b.lastRemoved = removed;
+        }
+        return out;
+    }
+
+    private static boolean ownText(Buffer b, String ins) {
+        return ins.length() >= OWN_TEXT_MIN && (b.code.contains(ins) || b.lastRemoved.contains(ins));
     }
 
     /** Code đầy đủ tại {@code seq} liền mạch cuối. */
@@ -120,8 +191,9 @@ public final class CodeStore {
         b.seq = d.seq();
     }
 
-    private void insertIgnore(long userId, CodeDelta d) throws SQLException {
-        db.read(c -> {
+    /** Trả 1 nếu delta mới, 0 nếu đã có (app gửi lại). */
+    private int insertIgnore(long userId, CodeDelta d) throws SQLException {
+        return db.read(c -> {
             try (PreparedStatement ps = c.prepareStatement("INSERT OR IGNORE INTO code_deltas"
                     + " (user_id, lesson_id, seq, pos, del_len, ins_text, client_ts, server_ts)"
                     + " VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
