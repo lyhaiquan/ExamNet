@@ -79,4 +79,28 @@ class ArrayModelTest {
                 List.of(new ArrayModel.Pointer("j", 2)),
                 m.apply(ev("{\"t\":\"ptr\",\"v\":\"a\",\"n\":\"j\",\"i\":2}")));
     }
+
+    @Test
+    void themBotVaDoiCaMang_doiDoDai() throws Exception {
+        var m = new ArrayModel();
+        m.reset(List.of(4, 2));
+        var changes = apDung(
+                m,
+                "{\"t\":\"push\",\"v\":\"a\",\"x\":7}",
+                "{\"t\":\"ins\",\"v\":\"a\",\"i\":0,\"x\":1}",
+                "{\"t\":\"pop\",\"v\":\"a\",\"i\":2,\"x\":2}");
+        assertEquals(List.of(1, 4, 7), m.values());
+        assertEquals(new ArrayModel.Resized(2), changes.get(0));
+        assertEquals(new ArrayModel.Resized(0), changes.get(1));
+        apDung(m, "{\"t\":\"all\",\"v\":\"a\",\"ds\":[9,8]}");
+        assertEquals(List.of(9, 8), m.values());
+    }
+
+    @Test
+    void setDangGiu_raTruocKhiDoiDoDai() throws Exception {
+        var m = new ArrayModel();
+        m.reset(List.of(4, 2));
+        var changes = apDung(m, "{\"t\":\"set\",\"v\":\"a\",\"i\":0,\"x\":5}", "{\"t\":\"push\",\"v\":\"a\",\"x\":3}");
+        assertEquals(List.of(new Set(0, 5), new ArrayModel.Resized(2)), changes);
+    }
 }

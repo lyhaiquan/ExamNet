@@ -113,6 +113,11 @@ public final class ArrayView implements View {
                 color(s.i(), VizPalette.WRITTEN);
             } else if (c instanceof ArrayModel.Swap s) {
                 animateSwap(s.i(), s.j(), d);
+            } else if (c instanceof ArrayModel.Resized r) {
+                rebuild();
+                if (r.i() >= 0) {
+                    color(r.i(), VizPalette.WRITTEN);
+                }
             }
         }
         placePointers();

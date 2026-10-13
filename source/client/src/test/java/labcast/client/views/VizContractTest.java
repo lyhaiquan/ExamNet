@@ -16,9 +16,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import labcast.client.views.cay.TreeModel;
 import labcast.client.views.luoi.GridModel;
+import labcast.client.views.mang.ArrayModel;
 import labcast.client.views.nganxep.StackModel;
 import labcast.common.trace.TraceEvent;
+import labcast.server.lesson.Lesson;
+import labcast.server.lesson.LessonRepository;
+import labcast.server.lesson.ViewSpec;
 import labcast.server.run.LocalPythonSandbox;
 import org.junit.jupiter.api.Test;
 
@@ -209,5 +214,123 @@ class VizContractTest {
         assertEquals("B", m.colLabel(1));
         assertEquals(8, m.rows());
         assertEquals(7, m.cols());
+    }
+
+    /** Trace của {@code code} (có chụp lần cuối), dựng lại từ mọi ảnh chụp phải ra đúng trạng thái cuối. */
+    static <T> void kiem(
+            String code,
+            String input,
+            String var,
+            Function<JsonNode, T> resetFrom,
+            java.util.function.BiConsumer<T, TraceEvent> apply,
+            Function<T, String> state)
+            throws Exception {
+        List<TraceEvent> evs = chay(code + CHUP_CUOI, input);
+        List<Integer> s = snaps(evs);
+        assertTrue(s.size() >= 2, "cần ảnh chụp đầu và cuối");
+        String expected = state.apply(
+                resetFrom.apply(evs.get(s.get(s.size() - 1)).get("state").get(var)));
+        for (int from : s) {
+            assertEquals(
+                    expected,
+                    phatTu(evs, from, var, resetFrom, apply, state),
+                    "dựng lại từ ảnh chụp ở sự kiện " + from);
+        }
+    }
+
+    // ---------- cây, heap ----------
+
+    static TreeModel treeFrom(JsonNode snap) {
+        TreeModel m = new TreeModel();
+        m.reset(snap);
+        return m;
+    }
+
+    static String treeState(TreeModel m) {
+        StringBuilder sb = new StringBuilder(m.shape()).append(" |");
+        m.layout().forEach((id, p) -> sb.append(' ')
+                .append(m.node(id).text)
+                .append('@')
+                .append(p.col())
+                .append(',')
+                .append(p.depth())
+                .append(m.node(id).mark == null ? "" : ":" + m.node(id).mark));
+        return sb.toString();
+    }
+
+    @Test
+    void baiChenCay_traceVaoDungBoVeCay() throws Exception {
+        String p = "dsa/cay/bst-chen";
+        kiem(
+                bai(p, "loi_giai.py"),
+                bai(p, "demo.in"),
+                "T",
+                VizContractTest::treeFrom,
+                TreeModel::apply,
+                VizContractTest::treeState);
+        // 40 khoá: hơn 200 sự kiện, có ảnh chụp giữa chừng
+        StringBuilder in = new StringBuilder("40\n");
+        for (int k = 0; k < 40; k++) {
+            in.append((k * 37) % 101).append(' ');
+        }
+        kiem(
+                bai(p, "loi_giai.py"),
+                in + "\n",
+                "T",
+                VizContractTest::treeFrom,
+                TreeModel::apply,
+                VizContractTest::treeState);
+        List<TraceEvent> evs = chay(bai(p, "loi_giai.py"), bai(p, "demo.in"));
+        TreeModel m = treeFrom(evs.get(0).get("state").get("T"));
+        for (TraceEvent e : evs) {
+            if ("T".equals(e.var())) {
+                m.apply(e);
+            }
+        }
+        assertEquals("((20 30 (35 40 .)) 50 (60 70 80))", m.shape());
+    }
+
+    static ArrayModel arrayFrom(JsonNode snap) {
+        ArrayModel m = new ArrayModel();
+        List<Integer> init = new ArrayList<>();
+        snap.forEach(x -> init.add(x.asInt()));
+        m.reset(init);
+        return m;
+    }
+
+    static String arrayState(ArrayModel m) {
+        m.flush();
+        return m.values().toString();
+    }
+
+    @Test
+    void baiThemHeap_traceVaoDungBoVeHeap() throws Exception {
+        String p = "dsa/cay/heap-them";
+        kiem(
+                bai(p, "loi_giai.py"),
+                bai(p, "demo.in"),
+                "h",
+                VizContractTest::arrayFrom,
+                ArrayModel::apply,
+                VizContractTest::arrayState);
+        kiem(
+                bai(p, "loi_giai.py"),
+                "30\n" + "9 8 7 6 5 4 3 2 1 0 ".repeat(3) + "\n",
+                "h",
+                VizContractTest::arrayFrom,
+                ArrayModel::apply,
+                VizContractTest::arrayState);
+    }
+
+    /** Bài khai báo một {@code kieu} chưa có bộ vẽ thì biến đó lặng lẽ không được vẽ: chặn ngay ở test. */
+    @Test
+    void moiKieuTrongBaiDeuCoBoVe() {
+        LessonRepository repo = LessonRepository.load(repo().resolve("content"));
+        assertTrue(repo.errors().isEmpty(), repo.errors().toString());
+        for (Lesson l : repo.all()) {
+            for (ViewSpec v : l.khungNhin()) {
+                assertTrue(Views.KINDS.contains(v.kieu()), l.id() + " khai báo kieu chưa có bộ vẽ: " + v.kieu());
+            }
+        }
     }
 }

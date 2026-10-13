@@ -10,10 +10,13 @@ import labcast.common.trace.TraceEvent;
  * <p>Đổi chỗ trong Python ({@code a[i], a[j] = a[j], a[i]}) sinh hai lệnh {@code set} liên tiếp. Model
  * giữ lại {@code set} vừa nhận; nếu {@code set} kế tiếp ghi vào ô khác đúng giá trị cũ của ô trước
  * (và ngược lại) thì gộp thành một {@link Swap} để vẽ hai cột trượt qua nhau.
+ *
+ * <p>{@code push}/{@code pop}/{@code ins} (thêm, bớt một ô) và {@code all} (đổi cả mảng: {@code sort},
+ * {@code reverse}…) đổi độ dài mảng; trước đây model bỏ qua nên hình lệch với dữ liệu thật.
  */
 public final class ArrayModel {
 
-    public sealed interface Change permits Read, Set, Swap, Pointer {}
+    public sealed interface Change permits Read, Set, Swap, Pointer, Resized {}
 
     /** Tô vàng ô i (đang xét). */
     public record Read(int i) implements Change {}
@@ -26,6 +29,12 @@ public final class ArrayModel {
 
     /** Con trỏ tên {@code name} trỏ tới ô i (sự kiện {@code ptr}). */
     public record Pointer(String name, int i) implements Change {}
+
+    /**
+     * Mảng đổi độ dài hay đổi nhiều ô một lúc ({@code push}, {@code pop}, {@code ins}, {@code all}): vẽ lại cả
+     * mảng. {@code i} là ô vừa thêm (tô xanh dương), −1 nếu không có.
+     */
+    public record Resized(int i) implements Change {}
 
     private record Pending(int i, int oldValue, int newValue) {}
 
@@ -65,6 +74,31 @@ public final class ArrayModel {
             case "ptr" -> {
                 out.addAll(flush());
                 out.add(new Pointer(e.text("n"), e.i("i")));
+            }
+            case "push" -> {
+                out.addAll(flush());
+                values.add(e.i("x"));
+                out.add(new Resized(values.size() - 1));
+            }
+            case "ins" -> {
+                out.addAll(flush());
+                int i = Math.max(0, Math.min(values.size(), e.i("i")));
+                values.add(i, e.i("x"));
+                out.add(new Resized(i));
+            }
+            case "pop" -> {
+                out.addAll(flush());
+                int i = e.i("i");
+                if (i >= 0 && i < values.size()) {
+                    values.remove(i);
+                }
+                out.add(new Resized(-1));
+            }
+            case "all" -> {
+                out.addAll(flush());
+                values.clear();
+                e.get("ds").forEach(x -> values.add(x.asInt()));
+                out.add(new Resized(-1));
             }
             default -> out.addAll(flush());
         }

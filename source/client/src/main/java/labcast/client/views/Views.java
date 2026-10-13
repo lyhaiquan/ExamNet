@@ -3,14 +3,20 @@ package labcast.client.views;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import labcast.client.player.View;
 import labcast.client.views.bangsql.SqlTableView;
+import labcast.client.views.cay.HeapView;
+import labcast.client.views.cay.TreeView;
 import labcast.client.views.luoi.GridView;
 import labcast.client.views.mang.ArrayView;
 import labcast.client.views.nganxep.StackView;
 
 /** Dựng bộ vẽ theo khai báo {@code [{tên biến, kieu}]}. Bộ vẽ chưa có thì bỏ qua biến đó. */
 public final class Views {
+    /** Mọi {@code kieu} đã có bộ vẽ. Bài khai báo {@code kieu} khác thì biến đó không được vẽ. */
+    public static final Set<String> KINDS = Set.of("mang", "ngan-xep", "hang-doi", "luoi", "bang-sql", "cay", "heap");
+
     private Views() {}
 
     /**
@@ -37,6 +43,9 @@ public final class Views {
             case "hang-doi" -> new StackView(name, true);
             case "luoi" -> new GridView(name);
             case "bang-sql" -> new SqlTableView();
+            case "cay" -> new TreeView(name);
+                // heap là một viz.Mang vẽ thành cây nhị phân đầy đủ
+            case "heap" -> new HeapView(name);
             default -> null;
         };
     }
