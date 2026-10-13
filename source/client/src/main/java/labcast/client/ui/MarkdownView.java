@@ -186,7 +186,7 @@ public final class MarkdownView {
     /** Một đoạn chữ liền: mọi nút inline con của {@code parent} nối vào một TextFlow. */
     private static TextFlow flow(Node parent, String... styles) {
         TextFlow f = new TextFlow();
-        f.setLineSpacing(3);
+        f.setLineSpacing(5);
         inlines(parent, f, List.of(styles));
         return f;
     }

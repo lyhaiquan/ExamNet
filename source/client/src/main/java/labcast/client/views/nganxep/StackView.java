@@ -22,6 +22,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import labcast.client.player.View;
 import labcast.client.player.VizPalette;
+import labcast.client.ui.Theme;
 import labcast.common.trace.TraceEvent;
 
 /**
@@ -68,7 +69,7 @@ public final class StackView implements View {
         this.name = name;
         this.queueHint = queueHint;
         title.getStyleClass().add("viz-index");
-        title.setFont(Font.font("Consolas", FontWeight.BOLD, 13));
+        title.setFont(Font.font(Theme.CODE_FONT, FontWeight.BOLD, 13));
         lastOut.getStyleClass().add("viz-pointer");
         canvas.setMaxWidth(Double.MAX_VALUE);
         canvas.widthProperty().addListener((obs, o, n) -> rebuild());

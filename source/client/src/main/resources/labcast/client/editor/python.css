@@ -1,6 +1,6 @@
 /* Ô soạn code Python (CodeEditor): chữ, lề số dòng, con trỏ, màu cú pháp */
 .code-area {
-    -fx-font-family: "Consolas";
+    -fx-font-family: "JetBrains Mono";
     -fx-font-size: 14px;
     -fx-background-color: white;
     -fx-padding: 6 0 0 0;
@@ -14,7 +14,7 @@
 .comment { -fx-fill: #94a3b8; -fx-font-style: italic; }
 .number  { -fx-fill: #ea580c; }
 .lineno  {
-    -fx-font-family: "Consolas";
+    -fx-font-family: "JetBrains Mono";
     -fx-background-color: #f8fafc;
     -fx-text-fill: #94a3b8;
     -fx-padding: 0 10 0 12;

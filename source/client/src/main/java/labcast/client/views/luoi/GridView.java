@@ -19,6 +19,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import labcast.client.player.View;
 import labcast.client.player.VizPalette;
+import labcast.client.ui.Theme;
 import labcast.common.trace.TraceEvent;
 
 /**
@@ -58,7 +59,7 @@ public final class GridView implements View {
     public GridView(String name) {
         this.name = name;
         title.setText(name);
-        title.setFont(Font.font("Consolas", FontWeight.BOLD, 13));
+        title.setFont(Font.font(Theme.CODE_FONT, FontWeight.BOLD, 13));
         title.getStyleClass().add("viz-index");
         canvas.setMaxWidth(Double.MAX_VALUE);
         canvas.widthProperty().addListener((obs, o, n) -> rebuild());
@@ -180,7 +181,7 @@ public final class GridView implements View {
         t.setX(x);
         t.setY(baselineY);
         if (strong) {
-            t.setFont(Font.font("Consolas", FontWeight.BOLD, 14));
+            t.setFont(Font.font(Theme.CODE_FONT, FontWeight.BOLD, 14));
             t.setFill(TEXT);
         } else {
             t.getStyleClass().add("viz-index");

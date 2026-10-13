@@ -14,6 +14,7 @@ import labcast.client.ui.HomeScreen;
 import labcast.client.ui.LessonLock;
 import labcast.client.ui.LoginController;
 import labcast.client.ui.LoginView;
+import labcast.client.ui.Theme;
 import labcast.common.protocol.Role;
 
 /** App desktop LabCast: màn đăng nhập, rồi màn chính theo vai trò. */
@@ -32,6 +33,7 @@ public final class LabCastApp extends Application {
 
     @Override
     public void start(Stage stage) {
+        Theme.loadFonts(); // font đóng gói phải nạp trước khi dựng màn đầu tiên
         this.stage = stage;
         stage.setTitle("LabCast");
         stage.setScene(new Scene(new StackPane(), 1200, 760));

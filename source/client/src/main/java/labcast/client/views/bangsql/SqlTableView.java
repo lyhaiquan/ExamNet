@@ -25,6 +25,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import labcast.client.player.View;
 import labcast.client.player.VizPalette;
+import labcast.client.ui.Theme;
 import labcast.common.trace.TraceEvent;
 
 /**
@@ -41,10 +42,10 @@ public final class SqlTableView implements View {
     static final double MARK_W = 26;
     static final double GAP = 120;
 
-    private static final Font FONT = Font.font("Segoe UI", 12.5);
-    private static final Font BOLD = Font.font("Segoe UI", FontWeight.BOLD, 12.5);
-    private static final Font TITLE = Font.font("Segoe UI", FontWeight.BOLD, 13.5);
-    private static final Font NULL_FONT = Font.font("Segoe UI", FontPosture.ITALIC, 12);
+    private static final Font FONT = Font.font(Theme.UI_FONT, 12.5);
+    private static final Font BOLD = Font.font(Theme.UI_FONT, FontWeight.BOLD, 12.5);
+    private static final Font TITLE = Font.font(Theme.UI_FONT, FontWeight.BOLD, 13.5);
+    private static final Font NULL_FONT = Font.font(Theme.UI_FONT, FontPosture.ITALIC, 12);
 
     private static final Color TEXT = Color.web("#1e293b");
     private static final Color MUTED = Color.web("#94a3b8");
