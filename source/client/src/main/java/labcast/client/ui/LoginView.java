@@ -68,6 +68,26 @@ public final class LoginView extends StackPane {
         });
 
         manual.setPromptText("Địa chỉ máy giáo viên, ví dụ 192.168.1.10:7000");
+        // Chọn lớp trong danh sách hay gõ địa chỉ tay: chỉ một trong hai có hiệu lực, nên làm cái này thì xoá
+        // cái kia (trước đây ô nhập tay còn chữ thì lớp đã chọn bị bỏ qua mà không báo gì).
+        servers.setOnMouseClicked(e -> {
+            if (servers.getSelectionModel().getSelectedItem() == null) {
+                return;
+            }
+            manual.clear();
+            if (e.getClickCount() >= 2
+                    && !user.getText().isBlank()
+                    && !pass.getText().isEmpty()) {
+                login(onLoggedIn);
+            } else {
+                (user.getText().isBlank() ? user : pass).requestFocus();
+            }
+        });
+        manual.textProperty().addListener((obs, o, n) -> {
+            if (!n.isBlank()) {
+                servers.getSelectionModel().clearSelection();
+            }
+        });
         user.setPromptText("Tên đăng nhập");
         pass.setPromptText("Mật khẩu");
         loginBtn.getStyleClass().add("primary");
@@ -144,8 +164,9 @@ public final class LoginView extends StackPane {
         LoginController.discover()
                 .thenAccept(list -> Platform.runLater(() -> {
                     servers.getItems().setAll(list);
-                    if (!list.isEmpty()) {
+                    if (!list.isEmpty() && manual.getText().isBlank()) {
                         servers.getSelectionModel().select(0);
+                        user.requestFocus(); // đã có lớp: việc tiếp theo là gõ tên đăng nhập
                     }
                     setStatus(list.isEmpty() ? "Không tìm thấy lớp nào trong mạng." : "", false);
                 }));
@@ -155,6 +176,20 @@ public final class LoginView extends StackPane {
         String host;
         int port = 7000;
         String m = manual.getText().strip();
+        if (user.getText().isBlank() || pass.getText().isEmpty()) {
+            setStatus("Nhập tên đăng nhập và mật khẩu rồi bấm Đăng nhập.", true);
+            (user.getText().isBlank() ? user : pass).requestFocus();
+            return;
+        }
+        if (!m.isEmpty() && !m.contains(".") && !m.contains(":") && !m.equalsIgnoreCase("localhost")) {
+            // hay gặp: gõ tên đăng nhập nhầm vào ô địa chỉ
+            setStatus(
+                    "\"" + m + "\" không giống địa chỉ máy giáo viên (ví dụ 192.168.1.10:7000). Đã chọn lớp ở trên"
+                            + " thì để trống ô này.",
+                    true);
+            manual.requestFocus();
+            return;
+        }
         if (!m.isEmpty()) {
             int colon = m.lastIndexOf(':');
             host = colon > 0 ? m.substring(0, colon) : m;
