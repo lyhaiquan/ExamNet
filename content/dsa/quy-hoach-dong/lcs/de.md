@@ -21,7 +21,28 @@ Một số nguyên: độ dài dãy con chung dài nhất.
 
 ## Ví dụ
 
-| Input | Output |
-| --- | --- |
-| `ABCBDAB`<br>`BDCABA` | `4` |
-| `AGGTAB`<br>`GXTXAYB` | `4` |
+Input:
+
+```text
+ABCBDAB
+BDCABA
+```
+
+Output:
+
+```text
+4
+```
+
+Input:
+
+```text
+AGGTAB
+GXTXAYB
+```
+
+Output:
+
+```text
+4
+```
