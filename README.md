@@ -198,7 +198,7 @@ java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien 
 # trạng thái: http://localhost:8080/version
 ```
 
-Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard).
+Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard), và phát chiếu lên nhóm multicast `239.255.70.1:7001` (UDP, TTL 1) trên card LAN.
 
 **Tên có dấu tiếng Việt:** trên Windows, chữ như ớ, ư, ạ không đi qua được dòng lệnh (Java nhận thành `?`), nên `--lop "Lớp D22CQCN01"` bị server từ chối kèm hướng dẫn. Ghi tên lớp, họ tên giáo viên, đường dẫn có dấu vào một file UTF-8 (Notepad lưu UTF-8 mặc định):
 
@@ -230,7 +230,11 @@ docker run --rm -p 8080:8080 labcast-server
 
 ## 12.2. Start Client
 
-*(giai đoạn 1)*
+`java -jar client/target/labcast-client.jar`, chọn lớp tự tìm thấy (hoặc nhập IP server), đăng nhập.
+
+**Chiếu animation cho cả lớp:** giáo viên mở một bài giảng giải, bấm **📡 Chiếu cho lớp** trên thanh tiêu đề bài. Từ đó các nút Phát, Dừng, tua, tốc độ, ⏭ của giáo viên điều khiển cả lớp: mọi máy ở cùng một bước, cùng lúc. Máy học viên đang không làm bài thì tự mở màn chiếu; đang làm bài thì có nút **📡 Giáo viên đang chiếu** trên thanh trên cùng. Học viên bấm bất kỳ nút nào của trình phát là tách ra tự xem; **⟲ Theo giáo viên** về lại đúng bước đang chiếu.
+
+**Tường lửa:** app nhận chiếu qua UDP 7001. Lần đầu chạy, Windows có thể hiện hộp thoại tường lửa hỏi có cho Java nhận kết nối: chọn cho phép trên mạng **Private**. Không cho phép (hoặc switch chặn multicast) thì sau khoảng 6 giây server tự chuyển máy đó sang nhận chiếu qua TCP, chậm hơn một chút nhưng vẫn đúng bước. Dashboard (ô "Chiếu cho lớp") cho biết bao nhiêu máy đang phải nhận qua TCP.
 
 ## 12.3. Run Test
 

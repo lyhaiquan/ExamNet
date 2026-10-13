@@ -174,6 +174,8 @@ Bài tập đồ thị đưa `DoThi` sẵn trong `khung.py`; học viên gọi `
 
 ## Người 4 — ĐG1 hoàn thiện
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** task 4.9 (`NackAggregator`, sửa gói, dựng lại khúc đã trôi khỏi vòng đệm), 4.10 (`TcpFallback`) và 4.11 (vào lớp muộn — nằm trong `CastSession`: một khung khoá là đủ để xin cả trace). Máy đang nhận qua TCP thì NACK luôn được sửa riêng, không tính vào ngưỡng gộp. **Chưa làm:** 4.12 (cần `RunService.lastTrace`, task 3.20), 4.13.
+
 ### Task 4.9: Sửa gói mất và gộp NACK
 
 **Files:**

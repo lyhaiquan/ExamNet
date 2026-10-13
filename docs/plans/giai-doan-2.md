@@ -49,6 +49,17 @@ Ngày 15    Nghiệm thu M2
 
 ## Người 4 — ĐG1: chiếu animation qua multicast
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** task 4.4–4.7, cùng 4.9–4.11 của giai đoạn 3. Test đầu–cuối `CastFlowTest`: server thật, multicast thật trên card loopback, hai máy mất 5% gói và một máy vào lớp muộn đều dừng đúng bước server tính (nạp bài 0,3 s, vào muộn bắt kịp 0,8 s). Chưa thử trên nhiều máy thật trong phòng lab. **Khác kế hoạch:**
+>
+> - `CAST_CONTROL` server → lớp có thêm `bool playing` ở cuối: mỗi gói điều khiển mang đủ trạng thái phát. Dừng và đổi tốc độ thì **server** tính bước ở giờ hẹn, nên cả lớp dừng cùng một bước dù giáo viên bấm lúc nào.
+> - `SeqTracker` **không giữ gói đến sớm để chờ gói thiếu**: giữ lại thì một gói điều khiển mất hẳn sẽ chặn mọi gói sau. App áp gói điều khiển/khung khoá có SEQ lớn nhất, khúc dữ liệu theo chỉ số khúc. Gói thiếu vẫn được xin lại (chờ 30 ms, xin lại sau 200 ms, 3 lần không tới thì bỏ vì khung khoá bù). Hàm: `accept(castId, seq, now) → boolean`, `due(now) → dải cần NACK`.
+> - Công thức vị trí dùng chung `CastMessages.positionAt` (số nguyên) cho server và app. `Player.followAt(step, at, speedMilli, playing, clock)` nhận tốc độ dạng `int`.
+> - `CastSession(Clock, Consumer<Nack>)` với giao diện `Screen` (nơi hiện chiếu) thay cho `CastSession(Clock, Player)`: trace mới thì cần trình phát mới.
+> - Server luôn gửi kèm **bản sao mọi gói chiếu qua TCP cho giáo viên** (cờ `VIA_TCP`): trình phát của giáo viên theo đúng buổi chiếu, không đi trước lớp 300 ms.
+> - Không có `PresenterPane` riêng: nút "📡 Chiếu cho lớp" nằm trong màn bài học của giáo viên; nút của trình phát đi qua `PlayerControls`, giáo viên thì là `PresenterController`.
+> - `LocalNic`: app nối tới server qua 127.0.0.1 thì nghe trên mọi card. Đã thử trên Windows: server phát trên Wi-Fi, app nghe trên loopback là không nhận được gói nào.
+> - `CastModule` mở socket multicast ở lần chiếu đầu; không mở được thì vẫn chiếu qua TCP.
+
 ### Task 4.4: Phát multicast phía server
 
 **Files:**
@@ -63,7 +74,7 @@ Ngày 15    Nghiệm thu M2
 | Thông điệp | Kênh | Payload |
 | --- | --- | --- |
 | `CAST_CONTROL` (giáo viên → server) | TCP | `str action, str traceId, i32 step, i32 speedMilli` (1000 = 1×) |
-| `CAST_CONTROL` (server → lớp) | UDP | `i32 castId, str action, str traceId, i32 step, i32 speedMilli, i64 at` |
+| `CAST_CONTROL` (server → lớp) | UDP | `i32 castId, str action, str traceId, i32 step, i32 speedMilli, i64 at, bool playing` |
 | `CAST_DATA` | UDP | `i32 castId, str traceId, i32 chunkIndex, i32 totalChunks, blob bytes` |
 | `CAST_KEYFRAME` | UDP | `i32 castId, str traceId, i32 totalChunks, i32 firstDataSeq, i32 step, bool playing, i32 speedMilli, i64 anchorAt, i32 lastSeq` |
 

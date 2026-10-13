@@ -552,8 +552,8 @@ Frame UDP dùng đúng định dạng này, mỗi datagram một frame, đọc b
 ### 10.2. Data format
 
 - **Thông điệp nhỏ, tần suất cao** (`HEARTBEAT`, `TIME_SYNC_*`, `CODE_DELTA`, `CODE_ACK`, `CAST_CONTROL`, `CAST_KEYFRAME`, `CAST_NACK`, `MIRROR_DELTA`, `QUIZ_ANSWER`, `VIEW_CONTROL`): payload **nhị phân** qua `PayloadWriter`/`PayloadReader`; chuỗi mã hoá `[len:2][utf8]`, số nguyên big-endian.
-- **Dữ liệu cấu trúc lớn, tần suất thấp** (`LESSON_DATA`, `TRACE_CHUNK`, `CAST_DATA`, `RUN_RESULT`, `SUBMIT_RESULT`, `CLASS_STATE`): payload **JSON UTF-8** (`FLAGS.JSON`), nén Deflate khi > 1 KB.
-- **Datagram multicast** không vượt 1400 byte (13 byte header + tối đa 1387 byte payload), để không bị phân mảnh IP. Trace lớn hơn được chia khúc trong `CAST_DATA`.
+- **Dữ liệu cấu trúc lớn, tần suất thấp** (`LESSON_DATA`, `TRACE_CHUNK`, `RUN_RESULT`, `SUBMIT_RESULT`, `CLASS_STATE`): payload **JSON UTF-8** (`FLAGS.JSON`), nén Deflate khi > 1 KB.
+- **Datagram multicast** không vượt 1400 byte (13 byte header + tối đa 1387 byte payload), để không bị phân mảnh IP. Trace (các dòng JSON) được nén Deflate **cả khối** rồi chia khúc: `CAST_DATA` nhị phân `i32 castId, str traceId, i32 chunkIndex, i32 totalChunks, blob bytes`. Khung `CAST_DATA` không đặt cờ `COMPRESSED` vì một khúc riêng lẻ không giải nén được.
 
 ### 10.3. Message types
 
@@ -759,6 +759,7 @@ Mỗi đóng góp có một chủ (§17) và ít nhất một thí nghiệm (§1
 - **Phát sự kiện, không phát hình.** Server phát lệnh điều khiển và dữ liệu trace; mỗi máy tự vẽ. Băng thông độc lập với độ phân giải màn hình, chữ luôn nét, học viên tách ra tự tua được.
 - **Phát hẹn giờ.** `CAST_CONTROL` mang thời điểm `at` theo **đồng hồ server** (thường là `now + 300 ms`). Mỗi máy đổi `at` sang giờ máy mình bằng `Clock` của ĐG3. Mọi máy bắt đầu cùng lúc bất kể gói đến sớm hay muộn.
 - **Tin cậy trên UDP.** Số thứ tự liên tục; thiếu thì NACK qua TCP; nhiều máy cùng thiếu thì phát lại qua multicast; `CAST_KEYFRAME` mỗi 2 s cho máy vào muộn; máy không nhận được multicast tự chuyển sang TCP.
+- **Không chặn đầu hàng.** Mỗi `CAST_CONTROL` và `CAST_KEYFRAME` mang đủ trạng thái phát (bước, giờ hẹn, tốc độ, đang chạy hay dừng), khúc dữ liệu mang chỉ số khúc. App áp ngay gói vừa tới, bỏ gói điều khiển cũ hơn gói đã áp, không giữ gói lại chờ gói thiếu. Server và app tính vị trí bằng cùng một công thức số nguyên, nên cùng giờ server mọi máy ra cùng một bước.
 - **Đo:** TN1, TN3. Độ lệch giữa các màn hình (TN2) đo chung với ĐG3.
 
 ### ĐG2 — Dòng code tin cậy theo thời gian thực (Người 1)
