@@ -246,3 +246,22 @@ def test_fib_ghi_nho_mang_qua_luat_khong_nho_thi_khong():
     khong_nho = "def fib(i):\n    return i if i < 2 else fib(i - 1) + fib(i - 2)\nprint(fib(int(input())))\n"
     kq, v = luat_bai(bai, views, khong_nho)
     assert kq["stdout"] == "144\n" and not v["ok"] and "ghi nhớ" in v["loi"]
+
+
+def test_hang_doi_vong_qua_luat_doi_mang_hay_list_rieng_thi_khong():
+    bai = RUNNER.parent / "content" / "dsa" / "hang-doi" / "hang-doi-vong"
+    views = [{"v": "a", "kieu": "mang"}]
+    kq, v = luat_bai(bai, views, (bai / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["ok"] and v["ok"], v
+    dau = "import viz\nk, q = map(int, input().split())\na = viz.Mang([0] * k, ten='a')\n"
+    # dời mảng: a.pop(0) mỗi lần lấy ra
+    doi = dau + (
+        "a.clear()\nfor _ in range(q):\n    l = input().split()\n    if l[0] == 'them':\n"
+        "        print('DAY') if len(a) == k else a.append(int(l[1]))\n"
+        "    else:\n        print(a.pop(0) if a else 'RONG')\n")
+    kq_doi, v = luat_bai(bai, views, doi)
+    assert kq_doi["stdout"] == kq["stdout"] and not v["ok"] and "đúng k ô" in v["loi"]
+    # hàng đợi ở list riêng, a không dùng tới
+    rieng = doi.replace("a.clear()\n", "h = []\n").replace("a.", "h.").replace("len(a)", "len(h)").replace(" if a ", " if h ")
+    kq_rieng, v = luat_bai(bai, views, rieng)
+    assert kq_rieng["stdout"] == kq["stdout"] and not v["ok"] and "mảng a" in v["loi"]
