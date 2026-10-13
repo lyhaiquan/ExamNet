@@ -53,6 +53,15 @@ class LinkedListModelTest {
     }
 
     @Test
+    void chenDau_nutMoiChuaNoi_dungSauChuoi_khongXepLaiCaDanhSach() throws Exception {
+        LinkedListModel m = baNut();
+        ap(m, "{'t':'node','id':3,'x':5}", "{'t':'link','id':3,'w':0}", "{'t':'link','id':null,'w':3}");
+        assertEquals(List.of(3, 0, 1, 2), m.order(), "chèn đầu xong: nút mới tạo sau nhưng đứng đầu");
+        ap(m, "{'t':'node','id':4,'x':8}");
+        assertEquals(List.of(3, 0, 1, 2, 4), m.order(), "nút mới chưa nối đứng sau chuỗi, đầu vẫn ở bên trái");
+    }
+
+    @Test
     void xoaNut_veMo() throws Exception {
         LinkedListModel m = baNut();
         ap(m, "{'t':'link','id':0,'w':2}");

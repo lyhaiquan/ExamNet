@@ -16,9 +16,10 @@ import labcast.common.trace.TraceEvent;
  * nối {@code id} → {@code w} ({@code id} rỗng là con trỏ đầu, {@code w} rỗng là cắt), {@code read}/{@code set}
  * giá trị, {@code mark}, {@code ptr} (các biến đang trỏ vào nút, cả danh sách mỗi lần đổi).
  *
- * <p>Thứ tự vẽ: khi đi từ đầu qua được mọi nút thì vẽ theo đúng thứ tự trong danh sách; còn lại (đang đảo
- * ngược dở, nút mới tạo chưa nối, nút vừa bị bỏ ra) thì giữ thứ tự tạo nút. Nhờ vậy lúc đảo ngược các nút đứng
- * yên, chỉ mũi tên quay đầu; chèn xong thì nút mới trượt vào đúng chỗ.
+ * <p>Thứ tự vẽ: khi đi từ đầu qua được mọi nút thì vẽ theo đúng thứ tự trong danh sách. Nút ngoài chuỗi mà không
+ * nút nào trỏ tới (nút mới tạo chưa nối, nút vừa bị bỏ ra) đứng sau chuỗi. Còn nút ngoài chuỗi có mũi tên trỏ
+ * vào (đang đảo ngược dở) thì giữ thứ tự tạo nút. Nhờ vậy lúc đảo ngược các nút đứng yên, chỉ mũi tên quay đầu;
+ * chèn xong thì nút mới trượt vào đúng chỗ.
  */
 public final class LinkedListModel {
 
@@ -140,13 +141,33 @@ public final class LinkedListModel {
         return out;
     }
 
-    /** Thứ tự vẽ từ trái sang (xem chú thích lớp). */
+    /**
+     * Thứ tự vẽ từ trái sang (xem chú thích lớp). Nút ngoài chuỗi mà không nút nào trỏ tới (vừa tạo chưa nối,
+     * vừa bị xoá ra) đứng sau chuỗi, để chèn một nút mới không làm cả danh sách xếp lại theo thứ tự tạo nút.
+     */
     public List<Integer> order() {
         List<Integer> c = chain();
         if (c.size() == nodes.size()) {
             return c;
         }
-        return new ArrayList<>(nodes.keySet());
+        Set<Integer> onChain = new HashSet<>(c);
+        Set<Integer> pointedTo = new HashSet<>();
+        for (N n : nodes.values()) {
+            if (n.next != null) {
+                pointedTo.add(n.next);
+            }
+        }
+        List<Integer> loose = new ArrayList<>();
+        for (int id : nodes.keySet()) {
+            if (!onChain.contains(id)) {
+                if (pointedTo.contains(id)) {
+                    return new ArrayList<>(nodes.keySet());
+                }
+                loose.add(id);
+            }
+        }
+        c.addAll(loose);
+        return c;
     }
 
     /** Nút không ai trỏ tới (không phải đầu, không có mũi tên vào, không biến nào trỏ): đã bị bỏ ra. */
