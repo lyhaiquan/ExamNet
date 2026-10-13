@@ -42,6 +42,28 @@ class LessonRepositoryTest {
     }
 
     @Test
+    void chayTungDongChiChoBaiGiangGiai(@TempDir Path dir) throws Exception {
+        Path bai = Files.createDirectories(dir.resolve("dsa/de-quy/x"));
+        String yaml =
+                """
+                id: dsa.de-quy.x
+                mon: dsa
+                chuong: de-quy
+                ten: X
+                loai: %s
+                khung_nhin:
+                  - bien: code
+                    kieu: code-bien
+                """;
+        Files.writeString(bai.resolve("lesson.yaml"), yaml.formatted("bai-tap"));
+        var repo = LessonRepository.load(dir);
+        assertEquals(0, repo.all().size());
+        assertTrue(repo.errors().get(0).contains("code-bien"), repo.errors().get(0));
+        Files.writeString(bai.resolve("lesson.yaml"), yaml.formatted("giang-giai"));
+        assertEquals(1, LessonRepository.load(dir).all().size());
+    }
+
+    @Test
     void testIdKhongChoThoatThuMuc() throws Exception {
         var repo = LessonRepository.load(contentGia());
         assertTrue(repo.testInput("dsa.sap-xep.tot", "../../../x").isEmpty());

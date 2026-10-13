@@ -194,6 +194,10 @@ public final class LessonRepository {
                 views.add(new ViewSpec(String.valueOf(m.get("bien")), String.valueOf(m.get("kieu"))));
             }
         }
+        if (!loai.equals("giang-giai") && views.stream().anyMatch(v -> v.kieu().equals("code-bien"))) {
+            // trace lời giải mẫu của bộ vẽ chạy từng dòng chứa nguyên code lời giải
+            throw new IOException("code-bien hiện nguyên code lời giải trong animation mẫu: chỉ dùng ở bài giang-giai");
+        }
         if (mon.equals("sql") && views.isEmpty()) {
             views.add(new ViewSpec("sql", "bang-sql")); // bài SQL nào cũng vẽ bằng bảng
         }
