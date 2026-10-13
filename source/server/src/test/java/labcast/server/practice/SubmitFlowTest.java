@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import labcast.common.protocol.CodeDelta;
 import labcast.common.protocol.ErrorCode;
@@ -129,20 +130,28 @@ class SubmitFlowTest {
 
     /** Đăng nhập một học viên mới, thay khung code bằng {@code code} (seq 1). */
     static TestClient hocVien(String user, String code) throws Exception {
+        return hocVien(user, BAI, code);
+    }
+
+    static TestClient hocVien(String user, String bai, String code) throws Exception {
         users.create(user, user, Role.STUDENT, "1");
         TestClient c = TestClient.connect(server.port());
         assertEquals(MessageType.AUTH_OK, c.login(user, "1").type());
-        c.send(MessageType.LESSON_FETCH, new PayloadWriter().str(BAI).toBytes());
+        c.send(MessageType.LESSON_FETCH, new PayloadWriter().str(bai).toBytes());
         String khung = JsonPayload.tree(c.readUntil(MessageType.LESSON_DATA))
                 .get("code")
                 .asText();
-        c.send(new CodeDelta(BAI, 1, 0, khung.length(), code, 0).toFrame());
+        c.send(new CodeDelta(bai, 1, 0, khung.length(), code, 0).toFrame());
         c.readUntil(MessageType.CODE_ACK);
         return c;
     }
 
     static Frame nop(TestClient c) throws Exception {
-        c.send(MessageType.SUBMIT_REQ, new PayloadWriter().str(BAI).i64(1).toBytes());
+        return nop(c, BAI);
+    }
+
+    static Frame nop(TestClient c, String bai) throws Exception {
+        c.send(MessageType.SUBMIT_REQ, new PayloadWriter().str(bai).i64(1).toBytes());
         return c.readUntil(MessageType.SUBMIT_RESULT, MessageType.ERROR);
     }
 
@@ -241,6 +250,39 @@ class SubmitFlowTest {
                     assertFalse(t.has("error"));
                 }
             });
+        }
+    }
+
+    static final String TONG = "dsa.quay-lui.tong-tap-con";
+
+    /**
+     * Luật của bài quay lui đếm lời gọi trên cây lời gọi: lượt chạy test tb khi chấm phải bật bộ ghi cây lời gọi
+     * theo khung_nhin của bài, nếu không mọi bài làm đúng đều bị chấm TRACE_RULE vì "không đệ quy".
+     */
+    @Test
+    void quayLui_dungCatNhanhThiDat_duyetHetThiSaiLuatTrace() throws Exception {
+        String loiGiai = Files.readString(
+                TestPaths.repoRoot().resolve("content/dsa/quay-lui/tong-tap-con/loi_giai.py"), StandardCharsets.UTF_8);
+        try (var c = hocVien("sv-tong-dung", TONG, loiGiai)) {
+            JsonNode r = ketQua(nop(c, TONG));
+            assertEquals("OK", r.get("verdict").asText(), r.toString());
+        }
+        String duyetHet =
+                """
+                n, S = map(int, input().split())
+                a = sorted(map(int, input().split()))
+
+                def thu(i, tong):
+                    if i == n:
+                        return 1 if tong == S else 0
+                    return thu(i + 1, tong + a[i]) + thu(i + 1, tong)
+
+                print(thu(0, 0))
+                """;
+        try (var c = hocVien("sv-tong-het", TONG, duyetHet)) {
+            JsonNode r = ketQua(nop(c, TONG));
+            assertEquals("TRACE_RULE", r.get("verdict").asText(), r.toString());
+            assertTrue(r.get("message").asText().contains("cắt nhánh"), r.toString());
         }
     }
 }
