@@ -40,8 +40,8 @@ Khớp spec §17.2: 53 giảng giải (40 DSA, 13 SQL, 20 bài ★), 100 bài DS
 | Bài | Ai làm, ở task nào | Tính vào phần của |
 | --- | --- | --- |
 | `dsa.sap-xep.noi-bot` | Người 3, GĐ1 task 3.4 | Người 4 |
-| `dsa.ngan-xep.trung-to-hau-to` | Người 4, GĐ2 task 4.8 | Người 2 |
-| `dsa.quay-lui.n-queens` | Người 1, GĐ3 task 1.15 | Người 2 |
+| `dsa.ngan-xep.trung-to-hau-to` | Làm sớm 13/10 (dự kiến: Người 4, GĐ2 task 4.8) | Người 2 |
+| `dsa.quay-lui.n-queens` | Làm sớm 13/10 (dự kiến: Người 1, GĐ3 task 1.15) | Người 2 |
 | `dsa.quy-hoach-dong.lcs` | Người 3, GĐ3 task 3.18 | Người 3 |
 | `sql.co-ban.loc-sinh-vien` | Người 3, GĐ2 task 3.12 | Người 3 |
 | `sql.gom-nhom.diem-trung-binh-lop` | Người 3, GĐ3 task 3.14 | Người 3 |
@@ -169,8 +169,8 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `kiem-tra-ngoac` | Kiểm tra dãy ngoặc hợp lệ | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code | **Đã làm sớm** 13/10 (bậc xem, code) |
-| `trung-to-hau-to` | Trung tố → hậu tố | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code | **Đã làm** ở GĐ2 task 4.8 (Người 4) |
-| `tinh-hau-to` | Tính biểu thức hậu tố | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code |  |
+| `trung-to-hau-to` | Trung tố → hậu tố | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code | **Đã làm sớm** 13/10 (bậc xem, code): ngăn xếp toán tử cạnh hàng kết quả `ra` (`viz.HangDoi`) |
+| `tinh-hau-to` | Tính biểu thức hậu tố | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code | **Đã làm sớm** 13/10 (bậc xem, code). Phép `+ - *`, không có `/` |
 | `ngoac-dai-nhat` | Độ dài đoạn ngoặc hợp lệ dài nhất | BT◆ | `ngan-xep` | code |  |
 | `lon-hon-ke-tiep` | Phần tử lớn hơn kế tiếp (ngăn xếp đơn điệu) | BT◆ | `ngan-xep`, `mang` | dự đoán · code | Cần O(n) |
 | `tinh-trung-to` | Tính biểu thức trung tố có ngoặc, + − × / | BT | `ngan-xep` | code | Cấm `eval`, `exec` |
@@ -186,7 +186,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `hang-doi-vong` | Hàng đợi vòng trên mảng | GG★ | `mang` | xem · dự đoán · code | Con trỏ `dau`, `cuoi` |
+| `hang-doi-vong` | Hàng đợi vòng trên mảng | GG★ | `mang` | xem · dự đoán · code | Con trỏ `dau`, `cuoi`. **Đã làm sớm** 13/10 (bậc xem, code), `luat.py` buộc mảng giữ đúng k ô |
 | `so-nhi-phan` | In các số nhị phân từ 1 đến n bằng hàng đợi | BT◆ | `ngan-xep` | dự đoán · code | `viz.HangDoi` vẽ nằm ngang. **Đã làm sớm** 13/10 (bậc code, có `luat.py`) |
 | `cua-so-max` | Max của mọi đoạn độ dài k (hàng đợi hai đầu) | BT | `ngan-xep`, `mang` | code | Cần O(n) |
 | `may-in` | Hàng đợi máy in theo độ ưu tiên: khi nào tài liệu k được in | BT | `ngan-xep` | code |  |
@@ -214,11 +214,11 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `hoan-vi` | Sinh hoán vị | GG★ | `cay-goi` | xem · dự đoán · code | Cấm `itertools` |
-| `to-hop` | Sinh tổ hợp chập k | GG★ | `cay-goi` | xem · dự đoán · code | Cấm `itertools` |
-| `n-queens` | Đặt n quân hậu | GG★ | `cay-goi`, `luoi` | xem · dự đoán · code | **Đã làm** ở GĐ3 task 1.15 (Người 1) |
-| `tong-tap-con` | Tập con có tổng bằng S, có cắt nhánh | GG★ | `cay-goi` | xem · dự đoán · code | `viz.cat` ở nhánh bị cắt |
-| `sudoku-4x4` | Giải Sudoku 4×4 | GG★ | `luoi`, `cay-goi` | xem · dự đoán · code |  |
+| `hoan-vi` | Sinh hoán vị | GG★ | `cay-goi`, `mang` | xem · dự đoán · code | Cấm `itertools`. **Đã làm sớm** 13/10 (bậc xem, code), `luat.py` buộc quay lui |
+| `to-hop` | Sinh tổ hợp chập k | GG★ | `cay-goi`, `mang` | xem · dự đoán · code | Cấm `itertools`. **Đã làm sớm** 13/10 (bậc xem, code), `luat.py` buộc quay lui |
+| `n-queens` | Đặt n quân hậu | GG★ | `cay-goi`, `luoi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code): hàng không đặt được quân tô đỏ (`viz.loai`); `luat.py` buộc quay lui |
+| `tong-tap-con` | Tập con có tổng bằng S, có cắt nhánh | GG★ | `cay-goi` | xem · dự đoán · code | `viz.cat` ở nhánh bị cắt. **Đã làm sớm** 13/10 (bậc xem, code), `luat.py` buộc cắt nhánh |
+| `sudoku-4x4` | Giải Sudoku 4×4 | GG★ | `luoi`, `cay-goi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code), `luat.py` buộc quay lui |
 | `day-ngoac` | Sinh mọi dãy ngoặc đúng độ dài 2n | BT◆ | `cay-goi` | dự đoán · code |  |
 | `me-cung` | Chuột trong mê cung: liệt kê mọi đường đi | BT◆ | `luoi`, `cay-goi` | code |  |
 | `chia-tap` | Chia tập thành k tập con có tổng bằng nhau | BT | `cay-goi` | code |  |
@@ -236,12 +236,12 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `fibonacci-ghi-nho` | Fibonacci có ghi nhớ | GG★ | `cay-goi`, `mang` | xem · dự đoán · code | So với bài `de-quy.fibonacci-cay-goi`. Phần ghi nhớ đã có trong `dsa.de-quy.fibonacci` |
-| `cai-tui` | Cái túi 0/1 | GG★ | `luoi` | xem · dự đoán · code | `viz.Bang`, truy vết |
+| `fibonacci-ghi-nho` | Fibonacci có ghi nhớ | GG★ | `cay-goi`, `mang` | xem · dự đoán · code | So với bài `de-quy.fibonacci-cay-goi`. Phần ghi nhớ đã có trong `dsa.de-quy.fibonacci`. **Đã làm sớm** 13/10 (bậc xem, code): bảng nhớ là `viz.Mang`, thấy các ô điền từ nhỏ tới lớn |
+| `cai-tui` | Cái túi 0/1 | GG★ | `luoi` | xem · dự đoán · code | `viz.Bang`, truy vết. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `lcs` | Dãy con chung dài nhất | GG★ | `luoi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code), thuộc GĐ3 task 3.18 (Người 3) |
-| `lis` | Dãy con tăng dài nhất, O(n²) | GG★ | `mang` | xem · dự đoán · code |  |
-| `doi-tien` | Đổi tiền ít đồng nhất | GG★ | `mang` | xem · dự đoán · code |  |
-| `duong-di-luoi` | Đường đi tổng nhỏ nhất trên lưới | GG★ | `luoi` | xem · dự đoán · code |  |
+| `lis` | Dãy con tăng dài nhất, O(n²) | GG★ | `mang` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code): hai mảng `a`, `dp`, con trỏ `i`, `j` |
+| `doi-tien` | Đổi tiền ít đồng nhất | GG★ | `mang` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code): −1 là không đổi được |
+| `duong-di-luoi` | Đường đi tổng nhỏ nhất trên lưới | GG★ | `luoi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code): lưới `a` và bảng `dp`, truy vết |
 | `leo-cau-thang` | Số cách leo n bậc, mỗi bước 1–3 bậc | BT◆ | `mang` | dự đoán · code |  |
 | `doan-tong-lon-nhat` | Đoạn con có tổng lớn nhất | BT◆ | `mang` | dự đoán · code |  |
 | `khoang-cach-sua` | Khoảng cách sửa xâu (Levenshtein) | BT◆ | `luoi` | dự đoán · code |  |
@@ -295,8 +295,8 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `bfs` | Duyệt theo chiều rộng | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code | `viz.DoThi`. **Đã làm sớm** 13/10 (bậc xem, code): khoảng cách ghi dưới đỉnh |
-| `dfs` | Duyệt theo chiều sâu | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code |  |
-| `dijkstra` | Đường đi ngắn nhất Dijkstra | GG★ | `do-thi`, `mang`, `cay` (heap) | xem · dự đoán · code | Ví dụ ở spec §7.5 |
+| `dfs` | Duyệt theo chiều sâu | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code): ngăn xếp, không đệ quy (test có đường 2·10⁴ đỉnh) |
+| `dijkstra` | Đường đi ngắn nhất Dijkstra | GG★ | `do-thi`, `mang`, `cay` (heap) | xem · dự đoán · code | Ví dụ ở spec §7.5. **Đã làm sớm** 13/10 (bậc xem, code) bản O(n²) (`do-thi`, `mang`): chọn đỉnh bằng cách duyệt mảng `d`. **Chưa có** bản heap: bộ vẽ mảng chỉ vẽ số nguyên, chưa vẽ được cặp (d, v) |
 | `prim` | Cây khung nhỏ nhất Prim | GG | `do-thi` | xem · dự đoán · code |  |
 | `kruskal` | Cây khung nhỏ nhất Kruskal, hợp và tìm | GG | `do-thi`, `mang` | xem · dự đoán · code |  |
 | `topo` | Sắp xếp tô-pô (Kahn) | GG | `do-thi`, `ngan-xep` | xem · dự đoán · code |  |
