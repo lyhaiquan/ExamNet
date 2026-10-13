@@ -321,14 +321,14 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | Nhóm | Sự kiện |
 | --- | --- |
 | Chung | `hdr`, `line`, `vars` (biến cục bộ đổi giá trị), `out` (dòng in ra), `say`, `key`, `snap`, `end` |
-| Mảng, chuỗi, bit | `read`, `set`, `ptr` (con trỏ i, j…) |
+| Mảng, chuỗi, bit | `read`, `set`, `ptr` (con trỏ i, j…); `push`/`pop`/`ins` (thêm cuối, lấy ở ô `i`, chèn vào ô `i`), `all` (`ds`: cả mảng sau `sort`, `reverse`, `extend`, `del`, gán lát cắt…) |
 | Ngăn xếp, hàng đợi, DSLK, băm | `push`, `pop`, `enq`, `deq` (kèm `x` là giá trị vào/ra), `read` (`i`: xem đỉnh / đầu hàng), `link`, `unlink`, `bucket` |
-| Cây, đồ thị | `node`, `edge`, `mark` (đổi màu), `rotate` |
+| Cây, đồ thị | `node`, `edge`, `mark` (đổi màu), `rotate`. Cây nhị phân: `node` (`id`, khoá `x`), `edge` (`u` → `w`, `c` là `L`/`R`; `u` rỗng là đổi gốc; `w` rỗng là cắt nhánh), `read`/`set` (`id`: đọc/đổi khoá), `mark` (`id`, `m`: `dang-xet` \| `xong` \| `loai` \| `bo` \| rỗng). Xoay AVL là vài `edge` liên tiếp |
 | Lời gọi | `call` (hàm, tham số, id, id cha), `ret` (id, giá trị) |
 | Bảng 2 chiều | `cell_r`, `cell_w`, `mark` (ô `i`, `j` tô xanh lá và giữ màu, ví dụ đường truy vết) |
 | SQL | `sql.table` (bảng gốc; `side` = bảng bên phải khi ghép), `sql.rename`, `sql.pair` (nối một cặp dòng), `sql.join`, `sql.mark` (✓/✗ từng dòng hoặc nhóm), `sql.keep`, `sql.group`, `sql.agg`, `sql.project`, `sql.distinct`, `sql.order`, `sql.limit`, `sql.setop`, `sql.diff`, `sql.result`. Chỉ số dòng luôn là chỉ số trong bảng đang làm việc lúc đó (HAVING dùng `sql.mark` + `sql.keep` trên dòng nhóm) |
 
-- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Mảng chụp thành một mảng JSON; các cấu trúc khác tự mô tả: ngăn xếp/hàng đợi `{"kieu": "ngan-xep" | "hang-doi", "ds": [...]}`, bảng 2 chiều `{"kieu": "luoi", "o": [[...]], "hang": [...], "cot": [...], "ghi": [[i, j]…], "dau": [[i, j]…]}` (nhãn hai trục, ô đã ghi, ô đã đánh dấu đều tuỳ chọn) — tua tới giữa trace vẫn tô đúng màu. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
+- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Mảng chụp thành một mảng JSON; các cấu trúc khác tự mô tả: ngăn xếp/hàng đợi `{"kieu": "ngan-xep" | "hang-doi", "ds": [...]}`, bảng 2 chiều `{"kieu": "luoi", "o": [[...]], "hang": [...], "cot": [...], "ghi": [[i, j]…], "dau": [[i, j]…]}` (nhãn hai trục, ô đã ghi, ô đã đánh dấu đều tuỳ chọn), cây nhị phân `{"kieu": "cay", "goc": id, "nut": [[id, khoá, trái, phải, màu, đã gắn]…]}` ("đã gắn": nút từng nằm trong cây; rời cây mà đứng một mình là đã bị xoá, không vẽ nữa) — tua tới giữa trace vẫn tô đúng màu. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
 - **Trần**: 10 000 sự kiện và 2 MB mỗi trace. Vượt trần thì dừng ghi và đặt `truncated: true`. App báo "code có thể lặp vô hạn hoặc chậm hơn mức cần thiết".
 - **Chủ của định dạng:** Người 3 sinh trace (Python và `sqlviz`), Người 4 đọc trace (`common.trace`, `player`). Đổi định dạng phải có cả hai duyệt.
 
@@ -340,7 +340,7 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | `ngan-xep` | Ngăn xếp đứng, hàng đợi nằm ngang | Người 4 |
 | `dslk` | Danh sách liên kết | Người 4 |
 | `bam` | Bảng băm: dây chuyền, địa chỉ mở | Người 4 |
-| `cay` | Cây nhị phân, AVL, heap (`heap` = list vẽ thành cây) | Người 1 |
+| `cay` | Cây nhị phân, AVL. `heap`: một `viz.Mang` vẽ thành cây nhị phân đầy đủ, dưới là mảng | Người 1 |
 | `cay-goi` | Cây lời gọi đệ quy, nhánh quay lui, nhánh bị cắt | Người 1 |
 | `do-thi` | Đỉnh, cạnh, trọng số, nhãn | Người 1 |
 | `luoi` | Bảng 2 chiều có mũi tên phụ thuộc: quy hoạch động, Floyd, bàn cờ | Người 3 |
