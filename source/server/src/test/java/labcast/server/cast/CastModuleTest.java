@@ -1,5 +1,6 @@
 package labcast.server.cast;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,6 +12,7 @@ import labcast.common.cast.CastMessages;
 import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.ErrorMessage;
 import labcast.common.protocol.Frame;
+import labcast.common.protocol.FrameCodec;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.Role;
 import labcast.server.LabCastServer;
@@ -130,6 +132,61 @@ class CastModuleTest {
             assertFalse(ctl.playing());
             assertTrue(ctl.at() >= before + CastState.LEAD_MS, "giờ hẹn = lúc nhận + 300 ms");
             assertTrue(cap.datagrams.stream().allMatch(d -> d.length <= CastMessages.MAX_DATAGRAM));
+        }
+    }
+
+    static byte[] nack(int castId, int from, int to) {
+        return new CastMessages.Nack(castId, from, to).encode();
+    }
+
+    @Test
+    void xinKhucDaTroiKhoiVongDem_vanNhanDungByteGoc() throws Exception {
+        try (var gv = TestClient.connect(server.port());
+                var sv = TestClient.connect(server.port())) {
+            gv.login("gv", "2");
+            sv.login("sv1", "1");
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.LOAD, BAI, 0, 1000));
+            gv.readUntil(MessageType.CAST_CONTROL);
+            byte[] first = cap.datagrams.get(0);
+            for (int i = 0; i < 4100; i++) {
+                cast.keyframeNow(); // đẩy khúc 1 ra khỏi vòng đệm 4096 gói
+            }
+            sv.send(MessageType.CAST_NACK, nack(cast.castId(), 1, 1));
+            Frame r = sv.readUntil(MessageType.CAST_REPAIR);
+            assertArrayEquals(first, r.reader().blob(), "dựng lại đúng từng byte");
+
+            sv.send(MessageType.CAST_NACK, nack(cast.castId() + 1, 1, 1)); // lần chạy server khác: bỏ
+            sv.send(MessageType.CAST_NACK, nack(cast.castId(), 3_000, 3_000)); // khung khoá, còn trong vòng đệm
+            Frame r2 = sv.readUntil(MessageType.CAST_REPAIR);
+            assertEquals(
+                    3_000,
+                    FrameCodec.fromBytes(r2.reader().blob(), 0, r2.reader().blob().length)
+                            .seq());
+        }
+    }
+
+    @Test
+    void haiHocVienCungThieuMotGoi_phatLaiMotLanQuaMulticast() throws Exception {
+        try (var gv = TestClient.connect(server.port());
+                var a = TestClient.connect(server.port());
+                var b = TestClient.connect(server.port())) {
+            new UserRepository(db).create("sv2", "Trần Thị Bình", Role.STUDENT, "1");
+            gv.login("gv", "2");
+            a.login("sv1", "1");
+            b.login("sv2", "1");
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.LOAD, BAI, 0, 1000));
+            gv.readUntil(MessageType.CAST_CONTROL);
+            int before = cap.datagrams.size();
+
+            a.send(MessageType.CAST_NACK, nack(cast.castId(), 2, 2));
+            a.readUntil(MessageType.CAST_REPAIR); // máy đầu: gửi riêng
+            b.send(MessageType.CAST_NACK, nack(cast.castId(), 2, 2));
+            long end = System.currentTimeMillis() + 2_000;
+            while (cap.datagrams.size() == before && System.currentTimeMillis() < end) {
+                Thread.sleep(5);
+            }
+            assertEquals(before + 1, cap.datagrams.size(), "máy thứ hai (2/2 = 100% lớp): phát lại cho cả lớp");
+            assertArrayEquals(cap.datagrams.get(1), cap.datagrams.get(before), "phát lại nguyên văn gói SEQ 2");
         }
     }
 

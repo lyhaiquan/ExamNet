@@ -7,16 +7,20 @@ import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import labcast.common.cast.CastMessages;
 import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.Frame;
+import labcast.common.protocol.FrameCodec;
 import labcast.common.protocol.MessageType;
+import labcast.common.protocol.PayloadWriter;
 import labcast.common.protocol.ProtocolException;
 import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
@@ -61,6 +65,10 @@ public final class CastModule implements ServerModule {
     private final CastState state = new CastState();
     private ServerContext ctx;
     private ExecutorService exec;
+    private NackAggregator nacks;
+    private final AtomicLong nacksReceived = new AtomicLong();
+    private final AtomicLong repairsUnicast = new AtomicLong();
+    private final AtomicLong repairsMulticast = new AtomicLong();
     /** Chỉ luồng phát chiếu mở và dùng; dashboard đọc số liệu nên volatile. */
     private volatile CastSender sender;
 
@@ -91,7 +99,9 @@ public final class CastModule implements ServerModule {
             t.setDaemon(true);
             return t;
         });
+        this.nacks = new NackAggregator(this::classSize, System::currentTimeMillis);
         ctx.router().on(MessageType.CAST_CONTROL, Set.of(Role.TEACHER), this::onControl);
+        ctx.router().on(MessageType.CAST_NACK, this::onNack);
         ctx.scheduler()
                 .scheduleAtFixedRate(
                         () -> exec.execute(this::keyframe), KEYFRAME_MS, KEYFRAME_MS, TimeUnit.MILLISECONDS);
@@ -114,7 +124,78 @@ public final class CastModule implements ServerModule {
         m.put("seqCuoi", s == null ? 0 : s.lastSeq());
         m.put("goiDaPhat", s == null ? 0 : s.datagramsSent());
         m.put("byteDaPhat", s == null ? 0 : s.bytesSent());
+        m.put("nackNhan", nacksReceived.get());
+        m.put("suaRieng", repairsUnicast.get());
+        m.put("phatLai", repairsMulticast.get());
         return m;
+    }
+
+    /**
+     * {@code CAST_NACK(i32 castId, i32 fromSeq, i32 toSeq)} → {@code CAST_REPAIR(blob datagram)} qua TCP
+     * cho máy xin, hoặc phát lại qua multicast khi nhiều máy cùng thiếu ({@link NackAggregator}).
+     */
+    private void onNack(Ctx c, Frame f) throws Exception {
+        CastMessages.Nack n = CastMessages.Nack.decode(f.payload());
+        CastSender s = sender;
+        if (n.castId() != castId || s == null) {
+            return; // xin gói của lần chạy server trước, hoặc chưa chiếu gì
+        }
+        nacksReceived.incrementAndGet();
+        for (Map.Entry<Integer, NackAggregator.Mode> e :
+                nacks.onNack(c.session().userId(), n.from(), n.to()).entrySet()) {
+            Optional<byte[]> d = datagram(s, e.getKey());
+            if (d.isEmpty()) {
+                continue; // đã trôi khỏi vòng đệm và không phải khúc dữ liệu: khung khoá kế tiếp bù
+            }
+            switch (e.getValue()) {
+                case UNICAST -> {
+                    repairsUnicast.incrementAndGet();
+                    c.reply(
+                            Frame.of(
+                                    MessageType.CAST_REPAIR,
+                                    new PayloadWriter().blob(d.get()).toBytes()),
+                            Priority.NORMAL);
+                }
+                case MULTICAST -> {
+                    repairsMulticast.incrementAndGet();
+                    exec.execute(() -> {
+                        try {
+                            s.resend(d.get());
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
+                    });
+                }
+                case NONE -> {}
+            }
+        }
+    }
+
+    /** Datagram gốc của SEQ đó: lấy trong vòng đệm, không còn thì dựng lại nếu là khúc của trace đang chiếu. */
+    private Optional<byte[]> datagram(CastSender s, int seq) {
+        Optional<byte[]> d = s.recent(seq);
+        if (d.isPresent()) {
+            return d;
+        }
+        CastState.Loaded l = state.loaded();
+        int i = state.chunkIndexOf(seq);
+        if (l == null || i < 0) {
+            return Optional.empty();
+        }
+        // Dựng lại đúng từng byte như lần phát đầu: cùng castId, traceId, khúc, SEQ
+        return Optional.of(FrameCodec.toBytes(new Frame(
+                MessageType.CAST_DATA, (byte) 0, seq, l.data(castId, i).encode())));
+    }
+
+    /** Số máy đang trong lớp, để tính ngưỡng 20% khi gộp NACK. */
+    private int classSize() {
+        int n = 0;
+        for (Session s : ctx.sessions().all()) {
+            if (s.online() && s.role() == Role.STUDENT) {
+                n++;
+            }
+        }
+        return n;
     }
 
     /** {@code CAST_CONTROL(str action, str traceId, i32 step, i32 speedMilli)}, chỉ giáo viên. */
