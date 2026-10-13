@@ -7,7 +7,6 @@ bac: [xem, du-doan, code]
 khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
   - bien: dp
     kieu: luoi
-cay_goi: []
 cam_dung: []
 cam_import: [functools]   # không dùng lru_cache: bài này học cách điền bảng
 cam_cu_phap: []

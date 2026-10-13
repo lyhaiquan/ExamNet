@@ -9,7 +9,6 @@ khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
     kieu: do-thi
   - bien: q
     kieu: hang-doi
-cay_goi: []
 cam_dung: []
 cam_import: [networkx, scipy]
 cam_cu_phap: []

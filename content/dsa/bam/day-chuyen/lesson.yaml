@@ -7,7 +7,6 @@ bac: [xem, code]
 khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
   - bien: T
     kieu: bam
-cay_goi: []
 cam_dung: [set, frozenset, dict]  # phải tự cài bảng băm, không dùng bảng băm có sẵn của Python
 cam_import: [collections]
 cam_cu_phap: []

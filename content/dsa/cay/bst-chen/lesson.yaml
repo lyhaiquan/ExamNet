@@ -7,7 +7,6 @@ bac: [xem, code]
 khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
   - bien: T
     kieu: cay
-cay_goi: []
 cam_dung: [sorted, sort]  # thứ tự duyệt trước phụ thuộc hình cây, phải dựng cây thật
 cam_import: []
 cam_cu_phap: []

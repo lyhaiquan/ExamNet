@@ -7,7 +7,6 @@ bac: [du-doan, code]
 khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
   - bien: q
     kieu: hang-doi        # bộ vẽ ngan-xep, vẽ nằm ngang
-cay_goi: []
 cam_dung: [bin, format]   # phải sinh số bằng hàng đợi, không đổi cơ số sẵn
 cam_import: []
 cam_cu_phap: []
