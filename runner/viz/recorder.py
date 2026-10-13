@@ -44,11 +44,28 @@ class Recorder:
 
     def _write(self, obj):
         # default=str: học viên đẩy vào một giá trị lạ (object, set…) thì ghi dạng chữ, không làm hỏng bài chạy
-        line = json.dumps(obj, ensure_ascii=False, default=str)
+        try:
+            line = json.dumps(obj, ensure_ascii=False, default=str, allow_nan=False)
+        except ValueError:
+            # float('inf') (hay gặp ở bảng quy hoạch động): json.dumps mặc định ghi `Infinity`, không phải JSON
+            # chuẩn, Java đọc cả trace bị lỗi. Ghi thành chữ "∞" như trên giấy
+            line = json.dumps(_bo_vo_cuc(obj), ensure_ascii=False, default=str)
         self.bytes += len(line) + 1
         if self.count >= self.max_events or self.bytes > self.max_bytes:
             raise TraceLimit()
         self.out.write(line + "\n")
+
+
+def _bo_vo_cuc(x):
+    if isinstance(x, float) and x != x:
+        return "NaN"
+    if isinstance(x, float) and x in (float("inf"), float("-inf")):
+        return "∞" if x > 0 else "-∞"
+    if isinstance(x, dict):
+        return {k: _bo_vo_cuc(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_bo_vo_cuc(v) for v in x]
+    return x
 
 
 current = Recorder(out=None, enabled=False)  # run.py thay bằng bộ ghi thật

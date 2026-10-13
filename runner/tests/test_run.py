@@ -78,3 +78,13 @@ def test_input_tieng_viet():
 def test_sys_exit_0_van_ok():
     _, kq = chay({"code": "import sys\nprint(1)\nsys.exit(0)\n", "trace": False})
     assert kq["ok"] is True and kq["stdout"] == "1\n"
+
+
+def test_vo_cuc_ghi_thanh_chu_de_java_doc_duoc():
+    # json.dumps mặc định ghi Infinity/NaN: không phải JSON chuẩn, Jackson từ chối cả trace
+    code = "import viz\na = viz.Mang([float('inf'), 1])\na[1] = -float('inf')\nb = viz.Bang(1, 2, float('inf'))\nb[0][0] = 3\nprint(1)"
+    trace, kq = chay({"code": code, "input": "", "trace": True})
+    assert kq["ok"] is True
+    raw = json.dumps(trace, ensure_ascii=False, allow_nan=False)  # không còn số vô cực nào
+    assert '"∞"' in raw and '"-∞"' in raw
+    assert trace[1]["state"]["a"] == ["∞", 1]

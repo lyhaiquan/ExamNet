@@ -47,6 +47,8 @@ def main():
     viz.Mang = MangNhanh
     viz.say = _khong_lam_gi
     viz.key = _khong_lam_gi
+    viz.cat = _khong_lam_gi  # đánh dấu nhánh trên cây lời gọi: chấm không vẽ, khỏi dò ngăn khung
+    viz.loai = _khong_lam_gi
 
     with open(sys.argv[1], encoding="utf-8") as f:
         code = f.read()
