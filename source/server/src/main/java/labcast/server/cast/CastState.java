@@ -57,15 +57,7 @@ final class CastState {
 
     /** Vị trí ở thời điểm {@code t}: cùng công thức với {@code Player.followAt} phía app. */
     synchronized int position(long t) {
-        return position(t, step, playing, speedMilli, anchorAt, loaded == null ? 0 : loaded.size());
-    }
-
-    static int position(long t, int step, boolean playing, int speedMilli, long anchorAt, int size) {
-        if (!playing || t <= anchorAt) {
-            return step;
-        }
-        long advance = (t - anchorAt) * speedMilli / (1000L * Trace.STEP_MS);
-        return (int) Math.min(size - 1L, step + advance);
+        return CastMessages.positionAt(t, step, playing, speedMilli, anchorAt, loaded == null ? 0 : loaded.size());
     }
 
     /**

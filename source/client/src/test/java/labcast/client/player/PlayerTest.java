@@ -150,6 +150,42 @@ class PlayerTest {
     }
 
     @Test
+    void theoGiaoVien_tienItBuocCoAnimation_cachXaThiTuaThang() throws Exception {
+        var v = new ViewGia("mang");
+        var server = new AtomicLong(10_000);
+        var p = new Player(trace1000(), Map.of("a", v), () -> 0L);
+        p.followAt(100, 10_000, 1000, true, server::get);
+        assertEquals(100, p.position(), "giờ hẹn đã tới: nhảy thẳng tới bước 100");
+        v.applies.clear();
+        server.addAndGet(400);
+        p.tick();
+        assertEquals(101, p.position());
+        assertEquals(List.of(true), v.applies, "tiến một bước thì có animation");
+        server.addAndGet(400 * 200);
+        v.resets.clear();
+        p.tick();
+        assertEquals(301, p.position());
+        assertEquals(1, v.resets.size(), "cách xa thì dựng lại từ keyframe, không chạy 200 animation");
+    }
+
+    @Test
+    void thoiTheo_giuViTri_tuDieuKhien() throws Exception {
+        var v = new ViewGia("mang");
+        var server = new AtomicLong(0);
+        var p = new Player(trace1000(), Map.of("a", v), () -> 0L);
+        p.followAt(50, 0, 2000, true, server::get);
+        server.set(2_000); // 2 s ở 2× = 10 bước
+        p.tick();
+        assertEquals(60, p.position());
+        p.unfollow();
+        server.set(60_000);
+        p.tick();
+        assertEquals(60, p.position());
+        assertFalse(p.following());
+        assertFalse(p.playing());
+    }
+
+    @Test
     void viTriDau_vanVeTrangThaiBanDau() throws Exception {
         var v = new ViewGia("mang");
         var p = new Player(trace1000(), Map.of("a", v), () -> 0L);

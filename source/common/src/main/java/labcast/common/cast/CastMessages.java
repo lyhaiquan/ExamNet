@@ -12,6 +12,7 @@ import labcast.common.protocol.Frame;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.PayloadWriter;
 import labcast.common.protocol.ProtocolException;
+import labcast.common.trace.Trace;
 
 /**
  * Payload các thông điệp chiếu (ĐG1, spec §10, kế hoạch giai đoạn 2 task 4.4). Server và app cùng
@@ -95,6 +96,19 @@ public final class CastMessages {
         } finally {
             inf.end();
         }
+    }
+
+    /**
+     * Vị trí của buổi chiếu ở thời điểm {@code t} (đồng hồ server): từ {@code anchorAt} ở bước {@code
+     * step}, nếu đang chạy thì tiến một bước mỗi {@code STEP_MS / tốc độ}, không vượt sự kiện cuối. Server
+     * và mọi app dùng đúng hàm này, tính bằng số nguyên, nên cùng một thời điểm ra cùng một bước.
+     */
+    public static int positionAt(long t, int step, boolean playing, int speedMilli, long anchorAt, int size) {
+        if (!playing || t <= anchorAt) {
+            return Math.min(step, size - 1);
+        }
+        long advance = (t - anchorAt) * speedMilli / (1000L * Trace.STEP_MS);
+        return (int) Math.min(size - 1L, step + advance);
     }
 
     /** castId ở đầu payload của mọi gói chiếu server phát. */
