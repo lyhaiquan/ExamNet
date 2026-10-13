@@ -277,7 +277,8 @@ bac: [xem, du-doan, mo-phong, code]
 khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
   - bien: a
     kieu: mang
-cay_goi: []               # tên hàm cần dựng cây lời gọi, ví dụ [dat_hau]
+# cây lời gọi khai báo ngay ở đây, bien là tên HÀM: - bien: dat_hau / kieu: cay-goi
+# chạy từng dòng (chỉ bài giang-giai): - bien: code / kieu: code-bien
 cam_dung: [sorted, sort]  # hàm cấm gọi
 cam_import: []
 cam_cu_phap: []           # kiểu nút ast cấm, ví dụ [Pow] cấm toán tử **
@@ -324,11 +325,12 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | Mảng, chuỗi, bit | `read`, `set`, `ptr` (con trỏ i, j…); `push`/`pop`/`ins` (thêm cuối, lấy ở ô `i`, chèn vào ô `i`), `all` (`ds`: cả mảng sau `sort`, `reverse`, `extend`, `del`, gán lát cắt…) |
 | Ngăn xếp, hàng đợi, DSLK, băm | `push`, `pop`, `enq`, `deq` (kèm `x` là giá trị vào/ra), `read` (`i`: xem đỉnh / đầu hàng), `link`, `unlink`, `bucket`. DSLK: `node` (`id`, giá trị `x`), `link` (`id` → `w`; `id` rỗng là con trỏ đầu, `w` rỗng là cắt — thay cho `unlink`), `read`/`set` (`id`), `mark`, `ptr` (`p`: mọi biến cục bộ đang trỏ vào nút, `[[tên, id]…]`, ghi mỗi khi đổi). Băm dây chuyền: `bucket` (ô `i`, `op`: `add` thêm `x` vào cuối, `del` bỏ phần tử `k`, `read` so phần tử `k`, `set`); địa chỉ mở: `read`/`set` ô `i` như mảng, ô đã xoá ghi `XOA` |
 | Cây, đồ thị | `node`, `edge`, `mark` (đổi màu), `rotate`. Cây nhị phân: `node` (`id`, khoá `x`), `edge` (`u` → `w`, `c` là `L`/`R`; `u` rỗng là đổi gốc; `w` rỗng là cắt nhánh), `read`/`set` (`id`: đọc/đổi khoá), `mark` (`id`, `m`: `dang-xet` \| `xong` \| `loai` \| `bo` \| rỗng). Xoay AVL là vài `edge` liên tiếp. Đồ thị: `edge` (`a`, `b`, trọng số `x`), `read` đỉnh (`id`, khi gọi `g.ke(u)`) hay cạnh (`a`, `b`, khi duyệt tới), `mark` đỉnh (`id`) hay cạnh (`a`, `b`), `set` (`id`, `x`: chữ dưới đỉnh), `pos` (`id`, `x`, `y` trong 0..1) |
-| Lời gọi | `call` (hàm, tham số, id, id cha), `ret` (id, giá trị) |
+| Lời gọi | `call` (`v` là tên hàm, `id`, cha `p`, nhãn `a` như "fib(4)"), `ret` (`id`, kết quả `x` dạng chữ), `mark` (`id`, `m`: `bo` nhánh bị cắt, `loai` quay lui) |
+| Chạy từng dòng | `line` (`n`: số dòng sắp chạy), `vars` (`f`: hàm đang chạy, `d`: `[[tên, giá trị]…]` cả bảng biến mỗi khi đổi) |
 | Bảng 2 chiều | `cell_r`, `cell_w`, `mark` (ô `i`, `j` tô xanh lá và giữ màu, ví dụ đường truy vết) |
 | SQL | `sql.table` (bảng gốc; `side` = bảng bên phải khi ghép), `sql.rename`, `sql.pair` (nối một cặp dòng), `sql.join`, `sql.mark` (✓/✗ từng dòng hoặc nhóm), `sql.keep`, `sql.group`, `sql.agg`, `sql.project`, `sql.distinct`, `sql.order`, `sql.limit`, `sql.setop`, `sql.diff`, `sql.result`. Chỉ số dòng luôn là chỉ số trong bảng đang làm việc lúc đó (HAVING dùng `sql.mark` + `sql.keep` trên dòng nhóm) |
 
-- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Mảng chụp thành một mảng JSON; các cấu trúc khác tự mô tả: ngăn xếp/hàng đợi `{"kieu": "ngan-xep" | "hang-doi", "ds": [...]}`, bảng 2 chiều `{"kieu": "luoi", "o": [[...]], "hang": [...], "cot": [...], "ghi": [[i, j]…], "dau": [[i, j]…]}` (nhãn hai trục, ô đã ghi, ô đã đánh dấu đều tuỳ chọn), cây nhị phân `{"kieu": "cay", "goc": id, "nut": [[id, khoá, trái, phải, màu, đã gắn]…]}` ("đã gắn": nút từng nằm trong cây; rời cây mà đứng một mình là đã bị xoá, không vẽ nữa), bảng băm `{"kieu": "bam", "mo": …, "o": [...]}` (dây chuyền: mỗi ô một mảng; địa chỉ mở: giá trị hoặc rỗng), danh sách liên kết `{"kieu": "dslk", "dau": id, "nut": [[id, giá trị, tiếp, màu]…], "tro": [[tên, id]…]}`, đồ thị `{"kieu": "do-thi", "co_huong": …, "dinh": [...], "canh": [[a, b, w]…], "mau": [[u, m]…], "mau_canh": [[a, b, m]…], "nhan": [[u, chữ]…], "vt": [[u, x, y]…]}` — tua tới giữa trace vẫn tô đúng màu. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
+- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Mảng chụp thành một mảng JSON; các cấu trúc khác tự mô tả: ngăn xếp/hàng đợi `{"kieu": "ngan-xep" | "hang-doi", "ds": [...]}`, bảng 2 chiều `{"kieu": "luoi", "o": [[...]], "hang": [...], "cot": [...], "ghi": [[i, j]…], "dau": [[i, j]…]}` (nhãn hai trục, ô đã ghi, ô đã đánh dấu đều tuỳ chọn), cây nhị phân `{"kieu": "cay", "goc": id, "nut": [[id, khoá, trái, phải, màu, đã gắn]…]}` ("đã gắn": nút từng nằm trong cây; rời cây mà đứng một mình là đã bị xoá, không vẽ nữa), cây lời gọi `{"kieu": "cay-goi", "nut": [[id, cha, nhãn, kết quả, trạng thái]…], "ngan": [id…]}` (trạng thái `dang`, `xong`, `bo` hay `loai`; `ngan` là các lời gọi chưa trả về), chạy từng dòng `{"kieu": "code-bien", "src": code, "dong": n, "ham": tên, "bien": [[tên, giá trị]…]}`, bảng băm `{"kieu": "bam", "mo": …, "o": [...]}` (dây chuyền: mỗi ô một mảng; địa chỉ mở: giá trị hoặc rỗng), danh sách liên kết `{"kieu": "dslk", "dau": id, "nut": [[id, giá trị, tiếp, màu]…], "tro": [[tên, id]…]}`, đồ thị `{"kieu": "do-thi", "co_huong": …, "dinh": [...], "canh": [[a, b, w]…], "mau": [[u, m]…], "mau_canh": [[a, b, m]…], "nhan": [[u, chữ]…], "vt": [[u, x, y]…]}` — tua tới giữa trace vẫn tô đúng màu. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
 - **Trần**: 10 000 sự kiện và 2 MB mỗi trace. Vượt trần thì dừng ghi và đặt `truncated: true`. App báo "code có thể lặp vô hạn hoặc chậm hơn mức cần thiết".
 - **Chủ của định dạng:** Người 3 sinh trace (Python và `sqlviz`), Người 4 đọc trace (`common.trace`, `player`). Đổi định dạng phải có cả hai duyệt.
 
@@ -345,7 +347,7 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | `do-thi` | Đỉnh, cạnh, trọng số, nhãn | Người 1 |
 | `luoi` | Bảng 2 chiều có mũi tên phụ thuộc: quy hoạch động, Floyd, bàn cờ | Người 3 |
 | `bang-sql` | Bảng dữ liệu cho animation SQL | Người 3 |
-| `code-bien` | Code với dòng đang chạy được tô sáng, bảng biến | Người 4 |
+| `code-bien` | Code với dòng đang chạy được tô sáng, bảng biến. Trace lời giải mẫu chứa nguyên code lời giải nên server chỉ nhận bộ vẽ này ở bài `giang-giai` | Người 4 |
 
 Giao diện chung do Người 4 định nghĩa trong `client.player`:
 
@@ -366,7 +368,7 @@ Thư viện `viz` (trong `runner/`) cho ba cách ghi, mức chi tiết giảm d�
 
 1. **Cấu trúc "gắn camera"** — `viz.Mang`, `viz.Bang`. Ghi cả lần đọc lẫn lần ghi, nên thấy được phép so sánh và mũi tên phụ thuộc. Hai lệnh `set` liên tiếp đổi giá trị cho nhau thì trình phát vẽ thành một lần đổi chỗ. Dùng cho bài cơ bản và quy hoạch động; `khung.py` đã khai báo sẵn.
 2. **Chụp biến theo khai báo** — học viên dùng `list`, `dict`, `deque` bình thường. Sau mỗi dòng, tracer chụp các biến khai báo trong `khung_nhin`, so với lần chụp trước rồi sinh `set`, `push`, `pop`… Chỉ thấy được lần ghi. Dùng cho bài khó (ví dụ Dijkstra: `adj` → `do-thi`, `dist` → `mang`, `pq` → `heap`).
-3. **`sys.settrace`** (`viz/theo_doi.py`, chỉ bật khi đang ghi trace) — sinh `line` và `vars` cho chế độ chạy từng dòng; sinh `call` và `ret` cho các hàm khai báo trong `cay_goi`; sau mỗi dòng, xem biến cục bộ nào đang trỏ vào nút của danh sách liên kết để sinh `ptr`. Không cần sửa code học viên. Lúc chụp keyframe thì tạm ngừng, để không sự kiện nào chen vào giữa ảnh chụp.
+3. **`sys.settrace`** (`viz/theo_doi.py`, chỉ bật khi đang ghi trace) — sinh `line` và `vars` cho chế độ chạy từng dòng; sinh `call` và `ret` cho các hàm khai báo `kieu: cay-goi` trong `khung_nhin` (tối đa 200 lời gọi; code gọi `viz.cat(...)`/`viz.loai(...)` để tô nhánh bị cắt/quay lui); sau mỗi dòng, xem biến cục bộ nào đang trỏ vào nút của danh sách liên kết để sinh `ptr`. Không cần sửa code học viên. Lúc chụp keyframe thì tạm ngừng, để không sự kiện nào chen vào giữa ảnh chụp.
 
 Lời giải mẫu gọi thêm `viz.say(...)` (thuyết minh) và `viz.key(...)` (bước quan trọng; trình phát có nút "tới bước quan trọng tiếp theo", lời kèm theo cũng hiện ở dòng thuyết minh).
 

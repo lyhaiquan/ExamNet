@@ -143,7 +143,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `chen-xoa` | Chèn và xoá trên danh sách liên kết đơn | GG | `dslk` | xem · dự đoán · code |  |
-| `dao-nguoc` | Đảo ngược danh sách liên kết | GG | `dslk` | xem · dự đoán · code |  |
+| `dao-nguoc` | Đảo ngược danh sách liên kết | GG | `dslk` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code, có `luat.py`). Biến `prev`/`cur`/`nxt` tự hiện trên hình |
 | `xoa-trung` | Xoá phần tử trùng trong danh sách đã sắp | BT◆ | `dslk` | code | Khung dùng `viz.Nut` |
 | `tron-hai-ds` | Trộn hai danh sách liên kết đã sắp | BT | `dslk` | dự đoán · code |  |
 | `phan-tu-giua` | Nút giữa bằng con trỏ nhanh và chậm | BT | `dslk` | code | Luật trace: duyệt một lần |
@@ -155,7 +155,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `day-chuyen` | Băm dây chuyền | GG | `bam` | xem · dự đoán · code | `viz.BangBam` |
+| `day-chuyen` | Băm dây chuyền | GG | `bam` | xem · dự đoán · code | `viz.BangBam`. **Đã làm sớm** 13/10 (bậc xem, code, có `luat.py`) |
 | `dia-chi-mo` | Băm địa chỉ mở, dò tuyến tính | GG | `bam` | xem · dự đoán · code |  |
 | `do-tuyen-tinh` | Tự viết thêm và tìm khoá bằng dò tuyến tính trên bảng m ô | BT◆ | `mang` | dự đoán · code | Cấm `dict`, `set` và cú pháp `{…}` (`cam_cu_phap: [Dict, DictComp, Set, SetComp]`) |
 | `hai-tong` | Đếm cặp có tổng bằng x, n ≤ 10⁵ | LT | — | code |  |
@@ -200,7 +200,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `fibonacci-cay-goi` | Cây lời gọi Fibonacci đệ quy (thấy lời gọi lặp lại) | GG★ | `cay-goi` | xem · dự đoán · code | `cay_goi: [fib]` |
+| `fibonacci-cay-goi` | Cây lời gọi Fibonacci đệ quy (thấy lời gọi lặp lại) | GG★ | `cay-goi` | xem · dự đoán · code | Khai báo `- bien: fib` / `kieu: cay-goi` trong `khung_nhin`. **Đã làm sớm** 13/10 gộp với bài ghi nhớ thành `dsa.de-quy.fibonacci` (cây lời gọi + chạy từng dòng, `luat.py` buộc đệ quy có ghi nhớ; chạy bản không ghi nhớ để thấy cây to hẳn) |
 | `thap-ha-noi` | Tháp Hà Nội: in các bước chuyển | BT◆ | `cay-goi` | dự đoán · code |  |
 | `luy-thua-nhanh` | Luỹ thừa nhanh aⁿ mod m bằng đệ quy | BT◆ | `cay-goi` | dự đoán · code | Cấm `pow`; cấm cú pháp `**` |
 | `to-hop-pascal` | C(n, k) đệ quy theo tam giác Pascal | BT | `cay-goi` | code | Test `nho` n ≤ 6 để xem cây |
@@ -236,7 +236,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `fibonacci-ghi-nho` | Fibonacci có ghi nhớ | GG★ | `cay-goi`, `mang` | xem · dự đoán · code | So với bài `de-quy.fibonacci-cay-goi` |
+| `fibonacci-ghi-nho` | Fibonacci có ghi nhớ | GG★ | `cay-goi`, `mang` | xem · dự đoán · code | So với bài `de-quy.fibonacci-cay-goi`. Phần ghi nhớ đã có trong `dsa.de-quy.fibonacci` |
 | `cai-tui` | Cái túi 0/1 | GG★ | `luoi` | xem · dự đoán · code | `viz.Bang`, truy vết |
 | `lcs` | Dãy con chung dài nhất | GG★ | `luoi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code), thuộc GĐ3 task 3.18 (Người 3) |
 | `lis` | Dãy con tăng dài nhất, O(n²) | GG★ | `mang` | xem · dự đoán · code |  |
@@ -269,9 +269,9 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `bst` | Cây nhị phân tìm kiếm: chèn, tìm, xoá | GG | `cay` | xem · dự đoán · code | `viz.NutCay` |
+| `bst` | Cây nhị phân tìm kiếm: chèn, tìm, xoá | GG | `cay` | xem · dự đoán · code | `viz.Cay`, nút `T.Nut(k)`. **Đã làm sớm** phần chèn 13/10: `dsa.cay.bst-chen` |
 | `duyet-cay` | Bốn kiểu duyệt: trước, giữa, sau, theo mức | GG | `cay`, `ngan-xep` | xem · dự đoán · code |  |
-| `heap` | Đống nhị phân: thêm và lấy min | GG | `cay` (heap), `mang` | xem · dự đoán · code |  |
+| `heap` | Đống nhị phân: thêm và lấy min | GG | `cay` (heap), `mang` | xem · dự đoán · code | Bộ vẽ `heap` (một `viz.Mang` vẽ thành cây). **Đã làm sớm** phần thêm 13/10: bài tập `dsa.cay.heap-them` |
 | `avl` | Cây AVL: chèn và quay | GG | `cay` | xem · dự đoán · code |  |
 | `chieu-cao` | Chiều cao cây nhị phân | BT◆ | `cay` | dự đoán · code |  |
 | `kiem-tra-bst` | Một cây có phải cây nhị phân tìm kiếm không | BT◆ | `cay` | code |  |
@@ -294,7 +294,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `bfs` | Duyệt theo chiều rộng | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code | `viz.DoThi` |
+| `bfs` | Duyệt theo chiều rộng | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code | `viz.DoThi`. **Đã làm sớm** 13/10 (bậc xem, code): khoảng cách ghi dưới đỉnh |
 | `dfs` | Duyệt theo chiều sâu | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code |  |
 | `dijkstra` | Đường đi ngắn nhất Dijkstra | GG★ | `do-thi`, `mang`, `cay` (heap) | xem · dự đoán · code | Ví dụ ở spec §7.5 |
 | `prim` | Cây khung nhỏ nhất Prim | GG | `do-thi` | xem · dự đoán · code |  |
