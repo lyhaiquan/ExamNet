@@ -356,3 +356,12 @@ def test_cay_bst_heap_avl_qua_luat_cay_tu_viet_hay_mang_sap_thi_khong():
         kq2, v = luat_bai(cay / bai, views, cach_lach)
         assert kq2["stdout"] == kq["stdout"], (bai, kq2)
         assert not v["ok"] and loi in v["loi"], (bai, v)
+
+
+def test_kruskal_qua_luat_prim_thi_khong():
+    dt = RUNNER.parent / "content" / "dsa" / "do-thi"
+    views = [{"v": "g", "kieu": "do-thi"}, {"v": "cha", "kieu": "mang"}]
+    kq, v = luat_bai(dt / "kruskal", views, (dt / "kruskal" / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["ok"] and v["ok"], v
+    kq2, v = luat_bai(dt / "kruskal", views, (dt / "prim" / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq2["stdout"] == kq["stdout"] and not v["ok"] and "mảng cha" in v["loi"], v
