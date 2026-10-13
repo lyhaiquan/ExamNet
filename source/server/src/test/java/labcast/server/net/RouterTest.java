@@ -109,7 +109,8 @@ class RouterTest {
 
     @Test
     void policyMacDinh_choQua() {
-        assertTrue(new Router().policy().check(null, MessageType.HELLO).allowed());
+        assertTrue(
+                new Router().policy().check((Session) null, MessageType.HELLO).allowed());
     }
 
     @Test

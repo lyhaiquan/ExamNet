@@ -21,6 +21,7 @@ import labcast.server.lesson.LessonModule;
 import labcast.server.net.Connection;
 import labcast.server.net.Router;
 import labcast.server.net.TcpServer;
+import labcast.server.practice.PracticeModule;
 import labcast.server.practice.SubmitModule;
 import labcast.server.presence.AppFocusModule;
 import labcast.server.presence.Presence;
@@ -44,6 +45,7 @@ public final class LabCastServer implements AutoCloseable {
                 new JournalModule(), // Người 1
                 new AppFocusModule(), // Người 2
                 new SubmitModule(), // Người 3
+                new PracticeModule(), // Người 3
                 new CastModule() // Người 4
                 // thêm module mới ở đây, mỗi module một dòng
                 );
@@ -130,6 +132,15 @@ public final class LabCastServer implements AutoCloseable {
         public void badFrame(Connection c, ProtocolException e) {
             LOG.warning("Frame hỏng từ " + c.remoteAddress() + ": " + e.getMessage());
             ctx.audit().record(c.remoteAddress(), "BAD_FRAME", e.getMessage());
+        }
+
+        @Override
+        public void flooded(Connection c) {
+            var s = c.session();
+            String who = s == null ? c.remoteAddress() : s.username();
+            LOG.warning("Đóng kết nối " + c + " (" + who + "): gửi dồn quá " + Connection.FLOOD_PER_SECOND
+                    + " thông điệp/giây suốt " + Connection.FLOOD_SECONDS + " giây");
+            ctx.audit().record(who, "TOO_MANY_MESSAGES", c.remoteAddress());
         }
     }
 

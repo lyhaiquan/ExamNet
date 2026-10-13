@@ -103,6 +103,10 @@ public final class RunModule implements ServerModule {
         String tid = testId;
         long seqRun = snap.seq();
         runs.run(s.userId(), job, chunker).whenComplete((o, err) -> {
+            if (RunService.isReplaced(err)) {
+                replaced(s, runId);
+                return;
+            }
             chunker.finish();
             if (err != null) {
                 LOG.log(Level.WARNING, "Sandbox lỗi", err);
@@ -135,7 +139,11 @@ public final class RunModule implements ServerModule {
         SqlLab lab = ctx.require(SqlLab.class);
         String code = snap.code();
         long seqRun = snap.seq();
-        ctx.require(RunService.class).submit(() -> lab.run(l, code)).whenComplete((res, err) -> {
+        runs.tryRun(s.userId(), () -> lab.run(l, code)).whenComplete((res, err) -> {
+            if (RunService.isReplaced(err)) {
+                replaced(s, runId);
+                return;
+            }
             if (err != null) {
                 LOG.log(Level.WARNING, "Chạy SQL lỗi", err);
                 s.send(
@@ -158,6 +166,22 @@ public final class RunModule implements ServerModule {
             out.put("tests", List.of(Map.of("id", SqlLab.SAMPLE_TEST, "verdict", res.verdict())));
             s.send(JsonPayload.frame(MessageType.RUN_RESULT, out), Priority.NORMAL);
         });
+    }
+
+    /**
+     * Lượt còn chờ bị lượt chạy thử mới hơn của cùng người thay: trả {@code RUN_RESULT} của chính lượt cũ với
+     * verdict {@code REPLACED}, KHÔNG trả {@code ERROR} — ERROR không mang runId, app sẽ tưởng lượt mới hỏng.
+     */
+    private static void replaced(Session s, long runId) {
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("runId", runId);
+        res.put("ok", false);
+        res.put("stdout", "");
+        res.put("error", "Lượt chạy này bị lượt chạy thử mới hơn thay");
+        res.put("truncated", false);
+        res.put("timeMs", 0);
+        res.put("tests", List.of(Map.of("id", "", "verdict", "REPLACED")));
+        s.send(JsonPayload.frame(MessageType.RUN_RESULT, res), Priority.NORMAL);
     }
 
     /** Sandbox khi máy server không chạy được code: mọi lượt báo lỗi hạ tầng (SANDBOX_DOWN). */

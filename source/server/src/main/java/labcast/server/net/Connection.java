@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
+import labcast.common.protocol.ByeReason;
 import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.ErrorMessage;
 import labcast.common.protocol.Frame;
@@ -28,7 +29,7 @@ import labcast.server.session.Session;
  * Một kết nối TCP tới một app. Hai luồng riêng:
  *
  * <pre>
- * luồng đọc:  FrameCodec.read ─► ghi receivedAt ─► FramePolicy.check ─► pool nghiệp vụ ─► Router.route
+ * luồng đọc:  FrameCodec.read ─► ghi receivedAt ─► đếm dồn ─► FramePolicy.check ─► pool nghiệp vụ ─► Router.route
  * luồng ghi:  OutboundQueue.take ─► FrameCodec.write ─► flush khi hàng đợi rỗng
  * </pre>
  *
@@ -36,16 +37,24 @@ import labcast.server.session.Session;
  */
 public final class Connection implements AutoCloseable {
 
-    /** Báo cho server khi kết nối đóng hoặc gửi frame hỏng. */
+    /** Báo cho server khi kết nối đóng, gửi frame hỏng hoặc gửi dồn quá mức. */
     public interface Events {
         void closed(Connection c);
 
         default void badFrame(Connection c, ProtocolException e) {}
 
+        /** Bị đóng vì gửi quá {@link #FLOOD_PER_SECOND} frame/giây suốt {@link #FLOOD_SECONDS} giây. */
+        default void flooded(Connection c) {}
+
         Events NONE = c -> {};
     }
 
     public static final int QUEUE_CAPACITY = 256;
+    /** Quá ngần này frame trong một giây là một giây "dồn" (spec §12). */
+    public static final int FLOOD_PER_SECOND = 500;
+    /** Dồn liền ngần này giây thì {@code BYE(TOO_MANY_MESSAGES)} và đóng kết nối. */
+    public static final int FLOOD_SECONDS = 5;
+
     public static final Duration NORMAL_WAIT = Duration.ofSeconds(5);
 
     private static final AtomicLong IDS = new AtomicLong();
@@ -68,6 +77,10 @@ public final class Connection implements AutoCloseable {
     private volatile boolean closing;
     private volatile Session session;
     private final Map<String, Object> attrs = new ConcurrentHashMap<>();
+    // đếm frame dồn — chỉ luồng đọc đụng tới
+    private long floodWindowStart = Long.MIN_VALUE / 2;
+    private int floodCount;
+    private int floodSeconds;
     private Thread reader;
     private Thread writer;
 
@@ -192,14 +205,21 @@ public final class Connection implements AutoCloseable {
                     break;
                 }
                 long at = clock.getAsLong();
-                Session s = session;
-                FramePolicy.Decision d = router.policy().check(s, f.type());
+                if (flooding(at)) {
+                    events.flooded(this);
+                    sendAndClose(ErrorMessage.bye(ByeReason.TOO_MANY_MESSAGES));
+                    return;
+                }
+                FramePolicy.Decision d = router.policy().check(this, f.type());
                 if (!d.allowed()) {
-                    send(
-                            new ErrorMessage(d.code(), "Bị chặn: " + f.type(), d.retryAfterMs()).toFrame(),
-                            Priority.NORMAL,
-                            null,
-                            Duration.ZERO);
+                    if (d.code() != null) {
+                        String msg = d.message() != null ? d.message() : "Bị chặn: " + f.type();
+                        send(
+                                new ErrorMessage(d.code(), msg, d.retryAfterMs()).toFrame(),
+                                Priority.NORMAL,
+                                null,
+                                Duration.ZERO);
+                    }
                     continue;
                 }
                 Ctx ctx = new Ctx(this, at);
@@ -215,6 +235,23 @@ public final class Connection implements AutoCloseable {
         if (!closing) {
             close();
         }
+    }
+
+    /**
+     * Đếm frame theo từng giây (đồng hồ của kết nối), tính cả frame bị luật chặn và frame trước khi đăng
+     * nhập. True khi đã dồn quá {@link #FLOOD_PER_SECOND} frame/giây suốt {@link #FLOOD_SECONDS} giây liền.
+     * Chỉ luồng đọc gọi.
+     */
+    private boolean flooding(long now) {
+        long elapsed = now - floodWindowStart;
+        if (elapsed >= 1_000) {
+            // giây vừa qua có dồn không; cách hơn một giây (có giây im lặng ở giữa) thì đếm lại từ đầu
+            floodSeconds = floodCount > FLOOD_PER_SECOND && elapsed < 2_000 ? floodSeconds + 1 : 0;
+            floodWindowStart = now;
+            floodCount = 0;
+        }
+        floodCount++;
+        return floodCount > FLOOD_PER_SECOND && floodSeconds >= FLOOD_SECONDS - 1;
     }
 
     private void writeLoop() {

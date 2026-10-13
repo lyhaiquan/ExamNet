@@ -149,14 +149,17 @@ public final class LessonModule implements ServerModule {
             }
             List<String> lines = new ArrayList<>();
             Job job = new Job(code.get(), input.get(), true, Math.max(5_000, l.thoiGianMs()), l.id(), views(l));
-            CompletableFuture<List<String>> f = rs.get().run(0, job, lines::add).handle((Outcome o, Throwable err) -> {
-                if (err != null || !o.ok()) {
-                    LOG.warning(
-                            "Lời giải mẫu " + l.id() + " chạy lỗi: " + (err != null ? err.getMessage() : o.error()));
-                    return List.<String>of();
-                }
-                return List.copyOf(lines);
-            });
+            // Việc ưu tiên, không phải chạy thử: chạy thử của "người 0" thì lời giải mẫu các bài thay nhau mất
+            RunService runs = rs.get();
+            CompletableFuture<List<String>> f = runs.submit(() -> runs.sandbox().run(job, lines::add))
+                    .handle((Outcome o, Throwable err) -> {
+                        if (err != null || !o.ok()) {
+                            LOG.warning("Lời giải mẫu " + l.id() + " chạy lỗi: "
+                                    + (err != null ? err.getMessage() : o.error()));
+                            return List.<String>of();
+                        }
+                        return List.copyOf(lines);
+                    });
             demoTraces.put(l.id(), f);
             return f;
         }

@@ -44,8 +44,9 @@ import labcast.server.sqlviz.SqlLab;
  *
  * <ul>
  *   <li>Đang phải chờ sau lần nộp sai → {@code ERROR(COOLDOWN, retryAfterMs)}.
- *   <li>Lượt nộp trước của chính bài đó chưa chấm xong → {@code ERROR(RATE_LIMITED)}: gửi dồn 10 lượt cùng
- *       lúc không lọt qua được kiểm thời gian chờ.
+ *   <li>Lượt nộp trước (của bất kỳ bài nào) chưa chấm xong → {@code ERROR(RATE_LIMITED)}: gửi dồn 10 lượt
+ *       cùng lúc không lọt qua được kiểm thời gian chờ, và mỗi người chỉ chiếm một chỗ chấm (nộp 5 bài cùng
+ *       lúc không chiếm 5 luồng chạy code của cả lớp).
  *   <li>Lỗi hạ tầng (Docker, Python, bài hỏng) → {@code ERROR(SANDBOX_DOWN)}, KHÔNG tính là nộp sai.
  * </ul>
  *
@@ -55,7 +56,9 @@ import labcast.server.sqlviz.SqlLab;
 public final class SubmitModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(SubmitModule.class.getName());
 
-    private final Set<String> inFlight = ConcurrentHashMap.newKeySet();
+    /** Người đang có lượt nộp chờ chấm: mỗi người một lượt. */
+    private final Set<Long> inFlight = ConcurrentHashMap.newKeySet();
+
     private ServerContext ctx;
     private ProgressService progress;
     private LessonPreparer preparer;
@@ -99,9 +102,9 @@ public final class SubmitModule implements ServerModule {
 
         // Giữ chỗ TRƯỚC rồi mới đọc thời gian chờ: đọc trước thì một lượt có thể thấy "không phải chờ" trong
         // lúc lượt trước còn đang chấm, rồi lọt vào ngay khi lượt trước vừa nhả chỗ (trước khi kịp ghi chờ).
-        String key = s.userId() + "|" + lessonId;
+        long key = s.userId();
         if (!inFlight.add(key)) {
-            c.error(ErrorCode.RATE_LIMITED, "Lượt nộp trước của bài này đang được chấm", 2_000);
+            c.error(ErrorCode.RATE_LIMITED, "Lượt nộp trước đang được chấm", 2_000);
             return;
         }
         try {
