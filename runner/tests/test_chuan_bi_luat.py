@@ -183,3 +183,56 @@ def test_tong_tap_con_cat_nhanh_qua_luat_duyet_het_thi_khong():
     bit = DAU_TONG + "print(sum(1 for m in range(1 << n) if sum(a[i] for i in range(n) if m >> i & 1) == S))\n"
     kq, v = luat_bai(TONG, TONG_VIEWS, bit)
     assert kq["ok"] and not v["ok"] and "đệ quy" in v["loi"]
+
+
+def test_hoan_vi_to_hop_quay_lui_qua_luat_vong_lap_thi_khong():
+    hv = QUAY_LUI / "hoan-vi"
+    views = [{"v": "thu", "kieu": "cay-goi"}, {"v": "ds", "kieu": "mang"}]
+    kq, v = luat_bai(hv, views, (hv / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["ok"] and v["ok"], v
+    # hoán vị kế tiếp bằng vòng lặp: đúng kết quả nhưng không quay lui
+    ke_tiep = (
+        "n = int(input())\na = list(range(1, n + 1))\nwhile True:\n    print(*a)\n"
+        "    i = n - 2\n    while i >= 0 and a[i] > a[i + 1]:\n        i -= 1\n    if i < 0:\n        break\n"
+        "    j = n - 1\n    while a[j] < a[i]:\n        j -= 1\n    a[i], a[j] = a[j], a[i]\n    a[i + 1:] = a[i + 1:][::-1]\n")
+    kq, v = luat_bai(hv, views, ke_tiep)
+    assert kq["stdout"].count("\n") == 24 and not v["ok"] and "quay lui" in v["loi"]
+
+    th = QUAY_LUI / "to-hop"
+    kq, v = luat_bai(th, views, (th / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["ok"] and v["ok"], v
+    bit = ("n, k = map(int, input().split())\n"
+           "for m in sorted((m for m in range(1 << n) if bin(m).count('1') == k), "
+           "key=lambda m: [i + 1 for i in range(n) if m >> i & 1]):\n"
+           "    print(*[i + 1 for i in range(n) if m >> i & 1])\n")
+    kq, v = luat_bai(th, views, bit)
+    assert kq["stdout"].count("\n") == 10 and not v["ok"] and "quay lui" in v["loi"]
+
+
+def test_n_queens_sudoku_quay_lui_qua_luat_khong_de_quy_thi_khong():
+    nq = QUAY_LUI / "n-queens"
+    views = [{"v": "dat", "kieu": "cay-goi"}, {"v": "ban", "kieu": "luoi"}]
+    kq, v = luat_bai(nq, views, (nq / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["stdout"] == "10\n" and v["ok"], v
+    # duyệt mọi cách đặt bằng đếm cơ số n, không đệ quy
+    vong_lap = ("n = int(input())\ndem = 0\nfor m in range(n ** n):\n"
+                "    ds = [m // n ** r % n for r in range(n)]\n"
+                "    if len(set(ds)) == n and len({r + c for r, c in enumerate(ds)}) == n "
+                "and len({r - c for r, c in enumerate(ds)}) == n:\n        dem += 1\nprint(dem)\n")
+    kq, v = luat_bai(nq, views, vong_lap)
+    assert kq["stdout"] == "10\n" and not v["ok"] and "quay lui" in v["loi"]
+
+    sd = QUAY_LUI / "sudoku-4x4"
+    views = [{"v": "g", "kieu": "luoi"}, {"v": "dien", "kieu": "cay-goi"}]
+    kq, v = luat_bai(sd, views, (sd / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["ok"] and v["ok"], v
+    # thử mọi cách điền bằng đếm cơ số 4 trên các ô trống
+    vong_lap = (
+        "de = [input().strip() for _ in range(4)]\ntrong = [(i, j) for i in range(4) for j in range(4) "
+        "if de[i][j] == '.']\nfor m in range(4 ** len(trong)):\n    g = [list(h) for h in de]\n"
+        "    for k, (i, j) in enumerate(trong):\n        g[i][j] = str(m // 4 ** k % 4 + 1)\n"
+        "    if all(len(set(h)) == 4 for h in g) and all(len({g[i][j] for i in range(4)}) == 4 for j in range(4))"
+        " and all(len({g[i][j] for i in (a, a + 1) for j in (b, b + 1)}) == 4 for a in (0, 2) for b in (0, 2)):\n"
+        "        print(chr(10).join(''.join(h) for h in g))\n        break\n")
+    kq, v = luat_bai(sd, views, vong_lap, "..43\n3.21\n43.2\n21.4\n")  # 4⁵ cách: vòng lặp chạy kịp
+    assert kq["stdout"] == "1243\n3421\n4312\n2134\n" and not v["ok"] and "quay lui" in v["loi"]
