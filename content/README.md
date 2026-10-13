@@ -35,7 +35,7 @@ content/
 | `viz.BangBam(m, ten="T")`; `viz.BangBam(m, mo=True, ten="T")` | `bam` | Dây chuyền: `T[h].append(x)`, `x in T[h]` (tô vàng từng số đã so), `T[h].remove(x)`, `for y in T[h]`. Địa chỉ mở: `T[h]` đọc (ô dò tới sáng lên), `T[h] = x`, `T[h] = viz.XOA` đánh dấu đã xoá |
 | (không cần lớp nào) khai báo `bien: <tên hàm>` | `cay-goi` | Mỗi lời gọi hàm đó thành một nút "fib(4)", trả về thì ghi kết quả. Gọi `viz.cat("…")` khi lấy kết quả có sẵn (nhánh bị cắt, xám), `viz.loai("…")` khi thử rồi bỏ (quay lui, đỏ). Vẽ tối đa 200 lời gọi |
 | (không cần lớp nào) khai báo `bien: code` | `code-bien` | Dòng đang chạy và bảng biến của hàm đang chạy. Chỉ dùng ở bài `giang-giai`: trace lời giải mẫu chứa nguyên code lời giải |
-| `viz.Mang(ds, ten="h")` | `heap` | Như `mang`, vẽ thành cây nhị phân đầy đủ. Bài heap cấm `heapq` (`cam_import`): `heapq` viết bằng C, đổi mảng mà không ghi lại được |
+| `viz.Mang(ds, ten="h")` | `heap` | Như `mang`, vẽ thành cây nhị phân đầy đủ. `h.con_tro("n", k)` đặt ranh giới đống: chỉ k ô đầu vẽ trên cây, các ô sau (phần đã sắp của sắp xếp vun đống) tô xanh lá ở mảng. Bài heap cấm `heapq` (`cam_import`): `heapq` viết bằng C, đổi mảng mà không ghi lại được |
 
 Thêm vào đó `viz.say("…")` (lời thuyết minh) và `viz.key("…")` (bước quan trọng, nút ⏭ nhảy tới; lời kèm theo cũng hiện như thuyết minh). Ngăn xếp, hàng đợi, bảng không kế thừa `list`: học viên không có cách nào đổi dữ liệu mà không sinh sự kiện. Muốn đọc bảng mà không làm rối hình (ví dụ khi truy vết trong lời giải mẫu) thì dùng `dp.trang_thai()["o"]`.
 

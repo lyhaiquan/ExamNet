@@ -93,6 +93,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 - **Cột được để NULL** (để có bài về NULL và OUTER JOIN): `sinh_vien.lop_id`, `lop.gvcn_id`, `khach_hang.thanh_pho`, `danh_muc.cha_id`, `nhan_vien.phong_id`, `nhan_vien.quan_ly_id`, `du_an.phong_id`, `don_hang.khach_hang_id` (đơn của khách vãng lai).
 - Ngày lưu dạng chuỗi `YYYY-MM-DD` (SQLite không có kiểu ngày riêng). `don_hang.trang_thai` ∈ `moi`, `dang-giao`, `da-giao`, `huy`.
+- **Đã có** (13/10/2026): cả ba CSDL trong `content/sql/_csdl/`.
 - **Mỗi bài vẫn tự đủ file** (spec §7.1): chép `schema.sql` và phần dữ liệu cần dùng vào thư mục bài, vì container chuẩn bị bài chỉ được gắn đúng thư mục bài (task 3.7). Bài cần thêm bảng (ví dụ `hoc_bong`) thì thêm vào `schema.sql` của riêng bài đó.
 - `ContentCheck` (task 3.19) bỏ qua thư mục bắt đầu bằng `_` (`_mau`, `_csdl`), và cảnh báo khi `schema.sql` của bài khác bản gốc ở `_csdl` mà bài không khai báo bảng thêm.
 - `sinh_du_lieu.py` của mỗi bài sinh 3 database ẩn có NULL, dòng trùng và một bảng rỗng (spec §7.6). Database ẩn của bài `truy-van-con.khach-chua-dat` phải có đơn với `khach_hang_id` NULL, để câu `NOT IN` viết ẩu ra sai.
@@ -108,12 +109,12 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `noi-bot` | Sắp xếp nổi bọt | GG★ | `mang` | xem · dự đoán · tự mô phỏng · code | Luật trace: chỉ đổi chỗ hai phần tử kề. **Đã làm** ở GĐ1 task 3.4 (Người 3) |
-| `chon` | Sắp xếp chọn | GG | `mang` | xem · dự đoán · code | Luật trace: mỗi lượt đổi chỗ tối đa một lần |
-| `chen` | Sắp xếp chèn (đổi chỗ kề) | GG | `mang` | xem · dự đoán · tự mô phỏng · code |  |
-| `tron` | Sắp xếp trộn | GG | `mang`, `cay-goi` | xem · dự đoán · code | `cay_goi: [sap_xep_tron]` |
-| `nhanh` | Sắp xếp nhanh, phân hoạch Lomuto | GG | `mang`, `cay-goi` | xem · dự đoán · code | Con trỏ `i`, `j`, chốt |
-| `vun-dong` | Sắp xếp vun đống | GG | `mang`, `cay` (heap) | xem · dự đoán · code | Cùng một mảng vẽ hai cách |
-| `dem` | Sắp xếp đếm | GG | `mang` | xem · dự đoán · code | Hai mảng: đếm và kết quả |
+| `chon` | Sắp xếp chọn | GG | `mang` | xem · dự đoán · code | Luật trace: mỗi lượt đổi chỗ tối đa một lần. **Đã làm sớm** 13/10 (bậc xem, code) |
+| `chen` | Sắp xếp chèn (đổi chỗ kề) | GG | `mang` | xem · dự đoán · tự mô phỏng · code | **Đã làm sớm** 13/10 (bậc xem, code) |
+| `tron` | Sắp xếp trộn | GG | `mang`, `cay-goi` | xem · dự đoán · code | `cay_goi: [sap_xep_tron]`. **Đã làm sớm** 13/10 (bậc xem, code) |
+| `nhanh` | Sắp xếp nhanh, phân hoạch Lomuto | GG | `mang`, `cay-goi` | xem · dự đoán · code | Con trỏ `i`, `j`, chốt. **Đã làm sớm** 13/10 (bậc xem, code) |
+| `vun-dong` | Sắp xếp vun đống | GG | `mang`, `cay` (heap) | xem · dự đoán · code | Cùng một mảng vẽ hai cách. **Đã làm sớm** 13/10 (bậc xem, code) |
+| `dem` | Sắp xếp đếm | GG | `mang` | xem · dự đoán · code | Hai mảng: đếm và kết quả. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `dem-luot-doi-cho` | Đếm số lần đổi chỗ khi sắp xếp nổi bọt | BT◆ | `mang` | dự đoán · code | n ≤ 1 000 |
 | `co-ha-lan` | Sắp xếp dãy chỉ gồm 0, 1, 2 trong một lần duyệt | BT◆ | `mang` | code | Luật trace: mỗi ô đọc ≤ 2 lần |
 | `k-nho-nhat` | Phần tử nhỏ thứ k (chọn nhanh) | BT | `mang` | code | Cấm `sorted`, `sort`, `heapq` |
@@ -128,8 +129,8 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `tuan-tu` | Tìm kiếm tuần tự | GG | `mang` | xem · dự đoán · code |  |
-| `nhi-phan` | Tìm kiếm nhị phân | GG | `mang` | xem · dự đoán · code | Con trỏ `lo`, `mid`, `hi` |
+| `tuan-tu` | Tìm kiếm tuần tự | GG | `mang` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
+| `nhi-phan` | Tìm kiếm nhị phân | GG | `mang` | xem · dự đoán · code | Con trỏ `lo`, `mid`, `hi`. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `vi-tri-dau-tien` | Vị trí xuất hiện đầu tiên của x trong dãy đã sắp | BT◆ | `mang` | dự đoán · code | Luật trace: số lần đọc ≤ 2·log₂n + 2 |
 | `hai-con-tro` | Cặp phần tử có tổng bằng x, dùng hai con trỏ | BT | `mang` | code |  |
 | `mang-xoay` | Tìm x trong dãy tăng đã bị xoay vòng | LT | — | code | Cần O(log n) |
@@ -142,7 +143,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `chen-xoa` | Chèn và xoá trên danh sách liên kết đơn | GG | `dslk` | xem · dự đoán · code |  |
+| `chen-xoa` | Chèn và xoá trên danh sách liên kết đơn | GG | `dslk` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
 | `dao-nguoc` | Đảo ngược danh sách liên kết | GG | `dslk` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code, có `luat.py`). Biến `prev`/`cur`/`nxt` tự hiện trên hình |
 | `xoa-trung` | Xoá phần tử trùng trong danh sách đã sắp | BT◆ | `dslk` | code | Khung dùng `viz.Nut` |
 | `tron-hai-ds` | Trộn hai danh sách liên kết đã sắp | BT | `dslk` | dự đoán · code |  |
@@ -156,7 +157,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `day-chuyen` | Băm dây chuyền | GG | `bam` | xem · dự đoán · code | `viz.BangBam`. **Đã làm sớm** 13/10 (bậc xem, code, có `luat.py`) |
-| `dia-chi-mo` | Băm địa chỉ mở, dò tuyến tính | GG | `bam` | xem · dự đoán · code |  |
+| `dia-chi-mo` | Băm địa chỉ mở, dò tuyến tính | GG | `bam` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
 | `do-tuyen-tinh` | Tự viết thêm và tìm khoá bằng dò tuyến tính trên bảng m ô | BT◆ | `mang` | dự đoán · code | Cấm `dict`, `set` và cú pháp `{…}` (`cam_cu_phap: [Dict, DictComp, Set, SetComp]`) |
 | `hai-tong` | Đếm cặp có tổng bằng x, n ≤ 10⁵ | LT | — | code |  |
 | `doan-khong-lap` | Đoạn con dài nhất không có phần tử lặp | LT | — | code |  |
@@ -269,10 +270,10 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `bst` | Cây nhị phân tìm kiếm: chèn, tìm, xoá | GG | `cay` | xem · dự đoán · code | `viz.Cay`, nút `T.Nut(k)`. **Đã làm sớm** phần chèn 13/10: `dsa.cay.bst-chen` |
-| `duyet-cay` | Bốn kiểu duyệt: trước, giữa, sau, theo mức | GG | `cay`, `ngan-xep` | xem · dự đoán · code |  |
-| `heap` | Đống nhị phân: thêm và lấy min | GG | `cay` (heap), `mang` | xem · dự đoán · code | Bộ vẽ `heap` (một `viz.Mang` vẽ thành cây). **Đã làm sớm** phần thêm 13/10: bài tập `dsa.cay.heap-them` |
-| `avl` | Cây AVL: chèn và quay | GG | `cay` | xem · dự đoán · code |  |
+| `bst` | Cây nhị phân tìm kiếm: chèn, tìm, xoá | GG | `cay` | xem · dự đoán · code | `viz.Cay`, nút `T.Nut(k)`. **Đã làm sớm** 13/10 đủ chèn, tìm, xoá (bậc xem, code), `luat.py` dựng lại cây từ trace; bài phần chèn riêng: `dsa.cay.bst-chen` |
+| `duyet-cay` | Bốn kiểu duyệt: trước, giữa, sau, theo mức | GG | `cay`, `ngan-xep` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
+| `heap` | Đống nhị phân: thêm và lấy min | GG | `cay` (heap), `mang` | xem · dự đoán · code | Bộ vẽ `heap` (một `viz.Mang` vẽ thành cây). **Đã làm sớm** 13/10 đủ thêm và lấy min (bậc xem, code); bài tập phần thêm riêng: `dsa.cay.heap-them` |
+| `avl` | Cây AVL: chèn và quay | GG | `cay` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
 | `chieu-cao` | Chiều cao cây nhị phân | BT◆ | `cay` | dự đoán · code |  |
 | `kiem-tra-bst` | Một cây có phải cây nhị phân tìm kiếm không | BT◆ | `cay` | code |  |
 | `to-tien-chung` | Tổ tiên chung gần nhất trên cây nhị phân tìm kiếm | BT◆ | `cay` | dự đoán · code |  |
@@ -297,10 +298,10 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | `bfs` | Duyệt theo chiều rộng | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code | `viz.DoThi`. **Đã làm sớm** 13/10 (bậc xem, code): khoảng cách ghi dưới đỉnh |
 | `dfs` | Duyệt theo chiều sâu | GG★ | `do-thi`, `ngan-xep` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code): ngăn xếp, không đệ quy (test có đường 2·10⁴ đỉnh) |
 | `dijkstra` | Đường đi ngắn nhất Dijkstra | GG★ | `do-thi`, `mang`, `cay` (heap) | xem · dự đoán · code | Ví dụ ở spec §7.5. **Đã làm sớm** 13/10 (bậc xem, code) bản O(n²) (`do-thi`, `mang`): chọn đỉnh bằng cách duyệt mảng `d`. **Chưa có** bản heap: bộ vẽ mảng chỉ vẽ số nguyên, chưa vẽ được cặp (d, v) |
-| `prim` | Cây khung nhỏ nhất Prim | GG | `do-thi` | xem · dự đoán · code |  |
-| `kruskal` | Cây khung nhỏ nhất Kruskal, hợp và tìm | GG | `do-thi`, `mang` | xem · dự đoán · code |  |
-| `topo` | Sắp xếp tô-pô (Kahn) | GG | `do-thi`, `ngan-xep` | xem · dự đoán · code |  |
-| `floyd` | Floyd–Warshall | GG | `luoi` | xem · dự đoán · code |  |
+| `prim` | Cây khung nhỏ nhất Prim | GG | `do-thi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
+| `kruskal` | Cây khung nhỏ nhất Kruskal, hợp và tìm | GG | `do-thi`, `mang` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
+| `topo` | Sắp xếp tô-pô (Kahn) | GG | `do-thi`, `ngan-xep` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
+| `floyd` | Floyd–Warshall | GG | `luoi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code) |
 | `dem-thanh-phan` | Đếm thành phần liên thông | BT◆ | `do-thi` | dự đoán · code |  |
 | `it-canh-nhat` | Đường đi ít cạnh nhất, in đường đi | BT◆ | `do-thi` | dự đoán · code |  |
 | `co-chu-trinh` | Đồ thị có hướng có chu trình không | BT◆ | `do-thi` | code |  |
@@ -333,8 +334,8 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `loc-sinh-vien` | Sinh viên quê Hà Nội sinh từ năm 2005 | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 1. **Đã làm** ở GĐ2 task 3.12 |
-| `sap-xep-gioi-han` | 5 sản phẩm đắt nhất; cùng giá thì id nhỏ trước | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 2. `thu_tu: co` |
-| `khong-trung` | Các thành phố có khách hàng | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 3 |
+| `sap-xep-gioi-han` | 5 sản phẩm đắt nhất; cùng giá thì id nhỏ trước | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 2. `thu_tu: co`. **Đã làm sớm** 13/10 (bậc xem, code) |
+| `khong-trung` | Các thành phố có khách hàng | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 3. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `sv-nu-lop` | Sinh viên nữ của một lớp cho trước | BT◆ | `truong-hoc` | dự đoán · code |  |
 | `khoang-gia` | Sản phẩm giá từ 100 000 đến 500 000 và còn hàng | BT◆ | `ban-hang` | code | `BETWEEN` |
 | `ho-nguyen` | Khách hàng họ Nguyễn | BT◆ | `ban-hang` | code | `LIKE` |
@@ -352,7 +353,7 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `si-so-lop` | Sĩ số từng lớp | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 7 |
+| `si-so-lop` | Sĩ số từng lớp | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 7. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `diem-trung-binh-lop` | Điểm trung bình lần thi 1 của từng lớp, chỉ giữ lớp có trung bình trên 7 | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 8. Đủ FROM → JOIN → WHERE → GROUP BY → HAVING → SELECT. **Đã làm** ở GĐ3 task 3.14 |
 | `so-sp-danh-muc` | Số sản phẩm mỗi danh mục | BT◆ | `ban-hang` | dự đoán · code |  |
 | `tong-tien-don` | Tổng tiền từng đơn hàng | BT◆ | `ban-hang` | code |  |
@@ -371,7 +372,7 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `xep-loai` | Xếp loại điểm bằng CASE; sinh viên chưa thi hiện "Chưa thi" | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 12 |
+| `xep-loai` | Xếp loại điểm bằng CASE; sinh viên chưa thi hiện "Chưa thi" | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 12. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `chua-co-lop` | Sinh viên chưa được xếp lớp | BT◆ | `truong-hoc` | dự đoán · code | `IS NULL`, không phải `= NULL`. **Đã làm** (13/10/2026) |
 | `chua-phan-phong` | Số nhân viên mỗi phòng; người chưa có phòng gom vào "Chưa phân" | BT◆ | `nhan-su` | code | `COALESCE` |
 | `muc-ton-kho` | Phân loại tồn kho Hết / Ít / Nhiều | BT | `ban-hang` | code | `CASE` |
@@ -383,7 +384,7 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `tang-luong` | Tăng 10% lương nhân viên phòng Kỹ thuật | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 13. `loai_cau: dml` |
+| `tang-luong` | Tăng 10% lương nhân viên phòng Kỹ thuật | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 13. `loai_cau: dml`. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `them-sv` | Thêm một sinh viên mới | BT◆ | `truong-hoc` | code | `dml` |
 | `xoa-don-huy` | Xoá chi tiết của các đơn đã huỷ | BT◆ | `ban-hang` | code | `dml` |
 | `tru-ton-kho` | Trừ tồn kho theo chi tiết của một đơn | BT | `ban-hang` | code | `dml`, có truy vấn con |
@@ -398,8 +399,8 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `sinh-vien-lop` | Họ tên sinh viên kèm tên lớp | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 4. **Đã làm** (13/10/2026) |
-| `so-don-khach` | Mọi khách hàng kèm số đơn, kể cả khách chưa mua | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 5 |
-| `nhan-vien-quan-ly` | Nhân viên kèm tên người quản lý | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 6 |
+| `so-don-khach` | Mọi khách hàng kèm số đơn, kể cả khách chưa mua | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 5. **Đã làm sớm** 13/10 (bậc xem, code) |
+| `nhan-vien-quan-ly` | Nhân viên kèm tên người quản lý | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 6. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `bang-diem` | Họ tên, tên môn, điểm của mọi lần thi | BT◆ | `truong-hoc` | dự đoán · code | Nối 3 bảng |
 | `sp-danh-muc` | Sản phẩm kèm tên danh mục | BT◆ | `ban-hang` | code |  |
 | `don-ha-noi` | Đơn hàng kèm tên khách, chỉ khách ở Hà Nội | BT◆ | `ban-hang` | code |  |
@@ -427,8 +428,8 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `tren-trung-binh` | Nhân viên lương cao hơn lương trung bình công ty | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 9 |
-| `co-don-da-giao` | Khách hàng có ít nhất một đơn đã giao | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 10. `EXISTS`, bảng ngoài ≤ 30 dòng |
+| `tren-trung-binh` | Nhân viên lương cao hơn lương trung bình công ty | GG | `nhan-su` | xem · dự đoán · code | Khái niệm 9. **Đã làm sớm** 13/10 (bậc xem, code) |
+| `co-don-da-giao` | Khách hàng có ít nhất một đơn đã giao | GG | `ban-hang` | xem · dự đoán · code | Khái niệm 10. `EXISTS`, bảng ngoài ≤ 30 dòng. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `sp-dat-nhat` | Sản phẩm có giá cao nhất; bằng nhau thì in tất cả | BT◆ | `ban-hang` | dự đoán · code | Truy vấn con một giá trị |
 | `sv-khoa-cntt` | Sinh viên thuộc các lớp của khoa CNTT | BT◆ | `truong-hoc` | code | `IN` |
 | `khach-chua-dat` | Khách chưa đặt đơn nào | BT◆ | `ban-hang` | code | `NOT IN` gặp NULL — có trong database ẩn |
@@ -449,7 +450,7 @@ Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz`
 
 | id | Câu hỏi | Loại | CSDL | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `thi-ca-hai-mon` | Mã sinh viên đã thi cả hai môn CSDL và CTDL | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 11. `INTERSECT` |
+| `thi-ca-hai-mon` | Mã sinh viên đã thi cả hai môn CSDL và CTDL | GG | `truong-hoc` | xem · dự đoán · code | Khái niệm 11. `INTERSECT`. **Đã làm sớm** 13/10 (bậc xem, code) |
 | `moi-nguoi-trong-truong` | Họ tên mọi người trong trường: sinh viên và giảng viên | BT◆ | `truong-hoc` | dự đoán · code | `UNION` |
 | `thi-a-chua-b` | Sinh viên đã thi CSDL nhưng chưa thi CTDL | BT◆ | `truong-hoc` | code | `EXCEPT` |
 | `que-co-trung` | Danh sách quê quán có và không bỏ trùng | BT | `truong-hoc` | code | `UNION` so với `UNION ALL` |
