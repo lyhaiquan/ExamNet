@@ -160,6 +160,16 @@ public final class StepPlanner {
         }
         Aliases aliases = new Aliases(ps.getSelectItems(), realColumns);
 
+        // Chỉ hiện các cột câu lệnh dùng tới (và cột đầu, thường là khoá): bảng ghép đủ mọi cột của mọi bảng
+        // thì quá rộng, phải thu nhỏ tới không đọc được. Chỉ để hiển thị — mọi bước vẫn tính bằng câu SQL thật.
+        boolean star = ps.getSelectItems().stream().anyMatch(it -> it.getExpression() instanceof AllColumns);
+        if (!star) {
+            Set<String> words = identifiers(all);
+            for (int i = 0; i < bases.size(); i++) {
+                bases.set(i, prune(bases.get(i), words));
+            }
+        }
+
         // FROM
         Base first = bases.get(0);
         key("FROM " + first.name);
@@ -314,6 +324,42 @@ public final class StepPlanner {
             rows.add(row.subList(1, row.size()));
         }
         return new Base(name, qual, r.columns().subList(1, r.columns().size()), rows, ids);
+    }
+
+    /** Mọi tên (chữ, số, gạch dưới) xuất hiện trong câu, viết thường; bỏ qua nội dung chuỗi '…'. */
+    static Set<String> identifiers(String sql) {
+        Set<String> out = new HashSet<>();
+        Matcher m = Pattern.compile("'(?:[^']|'')*'|\"([^\"]*)\"|([A-Za-z_][A-Za-z0-9_]*)")
+                .matcher(sql);
+        while (m.find()) {
+            String w = m.group(2) != null ? m.group(2) : m.group(1);
+            if (w != null) {
+                out.add(w.toLowerCase(Locale.ROOT));
+            }
+        }
+        return out;
+    }
+
+    /** Bảng gốc chỉ giữ cột đầu và các cột có tên xuất hiện trong câu lệnh. */
+    private static Base prune(Base b, Set<String> words) {
+        List<Integer> keep = new ArrayList<>();
+        for (int k = 0; k < b.cols.size(); k++) {
+            if (k == 0 || words.contains(b.cols.get(k).toLowerCase(Locale.ROOT))) {
+                keep.add(k);
+            }
+        }
+        if (keep.size() == b.cols.size()) {
+            return b;
+        }
+        List<String> cols = new ArrayList<>();
+        keep.forEach(k -> cols.add(b.cols.get(k)));
+        List<List<Object>> rows = new ArrayList<>();
+        for (List<Object> r : b.rows) {
+            List<Object> pr = new ArrayList<>();
+            keep.forEach(k -> pr.add(r.get(k)));
+            rows.add(pr);
+        }
+        return new Base(b.name, b.qual, cols, rows, b.rowids);
     }
 
     private void join(Work w, Join j, Base right, List<Base> used, String fromText) throws Unsupported, SqlRejected {

@@ -60,7 +60,93 @@ public final class CodeEditor {
             + "|(?<COMMENT>#[^\\n]*)"
             + "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)");
 
+    /** Từ khoá SQL (không phân biệt hoa thường), cho bài SQL. */
+    private static final String[] SQL_KEYWORDS = {
+        "select",
+        "from",
+        "where",
+        "join",
+        "inner",
+        "left",
+        "right",
+        "full",
+        "outer",
+        "cross",
+        "on",
+        "using",
+        "group",
+        "by",
+        "having",
+        "order",
+        "asc",
+        "desc",
+        "limit",
+        "offset",
+        "as",
+        "and",
+        "or",
+        "not",
+        "null",
+        "is",
+        "in",
+        "exists",
+        "between",
+        "like",
+        "distinct",
+        "all",
+        "union",
+        "intersect",
+        "except",
+        "case",
+        "when",
+        "then",
+        "else",
+        "end",
+        "insert",
+        "into",
+        "values",
+        "update",
+        "set",
+        "delete",
+        "with",
+        "natural"
+    };
+
+    private static final String[] SQL_FUNCTIONS = {
+        "count",
+        "sum",
+        "avg",
+        "min",
+        "max",
+        "round",
+        "coalesce",
+        "ifnull",
+        "iif",
+        "length",
+        "upper",
+        "lower",
+        "substr",
+        "strftime",
+        "date",
+        "abs",
+        "cast",
+        "nullif",
+        "total",
+        "group_concat",
+        "trim",
+        "replace"
+    };
+
+    private static final Pattern SQL_PATTERN = Pattern.compile(
+            "(?<KEYWORD>\\b(" + String.join("|", SQL_KEYWORDS) + ")\\b)"
+                    + "|(?<BUILTIN>\\b(" + String.join("|", SQL_FUNCTIONS) + ")\\b(?=\\s*\\())"
+                    + "|(?<STRING>'([^'\\n]|'')*')"
+                    + "|(?<COMMENT>--[^\\n]*)"
+                    + "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)",
+            Pattern.CASE_INSENSITIVE);
+
     private final GuardedArea area = new GuardedArea();
+    private Pattern pattern = PATTERN;
     private final VirtualizedScrollPane<CodeArea> pane = new VirtualizedScrollPane<>(area);
     private DeltaBatcher batcher;
     private boolean loading;
@@ -87,7 +173,7 @@ public final class CodeEditor {
                 batcher.onChange(ch.getPosition(), ch.getRemoved(), ch.getInserted());
             }
         });
-        area.textProperty().addListener((obs, o, n) -> area.setStyleSpans(0, highlight(n)));
+        area.textProperty().addListener((obs, o, n) -> area.setStyleSpans(0, highlight(n, pattern)));
         Timeline ticker = new Timeline(new KeyFrame(javafx.util.Duration.millis(50), e -> {
             if (batcher != null) {
                 batcher.tick();
@@ -193,8 +279,20 @@ public final class CodeEditor {
         }
     }
 
+    /** Bài SQL: tô màu cú pháp SQL thay cho Python. Gọi trước {@link #load}. */
+    public void setSqlMode(boolean sql) {
+        pattern = sql ? SQL_PATTERN : PATTERN;
+        if (!area.getText().isEmpty()) {
+            area.setStyleSpans(0, highlight(area.getText(), pattern));
+        }
+    }
+
     static StyleSpans<Collection<String>> highlight(String text) {
-        Matcher m = PATTERN.matcher(text);
+        return highlight(text, PATTERN);
+    }
+
+    static StyleSpans<Collection<String>> highlight(String text, Pattern pattern) {
+        Matcher m = pattern.matcher(text);
         StyleSpansBuilder<Collection<String>> b = new StyleSpansBuilder<>();
         int last = 0;
         while (m.find()) {

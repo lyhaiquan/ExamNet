@@ -51,6 +51,12 @@ class StepPlannerTest {
         return ev.stream().filter(e -> e.path("t").asText().equals(t)).toList();
     }
 
+    static List<String> cols(JsonNode e) {
+        List<String> out = new ArrayList<>();
+        e.path("cols").forEach(c -> out.add(c.asText()));
+        return out;
+    }
+
     static String said(List<JsonNode> ev) {
         StringBuilder sb = new StringBuilder();
         of(ev, "say").forEach(e -> sb.append(e.path("s").asText()).append('\n'));
@@ -108,7 +114,12 @@ class StepPlannerTest {
         JsonNode j = of(ev, "sql.join").get(0);
         assertEquals(5, j.path("pairs").size());
         assertEquals("[4,-1]", j.path("pairs").get(4).toString());
-        assertTrue(j.path("rows").get(4).get(5).isNull(), "phần bên phải là NULL");
+        JsonNode em = j.path("rows").get(4);
+        assertTrue(em.get(em.size() - 1).isNull(), "phần bên phải là NULL");
+        assertEquals(
+                List.of("s.id", "s.ho_ten", "s.lop_id", "l.id", "l.ten_lop"),
+                cols(j),
+                "chỉ hiện cột câu lệnh dùng tới và cột khoá đầu");
     }
 
     @Test

@@ -89,6 +89,7 @@ public final class LessonModule implements ServerModule {
         m.put("id", l.id());
         m.put("ten", l.ten());
         m.put("loai", l.loai());
+        m.put("mon", l.mon());
         m.put("de", repo.de(id));
         m.put("khung", repo.khung(id));
         m.put("khungNhin", l.khungNhin());

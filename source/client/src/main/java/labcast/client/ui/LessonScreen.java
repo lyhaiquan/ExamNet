@@ -94,7 +94,8 @@ public final class LessonScreen extends BorderPane {
         Label title = new Label(lesson.path("ten").asText());
         title.getStyleClass().add("h1");
         String loai = lesson.path("loai").asText();
-        HBox tags = new HBox(6, badge(loaiLabel(loai), "badge-" + loai), badge("Python", null));
+        boolean sql = lesson.path("mon").asText().equals("sql") || lessonId.startsWith("sql.");
+        HBox tags = new HBox(6, badge(loaiLabel(loai), "badge-" + loai), badge(sql ? "SQL" : "Python", null));
         tags.setAlignment(Pos.CENTER_LEFT);
         Region headGap = new Region();
         HBox.setHgrow(headGap, Priority.ALWAYS);
@@ -150,7 +151,7 @@ public final class LessonScreen extends BorderPane {
         tabs.getSelectionModel().select(lesson.path("trace").size() == 0 ? deTab : animTab);
 
         // Phải: ô soạn code và khung chạy thử
-        Label edTitle = new Label("Code của em");
+        Label edTitle = new Label(sql ? "Câu SQL của em" : "Code của em");
         edTitle.getStyleClass().add("card-title");
         Label saved = new Label(SAVED_HINT);
         saved.getStyleClass().add("muted");
@@ -164,6 +165,7 @@ public final class LessonScreen extends BorderPane {
         edCard.getStyleClass().addAll("card", "editor-card");
 
         editor.setPasteGuard(studentMode);
+        editor.setSqlMode(sql);
         PauseTransition clearNotice = new PauseTransition(javafx.util.Duration.seconds(4));
         clearNotice.setOnFinished(e -> {
             saved.setText(SAVED_HINT);
