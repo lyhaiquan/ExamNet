@@ -2,8 +2,9 @@
 
 from . import recorder
 from .bang import Bang
+from .cay import Cay
 from .mang import Mang
 from .ngan_xep import HangDoi, NganXep
 from .recorder import key, say
 
-__all__ = ["Bang", "HangDoi", "Mang", "NganXep", "key", "recorder", "say"]
+__all__ = ["Bang", "Cay", "HangDoi", "Mang", "NganXep", "key", "recorder", "say"]

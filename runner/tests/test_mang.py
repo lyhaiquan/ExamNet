@@ -76,3 +76,57 @@ def test_say_key_con_tro():
     recorder.key("hết lượt")
     a.con_tro("i", 0)
     assert [e["t"] for e in dong(buf)] == ["snap", "say", "key", "ptr"]
+
+
+def test_moi_ham_doi_du_lieu_deu_ghi_lai():
+    """Lỗi cũ: append/sort/reverse đổi mảng mà không ghi gì, hình vẽ lệch với dữ liệu thật."""
+    buf = ghi()
+    a = Mang([3, 1], ten="a")
+    a.append(2)
+    a.insert(0, 9)
+    x = a.pop()
+    a.sort()
+    a.reverse()
+    a.extend([7])
+    a.remove(7)
+    del a[0]
+    a[0:1] = [5, 6]
+    a += [4]
+    a.pop(0)
+    a.clear()
+    ev = [e for e in dong(buf) if e["t"] != "snap"]
+    assert x == 2
+    assert [e["t"] for e in ev] == [
+        "push", "ins", "pop", "all", "all", "all", "all", "all", "all", "all", "pop", "all"]
+    assert ev[0] == {"t": "push", "x": 2, "v": "a"}
+    assert ev[1] == {"t": "ins", "i": 0, "x": 9, "v": "a"}
+    assert ev[2] == {"t": "pop", "i": 3, "x": 2, "v": "a"}
+    assert ev[3]["ds"] == [1, 3, 9]
+
+
+def test_phat_lai_su_kien_ra_dung_mang_cuoi():
+    """Áp lần lượt mọi sự kiện lên một list rỗng ruột phải ra đúng mảng thật — như bộ vẽ làm."""
+    buf = ghi()
+    a = Mang([4, 2, 8], ten="a")
+    a.append(1)
+    a.insert(-1, 6)
+    a.pop(1)
+    a[0] = 5
+    a.sort(reverse=True)
+    a.insert(100, 0)
+    b = None
+    for e in dong(buf):
+        t = e["t"]
+        if t == "snap":
+            b = list(e["state"]["a"])
+        elif t == "set":
+            b[e["i"]] = e["x"]
+        elif t == "push":
+            b.append(e["x"])
+        elif t == "pop":
+            b.pop(e["i"])
+        elif t == "ins":
+            b.insert(e["i"], e["x"])
+        elif t == "all":
+            b = list(e["ds"])
+    assert b == list(a)
