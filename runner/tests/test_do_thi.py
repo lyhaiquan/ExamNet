@@ -70,3 +70,15 @@ def test_dinh_hay_canh_khong_co_thi_bao_loi():
         g.danh_dau_canh(0, 1)
     with pytest.raises(ValueError):
         g.danh_dau(0, "tim")
+
+
+def test_to_canh_dinh_bac_lon_khong_do_danh_sach_ke():
+    import time
+
+    g = DoThi(30_001, ten="g", bat_dau=1)
+    for v in range(2, 30_002):
+        g.them_canh(1, v)
+    t = time.time()
+    for v in range(2, 30_002):
+        g.danh_dau_canh(v, 1, "xong")
+    assert time.time() - t < 1, "tô cạnh phải O(1), không dò hết 30 000 đỉnh kề của đỉnh 1"

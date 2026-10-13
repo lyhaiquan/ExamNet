@@ -24,6 +24,7 @@ class DoThi:
         self._dinh = list(range(bat_dau, bat_dau + n))
         self._ke = {u: [] for u in self._dinh}
         self._canh = []  # [a, b, trọng số] theo thứ tự thêm
+        self._co_canh = set()  # (u, v) có cạnh u → v: tô cạnh kiểm O(1), không dò danh sách kề (đỉnh bậc lớn)
         self._mau, self._mau_canh, self._nhan, self._vt = {}, {}, {}, {}
         recorder.current.register(ten, self)
 
@@ -44,8 +45,10 @@ class DoThi:
         if self.co_trong_so and w is None:
             raise ValueError("đồ thị có trọng số: them_canh(u, v, w)")
         self._ke[u].append((v, w))
+        self._co_canh.add((u, v))
         if not self.co_huong:
             self._ke[v].append((u, w))
+            self._co_canh.add((v, u))
         self._canh.append([u, v, w])
         self._ghi({"t": "edge", "a": u, "b": v, "x": w})
 
@@ -73,7 +76,7 @@ class DoThi:
 
     def danh_dau_canh(self, u, v, mau="xong"):
         _kiem_mau(mau)
-        if not any(x == v for x, _ in self._ke.get(u, [])):
+        if (u, v) not in self._co_canh:
             raise ValueError(f"không có cạnh {u}–{v}")
         self._mau_canh[self._khoa(u, v)] = mau
         self._ghi({"t": "mark", "a": u, "b": v, "m": mau})
