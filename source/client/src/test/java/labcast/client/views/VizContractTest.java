@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import labcast.client.views.cay.TreeModel;
 import labcast.client.views.dothi.GraphModel;
+import labcast.client.views.dslk.LinkedListModel;
 import labcast.client.views.luoi.GridModel;
 import labcast.client.views.mang.ArrayModel;
 import labcast.client.views.nganxep.StackModel;
@@ -380,5 +381,32 @@ class VizContractTest {
                 VizContractTest::graphFrom,
                 GraphModel::apply,
                 GraphModel::describe);
+    }
+
+    // ---------- danh sách liên kết ----------
+
+    static LinkedListModel listFrom(JsonNode snap) {
+        LinkedListModel m = new LinkedListModel();
+        m.reset(snap);
+        return m;
+    }
+
+    @Test
+    void baiDaoNguoc_traceVaoDungBoVeDanhSach_keCaBienTro() throws Exception {
+        String p = "dsa/dslk/dao-nguoc";
+        kiem(
+                bai(p, "loi_giai.py"),
+                bai(p, "demo.in"),
+                "ds",
+                VizContractTest::listFrom,
+                LinkedListModel::apply,
+                LinkedListModel::describe);
+        kiem(
+                bai(p, "loi_giai.py"),
+                "40\n" + "7 ".repeat(40) + "\n",
+                "ds",
+                VizContractTest::listFrom,
+                LinkedListModel::apply,
+                LinkedListModel::describe);
     }
 }
