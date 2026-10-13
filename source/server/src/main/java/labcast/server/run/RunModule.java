@@ -28,6 +28,7 @@ import labcast.server.lesson.LessonRepository;
 import labcast.server.net.Ctx;
 import labcast.server.net.Priority;
 import labcast.server.session.Session;
+import labcast.server.sqlviz.SqlLab;
 
 /** Chạy thử code học viên với một test xem được, gửi trace về để học viên xem chính code mình chạy. Chủ: Người 3. */
 public final class RunModule implements ServerModule {
@@ -92,6 +93,10 @@ public final class RunModule implements ServerModule {
 
         long runId = runIds.incrementAndGet();
         c.reply(MessageType.RUN_QUEUED, new PayloadWriter().i64(runId).u16(0).toBytes());
+        if (l.isSql()) {
+            runSql(s, l, runId, snap);
+            return;
+        }
 
         Job job = new Job(snap.code(), input, true, l.thoiGianMs(), lessonId, LessonModule.views(l));
         Chunker chunker = new Chunker(runId, s);
@@ -118,6 +123,40 @@ public final class RunModule implements ServerModule {
             res.put("timeMs", o.timeMs());
             res.put("tests", List.of(Map.of("id", tid, "verdict", verdict)));
             s.send(JsonPayload.frame(MessageType.RUN_RESULT, res), Priority.NORMAL);
+        });
+    }
+
+    /**
+     * Bài SQL: câu của học viên chạy bằng bộ máy SQL trên dữ liệu mẫu (không qua sandbox Python), cùng các
+     * thông điệp như bài DSA — trace các bước gửi bằng {@code TRACE_CHUNK}, kết quả dạng bảng chữ ở {@code
+     * stdout}, đúng/sai so với đáp án ở test {@code du-lieu-mau}.
+     */
+    private void runSql(Session s, Lesson l, long runId, CodeStore.Snapshot snap) {
+        SqlLab lab = ctx.require(SqlLab.class);
+        String code = snap.code();
+        long seqRun = snap.seq();
+        ctx.require(RunService.class).submit(() -> lab.run(l, code)).whenComplete((res, err) -> {
+            if (err != null) {
+                LOG.log(Level.WARNING, "Chạy SQL lỗi", err);
+                s.send(
+                        new ErrorMessage(ErrorCode.INTERNAL, "Server không chạy được câu SQL: " + err.getMessage(), 0)
+                                .toFrame(),
+                        Priority.NORMAL);
+                return;
+            }
+            Chunker chunker = new Chunker(runId, s);
+            res.trace().forEach(chunker);
+            chunker.finish();
+            record(s.userId(), l.id(), seqRun, res.verdict());
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("runId", runId);
+            out.put("ok", res.ok());
+            out.put("stdout", res.stdout());
+            out.put("error", res.error());
+            out.put("truncated", false);
+            out.put("timeMs", res.timeMs());
+            out.put("tests", List.of(Map.of("id", SqlLab.SAMPLE_TEST, "verdict", res.verdict())));
+            s.send(JsonPayload.frame(MessageType.RUN_RESULT, out), Priority.NORMAL);
         });
     }
 

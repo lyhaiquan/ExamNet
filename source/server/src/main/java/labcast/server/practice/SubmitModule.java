@@ -33,6 +33,7 @@ import labcast.server.run.RunService;
 import labcast.server.run.Sandbox;
 import labcast.server.run.ScriptRunner;
 import labcast.server.session.Session;
+import labcast.server.sqlviz.SqlLab;
 
 /**
  * Nộp bài (spec §8.2, task 3.8). Chủ: Người 3.
@@ -121,6 +122,10 @@ public final class SubmitModule implements ServerModule {
             long seq = snap.seq();
             ctx.require(RunService.class)
                     .submit(() -> {
+                        if (l.isSql()) {
+                            // Bài SQL: so với đáp án trên dữ liệu mẫu và các database ẩn; không qua sandbox Python
+                            return ctx.require(SqlLab.class).grade(l, code, preparer.prepareSql(l));
+                        }
                         LessonPreparer.Prepared prep = preparer.prepare(l);
                         return grader.grade(l, code, tests(repo, l, prep), prep.tb());
                     })

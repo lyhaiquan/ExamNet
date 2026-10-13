@@ -73,9 +73,17 @@ public final class LessonRepository {
         return Collections.unmodifiableList(errors);
     }
 
-    /** Nội dung {@code khung.py}; bài không có khung thì chuỗi rỗng. */
+    /** Nội dung {@code khung.py} (bài SQL: {@code khung.sql}); bài không có khung thì chuỗi rỗng. */
     public String khung(String id) {
-        return get(id).map(l -> readOr(l.dir().resolve("khung.py"), "")).orElse("");
+        return get(id).map(l -> l.isSql()
+                        ? readOr(l.dir().resolve("khung.sql"), "SELECT \n")
+                        : readOr(l.dir().resolve("khung.py"), ""))
+                .orElse("");
+    }
+
+    /** Một file của bài SQL ({@code schema.sql}, {@code du_lieu_mau.sql}, {@code dap_an.sql}), UTF-8. */
+    public Optional<String> sqlFile(String id, String name) {
+        return get(id).map(l -> l.dir().resolve(name)).filter(Files::exists).map(p -> readOr(p, ""));
     }
 
     public String de(String id) {
@@ -186,6 +194,21 @@ public final class LessonRepository {
                 views.add(new ViewSpec(String.valueOf(m.get("bien")), String.valueOf(m.get("kieu"))));
             }
         }
+        if (mon.equals("sql") && views.isEmpty()) {
+            views.add(new ViewSpec("sql", "bang-sql")); // bài SQL nào cũng vẽ bằng bảng
+        }
+        String loaiCau =
+                y.get("loai_cau") == null ? "select" : y.get("loai_cau").toString();
+        if (!loaiCau.equals("select") && !loaiCau.equals("dml")) {
+            throw new IOException("loai_cau phải là select hoặc dml");
+        }
+        if (mon.equals("sql")) {
+            for (String f : List.of("schema.sql", "du_lieu_mau.sql", "dap_an.sql")) {
+                if (!Files.exists(dir.resolve(f))) {
+                    throw new IOException("bài SQL thiếu " + f);
+                }
+            }
+        }
         int ms = 1000;
         if (y.get("gioi_han") instanceof Map<?, ?> g && g.get("thoi_gian_ms") instanceof Number n) {
             ms = n.intValue();
@@ -206,7 +229,9 @@ public final class LessonRepository {
                 hash(dir),
                 strings(y, "cam_import"),
                 strings(y, "cam_cu_phap"),
-                y.get("so_test_an") instanceof Number so ? so.intValue() : 0);
+                y.get("so_test_an") instanceof Number so ? so.intValue() : 0,
+                loaiCau,
+                "co".equals(String.valueOf(y.get("thu_tu"))));
     }
 
     private static String str(Map<String, Object> y, String k) throws IOException {

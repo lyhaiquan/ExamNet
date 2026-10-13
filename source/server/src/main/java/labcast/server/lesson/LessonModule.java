@@ -1,5 +1,7 @@
 package labcast.server.lesson;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import labcast.server.net.Priority;
 import labcast.server.run.Job;
 import labcast.server.run.Outcome;
 import labcast.server.run.RunService;
+import labcast.server.sqlviz.SqlLab;
 import labcast.server.store.Database;
 
 /** Danh sách bài, nội dung một bài và trace giảng giải. Chủ: Người 3. */
@@ -45,6 +48,12 @@ public final class LessonModule implements ServerModule {
         }
         ctx.register(LessonRepository.class, repo);
         ctx.register(StarterCode.class, repo::khung);
+        try {
+            // Database của bài SQL (dữ liệu mẫu, bản sao từng lượt chạy) nằm ở thư mục tạm riêng
+            ctx.register(SqlLab.class, new SqlLab(repo, Files.createTempDirectory("labcast-sql")));
+        } catch (IOException e) {
+            throw new IllegalStateException("Không tạo được thư mục tạm cho bài SQL", e);
+        }
         ctx.register(
                 DemoTraces.class,
                 id -> repo.get(id).map(this::demoTrace).orElseGet(() -> CompletableFuture.completedFuture(List.of())));
@@ -87,6 +96,10 @@ public final class LessonModule implements ServerModule {
         for (String t : l.testXem()) {
             tests.add(Map.of("id", t, "input", repo.testInput(id, t).orElse("")));
         }
+        if (l.isSql()) {
+            // Bài SQL chạy trên dữ liệu mẫu: một "test" duy nhất, dữ liệu đã có trong đề
+            tests.add(Map.of("id", SqlLab.SAMPLE_TEST, "input", ""));
+        }
         m.put("testXem", tests);
         var store = ctx.find(CodeStore.class);
         if (store.isPresent()) {
@@ -106,6 +119,20 @@ public final class LessonModule implements ServerModule {
     private CompletableFuture<List<String>> demoTrace(Lesson l) {
         if (!l.loai().equals("giang-giai")) {
             return CompletableFuture.completedFuture(List.of());
+        }
+        if (l.isSql()) {
+            // Đáp án chạy trên dữ liệu mẫu, tách bước: nhanh (vài chục ms) nên làm ngay, vẫn giữ đệm như bài DSA
+            synchronized (demoTraces) {
+                CompletableFuture<List<String>> cached = demoTraces.get(l.id());
+                if (cached != null && !cached.join().isEmpty()) {
+                    return cached;
+                }
+                List<String> lines =
+                        ctx.find(SqlLab.class).map(lab -> lab.demoTrace(l)).orElse(List.of());
+                CompletableFuture<List<String>> f = CompletableFuture.completedFuture(lines);
+                demoTraces.put(l.id(), f);
+                return f;
+            }
         }
         var rs = ctx.find(RunService.class);
         var code = repo.loiGiai(l.id());

@@ -96,9 +96,79 @@ public final class LessonPreparer {
         }
     }
 
+    /** Số database ẩn của mỗi bài SQL (spec §7.6). */
+    public static final int SQL_HIDDEN_DBS = 3;
+
+    private final Map<String, List<String>> sqlMemory = new ConcurrentHashMap<>();
+
+    /**
+     * Script dữ liệu (các câu INSERT, chạy sau {@code schema.sql}) của {@link #SQL_HIDDEN_DBS} database ẩn
+     * của bài SQL, sinh bằng {@code sinh_du_lieu.py} trong container tin cậy ({@code runner/sinh_csdl.py}),
+     * lưu đệm ở {@code <cacheDir>/<lessonId>/<content_hash>-csdl.json}. Bài không có {@code
+     * sinh_du_lieu.py} thì danh sách rỗng (chỉ chấm trên dữ liệu mẫu).
+     */
+    public List<String> prepareSql(Lesson l) throws IOException, InterruptedException {
+        if (!java.nio.file.Files.exists(l.dir().resolve("sinh_du_lieu.py"))) {
+            return List.of();
+        }
+        String key = l.id() + "@" + l.contentHash();
+        List<String> hit = sqlMemory.get(key);
+        if (hit != null) {
+            return hit;
+        }
+        synchronized (locks.computeIfAbsent(l.id(), k -> new Object())) {
+            hit = sqlMemory.get(key);
+            if (hit != null) {
+                return hit;
+            }
+            Path dir = cacheDir.resolve(l.id());
+            Path file = dir.resolve(l.contentHash() + "-csdl.json");
+            JsonNode out;
+            if (Files.exists(file)) {
+                out = JsonPayload.MAPPER.readTree(file.toFile());
+            } else {
+                String job = "{\"so_csdl\": " + SQL_HIDDEN_DBS + "}";
+                ScriptRunner.Result r = runner.runScript("sinh_csdl", l.dir(), job, 60_000);
+                if (r.killed()) {
+                    throw new IOException("Sinh database ẩn bài " + l.id() + " quá 60 s");
+                }
+                if (r.lines().isEmpty()) {
+                    throw new IOException("sinh_csdl.py không in kết quả: " + r.stderr());
+                }
+                out = JsonPayload.MAPPER.readTree(r.lines().get(r.lines().size() - 1));
+                if (!out.path("t").asText().equals("sinh_csdl")) {
+                    throw new IOException("Bài " + l.id() + " lỗi khi sinh database ẩn: "
+                            + out.path("loi").asText());
+                }
+                Files.createDirectories(dir);
+                Path tmp = Files.createTempFile(dir, "dang-ghi", ".json");
+                Files.writeString(tmp, out.toString());
+                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                removeStale(dir, file);
+                LOG.info("Đã sinh " + out.path("csdl").size() + " database ẩn cho " + l.id());
+            }
+            List<String> scripts = new ArrayList<>();
+            out.path("csdl").forEach(s -> scripts.add(s.asText()));
+            List<String> result = List.copyOf(scripts);
+            sqlMemory.put(key, result);
+            return result;
+        }
+    }
+
     /** Sinh trước test ẩn cho mọi bài (gọi ở luồng nền lúc server khởi động), để lượt nộp đầu không phải chờ. */
     public void warmUp(List<Lesson> lessons) {
         for (Lesson l : lessons) {
+            if (l.isSql()) {
+                try {
+                    prepareSql(l);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (Exception e) {
+                    LOG.log(Level.WARNING, "Không sinh được database ẩn cho " + l.id() + ": " + e.getMessage());
+                }
+                continue;
+            }
             if (l.soTestAn() <= 0 && !l.hasTraceRule()) {
                 continue;
             }
