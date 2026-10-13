@@ -150,6 +150,19 @@ public final class CallTreeModel {
         return x;
     }
 
+    /**
+     * Nhãn khi cây rộng, ô hẹp không đủ chỗ: bỏ tên hàm ({@code "thu(2, 7)"} → {@code "2, 7"}; tên đã có ở tiêu
+     * đề), vẫn dài hơn {@code maxChars} thì bỏ cả dấu cách. Không để chữ tự xuống dòng thành hai dòng khó đọc.
+     */
+    public static String argsOnly(String label, int maxChars) {
+        String s = label;
+        int k = s.indexOf('(');
+        if (k > 0 && s.endsWith(")")) {
+            s = s.substring(k + 1, s.length() - 1);
+        }
+        return s.length() <= maxChars ? s : s.replace(" ", "");
+    }
+
     /** Trạng thái dạng chữ để test: mỗi lời gọi "nhãn=kết quả:trạng thái", rồi ngăn. */
     public String describe() {
         StringBuilder sb = new StringBuilder();

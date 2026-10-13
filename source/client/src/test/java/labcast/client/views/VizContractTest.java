@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -14,8 +15,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import labcast.client.views.bam.HashModel;
 import labcast.client.views.cay.TreeModel;
 import labcast.client.views.caygoi.CallTreeModel;
@@ -30,7 +34,9 @@ import labcast.server.lesson.Lesson;
 import labcast.server.lesson.LessonRepository;
 import labcast.server.lesson.ViewSpec;
 import labcast.server.run.LocalPythonSandbox;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 /**
  * Hợp đồng giữa bộ ghi Python ({@code runner/viz}) và bộ vẽ Java: chạy thật lời giải mẫu của các bài qua
@@ -521,5 +527,75 @@ class VizContractTest {
             }
         }
         assertEquals(177, m.size());
+    }
+
+    // ---------- mọi bài ----------
+
+    /** Model của một bộ vẽ: dựng từ ảnh chụp, áp sự kiện, trạng thái dạng chữ để so. */
+    record Kind<T>(Function<JsonNode, T> from, BiConsumer<T, TraceEvent> apply, Function<T, String> state) {}
+
+    static final Map<String, Kind<?>> KIND_MODELS = Map.ofEntries(
+            Map.entry("mang", new Kind<>(VizContractTest::arrayFrom, ArrayModel::apply, VizContractTest::arrayState)),
+            Map.entry("heap", new Kind<>(VizContractTest::arrayFrom, ArrayModel::apply, VizContractTest::arrayState)),
+            Map.entry(
+                    "ngan-xep", new Kind<>(VizContractTest::stackFrom, StackModel::apply, VizContractTest::stackState)),
+            Map.entry(
+                    "hang-doi", new Kind<>(VizContractTest::stackFrom, StackModel::apply, VizContractTest::stackState)),
+            Map.entry("luoi", new Kind<>(VizContractTest::gridFrom, GridModel::apply, VizContractTest::gridState)),
+            Map.entry("do-thi", new Kind<>(VizContractTest::graphFrom, GraphModel::apply, GraphModel::describe)),
+            Map.entry("cay", new Kind<>(VizContractTest::treeFrom, TreeModel::apply, VizContractTest::treeState)),
+            Map.entry("dslk", new Kind<>(VizContractTest::listFrom, LinkedListModel::apply, LinkedListModel::describe)),
+            Map.entry("bam", new Kind<>(VizContractTest::hashFrom, HashModel::apply, HashModel::describe)),
+            Map.entry("cay-goi", new Kind<>(VizContractTest::callsFrom, CallTreeModel::apply, CallTreeModel::describe)),
+            Map.entry(
+                    "code-bien",
+                    new Kind<CodeVarModel>(VizContractTest::codeFrom, (m, e) -> m.apply(e), CodeVarModel::describe)));
+
+    /** Dựng lại từ mọi ảnh chụp có biến {@code var} rồi áp tiếp phải ra đúng trạng thái cuối. */
+    static <T> void kiemTua(List<TraceEvent> evs, String var, Kind<T> k, String where) {
+        List<Integer> s = snaps(evs).stream()
+                .filter(i -> evs.get(i).get("state").has(var))
+                .toList();
+        assertTrue(s.size() >= 2, where + ": cần ảnh chụp đầu và cuối của " + var);
+        String expected = k.state()
+                .apply(k.from().apply(evs.get(s.get(s.size() - 1)).get("state").get(var)));
+        for (int from : s) {
+            assertEquals(
+                    expected,
+                    phatTu(evs, from, var, k.from(), k.apply(), k.state()),
+                    where + ": " + var + " dựng lại từ ảnh chụp ở sự kiện " + from);
+        }
+    }
+
+    /**
+     * Mọi bài DSA có lời giải mẫu: chạy với đúng {@code khung_nhin} của bài, trên {@code demo.in} và các test học
+     * viên xem được; mọi bộ vẽ tua tới đâu cũng ra đúng hình. Bài mới thêm vào {@code content/} tự được kiểm.
+     */
+    @TestFactory
+    Stream<DynamicTest> moiBaiDsa_tuaToiDauCungDung() {
+        LessonRepository repo = LessonRepository.load(repo().resolve("content"));
+        return repo.all().stream()
+                .filter(l -> l.mon().equals("dsa") && Files.exists(l.dir().resolve("loi_giai.py")))
+                .map(l -> DynamicTest.dynamicTest(l.id(), () -> kiemBai(l)));
+    }
+
+    static void kiemBai(Lesson l) throws Exception {
+        ArrayNode views = M.createArrayNode();
+        l.khungNhin().forEach(v -> views.addObject().put("v", v.bien()).put("kieu", v.kieu()));
+        List<String> inputs = new ArrayList<>();
+        if (Files.exists(l.dir().resolve("demo.in"))) {
+            inputs.add("demo.in");
+        }
+        l.testXem().forEach(t -> inputs.add("tests/" + t + ".in"));
+        String code = Files.readString(l.dir().resolve("loi_giai.py"), StandardCharsets.UTF_8) + CHUP_CUOI;
+        for (String in : inputs) {
+            List<TraceEvent> evs =
+                    chay(code, Files.readString(l.dir().resolve(in), StandardCharsets.UTF_8), views.toString());
+            for (ViewSpec v : l.khungNhin()) {
+                Kind<?> k = KIND_MODELS.get(v.kieu());
+                assertTrue(k != null, l.id() + ": chưa có model để kiểm bộ vẽ " + v.kieu());
+                kiemTua(evs, v.bien(), k, l.id() + " " + in);
+            }
+        }
     }
 }

@@ -65,7 +65,6 @@ public final class CallTreeView implements View {
 
     private void draw(boolean slide, Duration d) {
         stage.clear();
-        stage.add(VizStage.title("Cây lời gọi " + name + "(…)"));
         Map<Integer, double[]> pos = model.layout();
         double cols = 1;
         double depth = 0;
@@ -76,6 +75,11 @@ public final class CallTreeView implements View {
         double width = stage.width();
         double step = Math.min(84, (width - 20) / cols);
         double boxW = Math.max(16, step * 0.92);
+        // chữ nhỏ nhất của ô là cỡ 9 (VizStage.fontSize), mỗi ký tự rộng chừng 0,62 cỡ chữ
+        int maxChars = (int) ((boxW - 4) / (0.62 * 9));
+        boolean compact =
+                pos.keySet().stream().anyMatch(id -> model.node(id).label.length() > maxChars);
+        stage.add(VizStage.title("Cây lời gọi " + name + "(…)" + (compact ? "  · ô chỉ ghi tham số" : "")));
         double x0 = (width - step * cols) / 2 + step / 2;
         stage.height(TOP + (depth + 1) * LEVEL + 16);
         if (pos.isEmpty()) {
@@ -95,7 +99,12 @@ public final class CallTreeView implements View {
             CallTreeModel.N n = model.node(id);
             double x = x0 + en.getValue()[0] * step;
             double y = TOP + BOX_H / 2 + en.getValue()[1] * LEVEL;
-            Group g = callBox(n, id == cur, model.onStack(id), boxW);
+            Group g = callBox(
+                    n,
+                    compact ? CallTreeModel.argsOnly(n.label, maxChars) : n.label,
+                    id == cur,
+                    model.onStack(id),
+                    boxW);
             g.setLayoutX(x);
             g.setLayoutY(y);
             boxes.getChildren().add(g);
@@ -131,8 +140,8 @@ public final class CallTreeView implements View {
     }
 
     /** Ô một lời gọi, toạ độ của Group là tâm ô; kết quả ghi dưới ô. */
-    private static Group callBox(CallTreeModel.N n, boolean current, boolean onStack, double w) {
-        Group box = VizStage.box(n.label, w, BOX_H);
+    private static Group callBox(CallTreeModel.N n, String label, boolean current, boolean onStack, double w) {
+        Group box = VizStage.box(label, w, BOX_H);
         Color fill;
         if (current) {
             fill = VizPalette.CURRENT;

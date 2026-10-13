@@ -52,4 +52,11 @@ class CallTreeModelTest {
         assertArrayEquals(new double[] {1, 1}, pos.get(3));
         assertArrayEquals(new double[] {0.5, 0}, pos.get(0));
     }
+
+    @Test
+    void nhanOHep_boTenHamRoiBoDauCach() {
+        assertEquals("2, 7", CallTreeModel.argsOnly("thu(2, 7)", 8));
+        assertEquals("10,10", CallTreeModel.argsOnly("thu(10, 10)", 5));
+        assertEquals("4", CallTreeModel.argsOnly("fib(4)", 6));
+    }
 }
