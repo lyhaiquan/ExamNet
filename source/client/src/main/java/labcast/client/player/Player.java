@@ -19,7 +19,7 @@ import labcast.common.trace.TraceEvent;
  */
 public final class Player {
     /** Một bước ở tốc độ 1×. */
-    public static final Duration STEP = Duration.ofMillis(400);
+    public static final Duration STEP = Duration.ofMillis(Trace.STEP_MS);
     /** Một khung hình phải áp nhiều hơn ngần này bước thì áp không animation (tốc độ cao). */
     private static final int MAX_ANIMATED_PER_TICK = 3;
 

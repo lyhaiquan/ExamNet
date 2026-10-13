@@ -15,6 +15,7 @@ import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
 import labcast.server.account.AccountModule;
+import labcast.server.cast.CastModule;
 import labcast.server.journal.JournalModule;
 import labcast.server.lesson.LessonModule;
 import labcast.server.net.Connection;
@@ -42,7 +43,8 @@ public final class LabCastServer implements AutoCloseable {
                 new RunModule(), // Người 3
                 new JournalModule(), // Người 1
                 new AppFocusModule(), // Người 2
-                new SubmitModule() // Người 3
+                new SubmitModule(), // Người 3
+                new CastModule() // Người 4
                 // thêm module mới ở đây, mỗi module một dòng
                 );
     }

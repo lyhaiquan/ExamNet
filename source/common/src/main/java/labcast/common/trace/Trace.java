@@ -14,6 +14,12 @@ import java.util.List;
  * thêm khúc {@code TRACE_CHUNK}.
  */
 public final class Trace {
+    /**
+     * Một bước ở tốc độ 1× (ms). Trình phát của app và server chiếu cùng tính vị trí theo số này, nên
+     * mọi máy đang theo giáo viên ra cùng một bước.
+     */
+    public static final int STEP_MS = 400;
+
     private JsonNode header = JsonNodeFactory.instance.objectNode();
     private final List<TraceEvent> events = new ArrayList<>();
     private final List<Integer> snapshots = new ArrayList<>();

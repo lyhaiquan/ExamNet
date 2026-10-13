@@ -45,6 +45,9 @@ public final class LessonModule implements ServerModule {
         }
         ctx.register(LessonRepository.class, repo);
         ctx.register(StarterCode.class, repo::khung);
+        ctx.register(
+                DemoTraces.class,
+                id -> repo.get(id).map(this::demoTrace).orElseGet(() -> CompletableFuture.completedFuture(List.of())));
 
         ctx.router().on(MessageType.LESSON_LIST, this::list).on(MessageType.LESSON_FETCH, this::fetch);
     }

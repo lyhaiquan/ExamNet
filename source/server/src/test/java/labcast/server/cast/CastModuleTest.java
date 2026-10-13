@@ -1,0 +1,169 @@
+package labcast.server.cast;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import labcast.common.cast.CastMessages;
+import labcast.common.protocol.ErrorCode;
+import labcast.common.protocol.ErrorMessage;
+import labcast.common.protocol.Frame;
+import labcast.common.protocol.MessageType;
+import labcast.common.protocol.Role;
+import labcast.server.LabCastServer;
+import labcast.server.ServerConfig;
+import labcast.server.TestClient;
+import labcast.server.account.AccountModule;
+import labcast.server.account.UserRepository;
+import labcast.server.lesson.DemoTraces;
+import labcast.server.store.Database;
+import labcast.server.sync.SyncModule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class CastModuleTest {
+    static final String BAI = "dsa.sap-xep.noi-bot";
+
+    Database db;
+    LabCastServer server;
+    CastSenderTest.Captured cap;
+    CastModule cast;
+
+    static List<String> trace(int steps) {
+        List<String> lines = new ArrayList<>();
+        lines.add("{\"t\":\"hdr\",\"lesson\":\"" + BAI + "\",\"views\":[{\"v\":\"a\",\"kieu\":\"mang\"}]}");
+        for (int i = 0; i < steps; i++) {
+            lines.add("{\"t\":\"say\",\"s\":\"bước " + i + "\"}");
+        }
+        lines.add("{\"t\":\"end\",\"truncated\":false}");
+        return lines;
+    }
+
+    @BeforeEach
+    void setUp() throws Exception {
+        db = Database.open(":memory:");
+        cap = new CastSenderTest.Captured();
+        cast = new CastModule(ctx -> CastSenderTest.sender(cap));
+        server = new LabCastServer(
+                ServerConfig.forTest(),
+                db,
+                List.of(
+                        new AccountModule(),
+                        new SyncModule(),
+                        ctx -> ctx.register(
+                                DemoTraces.class,
+                                id -> CompletableFuture.completedFuture(id.equals(BAI) ? trace(3000) : List.of())),
+                        cast));
+        server.start();
+        var users = new UserRepository(db);
+        users.create("gv", "Nguyễn Thị Lan", Role.TEACHER, "2");
+        users.create("sv1", "Nguyễn Văn An", Role.STUDENT, "1");
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        server.close();
+        db.close();
+    }
+
+    static byte[] req(String action, String id, int step, int speed) {
+        return new CastMessages.Request(action, id, step, speed).encode();
+    }
+
+    @Test
+    void hocVien_khongDieuKhienDuoc() throws Exception {
+        try (var c = TestClient.connect(server.port())) {
+            c.login("sv1", "1");
+            c.send(MessageType.CAST_CONTROL, req(CastMessages.LOAD, BAI, 0, 1000));
+            assertEquals(
+                    ErrorCode.FORBIDDEN,
+                    ErrorMessage.from(c.readUntil(MessageType.ERROR)).code());
+        }
+        assertTrue(cap.datagrams.isEmpty());
+    }
+
+    @Test
+    void baiKhongCoAnimation_baoLoi() throws Exception {
+        try (var c = TestClient.connect(server.port())) {
+            c.login("gv", "2");
+            c.send(MessageType.CAST_CONTROL, req(CastMessages.LOAD, "khong.co.bai", 0, 1000));
+            assertEquals(
+                    ErrorCode.NOT_FOUND,
+                    ErrorMessage.from(c.readUntil(MessageType.ERROR)).code());
+            c.send(MessageType.CAST_CONTROL, req(CastMessages.PLAY, BAI, 0, 1000));
+            assertEquals(
+                    ErrorCode.NOT_FOUND,
+                    ErrorMessage.from(c.readUntil(MessageType.ERROR)).code(),
+                    "chưa nạp bài thì không phát được");
+        }
+    }
+
+    @Test
+    void napBai_phatDuKhucRoiMoiPhatLenh_giaoVienNhanBanQuaTcp() throws Exception {
+        try (var gv = TestClient.connect(server.port())) {
+            gv.login("gv", "2");
+            long before = System.currentTimeMillis();
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.LOAD, BAI, 0, 1000));
+            Frame viaTcp = gv.readUntil(MessageType.CAST_CONTROL);
+            assertTrue(viaTcp.has(Frame.FLAG_VIA_TCP));
+
+            List<Frame> frames = cap.frames();
+            Frame last = frames.get(frames.size() - 1);
+            assertEquals(MessageType.CAST_CONTROL, last.type());
+            assertEquals(last.seq(), viaTcp.seq(), "cùng SEQ với bản multicast, app bỏ trùng được");
+            int chunks = frames.size() - 1;
+            assertTrue(chunks > 1, "trace 3000 bước phải chia nhiều khúc: " + chunks);
+            for (int i = 0; i < chunks; i++) {
+                assertEquals(MessageType.CAST_DATA, frames.get(i).type());
+                var d = CastMessages.Data.decode(frames.get(i).payload());
+                assertEquals(i, d.chunkIndex());
+                assertEquals(chunks, d.totalChunks());
+                assertEquals(cast.castId(), d.castId());
+            }
+            var ctl = CastMessages.Control.decode(last.payload());
+            assertEquals(CastMessages.LOAD, ctl.action());
+            assertEquals(-1, ctl.step());
+            assertFalse(ctl.playing());
+            assertTrue(ctl.at() >= before + CastState.LEAD_MS, "giờ hẹn = lúc nhận + 300 ms");
+            assertTrue(cap.datagrams.stream().allMatch(d -> d.length <= CastMessages.MAX_DATAGRAM));
+        }
+    }
+
+    @Test
+    void phatRoiKhungKhoa_mangTrangThaiDangChay() throws Exception {
+        try (var gv = TestClient.connect(server.port())) {
+            gv.login("gv", "2");
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.LOAD, BAI, 0, 1000));
+            gv.readUntil(MessageType.CAST_CONTROL);
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.PLAY, BAI, 5, 2000));
+            var play = CastMessages.Control.decode(
+                    gv.readUntil(MessageType.CAST_CONTROL).payload());
+            assertTrue(play.playing());
+            assertEquals(5, play.step());
+
+            cast.keyframeNow();
+            Frame kf = gv.readUntil(MessageType.CAST_KEYFRAME);
+            var k = CastMessages.Keyframe.decode(kf.payload());
+            assertTrue(k.playing());
+            assertEquals(5, k.step());
+            assertEquals(2000, k.speedMilli());
+            assertEquals(play.at(), k.anchorAt());
+            assertEquals(kf.seq() - 1, k.lastSeq());
+            assertEquals(1, k.firstDataSeq());
+
+            gv.send(MessageType.CAST_CONTROL, req(CastMessages.STOP, BAI, 0, 0));
+            assertEquals(
+                    CastMessages.STOP,
+                    CastMessages.Control.decode(
+                                    gv.readUntil(MessageType.CAST_CONTROL).payload())
+                            .action());
+            int before = cap.datagrams.size();
+            cast.keyframeNow();
+            assertEquals(before, cap.datagrams.size(), "hết chiếu thì không phát khung khoá");
+        }
+    }
+}
