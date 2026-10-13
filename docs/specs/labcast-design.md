@@ -322,13 +322,13 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | --- | --- |
 | Chung | `hdr`, `line`, `vars` (biến cục bộ đổi giá trị), `out` (dòng in ra), `say`, `key`, `snap`, `end` |
 | Mảng, chuỗi, bit | `read`, `set`, `ptr` (con trỏ i, j…) |
-| Ngăn xếp, hàng đợi, DSLK, băm | `push`, `pop`, `enq`, `deq`, `link`, `unlink`, `bucket` |
+| Ngăn xếp, hàng đợi, DSLK, băm | `push`, `pop`, `enq`, `deq` (kèm `x` là giá trị vào/ra), `read` (`i`: xem đỉnh / đầu hàng), `link`, `unlink`, `bucket` |
 | Cây, đồ thị | `node`, `edge`, `mark` (đổi màu), `rotate` |
 | Lời gọi | `call` (hàm, tham số, id, id cha), `ret` (id, giá trị) |
-| Bảng 2 chiều | `cell_r`, `cell_w` |
+| Bảng 2 chiều | `cell_r`, `cell_w`, `mark` (ô `i`, `j` tô xanh lá và giữ màu, ví dụ đường truy vết) |
 | SQL | `sql.table` (bảng gốc; `side` = bảng bên phải khi ghép), `sql.rename`, `sql.pair` (nối một cặp dòng), `sql.join`, `sql.mark` (✓/✗ từng dòng hoặc nhóm), `sql.keep`, `sql.group`, `sql.agg`, `sql.project`, `sql.distinct`, `sql.order`, `sql.limit`, `sql.setop`, `sql.diff`, `sql.result`. Chỉ số dòng luôn là chỉ số trong bảng đang làm việc lúc đó (HAVING dùng `sql.mark` + `sql.keep` trên dòng nhóm) |
 
-- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
+- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Mảng chụp thành một mảng JSON; các cấu trúc khác tự mô tả: ngăn xếp/hàng đợi `{"kieu": "ngan-xep" | "hang-doi", "ds": [...]}`, bảng 2 chiều `{"kieu": "luoi", "o": [[...]], "hang": [...], "cot": [...], "ghi": [[i, j]…], "dau": [[i, j]…]}` (nhãn hai trục, ô đã ghi, ô đã đánh dấu đều tuỳ chọn) — tua tới giữa trace vẫn tô đúng màu. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
 - **Trần**: 10 000 sự kiện và 2 MB mỗi trace. Vượt trần thì dừng ghi và đặt `truncated: true`. App báo "code có thể lặp vô hạn hoặc chậm hơn mức cần thiết".
 - **Chủ của định dạng:** Người 3 sinh trace (Python và `sqlviz`), Người 4 đọc trace (`common.trace`, `player`). Đổi định dạng phải có cả hai duyệt.
 
@@ -368,7 +368,7 @@ Thư viện `viz` (trong `runner/`) cho ba cách ghi, mức chi tiết giảm d�
 2. **Chụp biến theo khai báo** — học viên dùng `list`, `dict`, `deque` bình thường. Sau mỗi dòng, tracer chụp các biến khai báo trong `khung_nhin`, so với lần chụp trước rồi sinh `set`, `push`, `pop`… Chỉ thấy được lần ghi. Dùng cho bài khó (ví dụ Dijkstra: `adj` → `do-thi`, `dist` → `mang`, `pq` → `heap`).
 3. **`sys.settrace`** — sinh `line` và `vars` cho chế độ chạy từng dòng; sinh `call` và `ret` cho các hàm khai báo trong `cay_goi`. Không cần sửa code học viên.
 
-Lời giải mẫu gọi thêm `viz.say(...)` (thuyết minh) và `viz.key(...)` (bước quan trọng; trình phát có nút "tới bước quan trọng tiếp theo").
+Lời giải mẫu gọi thêm `viz.say(...)` (thuyết minh) và `viz.key(...)` (bước quan trọng; trình phát có nút "tới bước quan trọng tiếp theo", lời kèm theo cũng hiện ở dòng thuyết minh).
 
 **Animation chỉ chạy với test nhỏ và trung bình:** 5–10 phần tử (đồ thị 5–8 đỉnh) cho xem kỹ; 20–50 phần tử (đồ thị 10–20 đỉnh) cho xem nhanh. Test lớn chạy **không bật tracer**, chỉ để chấm.
 

@@ -222,6 +222,8 @@ public final class CastSession {
 
 ### Task 4.8: Bộ vẽ `ngan-xep`, `dslk`, `bam` và bài trung tố → hậu tố
 
+> **Một phần đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `StackModel`, `StackView`. Bài mẫu là `dsa.ngan-xep.kiem-tra-ngoac` (giảng giải) và `dsa.hang-doi.so-nhi-phan` (bài tập, có `luat.py` bắt in số mà không dùng hàng đợi) thay cho bài trung tố → hậu tố. **Chưa làm:** `dslk`, `bam`, bài trung tố → hậu tố. **Khác kế hoạch:** `Views` nhận thêm `kieu: hang-doi` (cùng `StackView`, vẽ ngang); `ngan-xep` gặp `enq`/`deq` hoặc ảnh chụp `kieu: hang-doi` cũng tự vẽ ngang. Model ném `IllegalStateException` khi trace lấy ra từ cấu trúc rỗng, nhưng `StackView` bắt lại và dựng lại hình, không làm dừng trình phát. Quá 8 phần tử (ngăn xếp) hay quá bề ngang (hàng đợi) thì gộp phần giữa thành ô "…", luôn thấy đỉnh / hai đầu. Giá trị là chữ (`VizText`): dấu ngoặc, xâu, toạ độ `(r, c)`.
+
 **Files:**
 - Create: `source/client/src/main/java/labcast/client/views/nganxep/StackModel.java`, `StackView.java`
 - Create: `source/client/src/main/java/labcast/client/views/dslk/ListModel.java`, `ListView.java`
@@ -467,6 +469,15 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 **Commit:** `feat(server): chấm bài nộp bằng test ẩn, kiểm hàm cấm và luật trace`
 
 ### Task 3.9: Thêm cấu trúc gắn camera cho Python
+
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `runner/viz/ngan_xep.py` (`NganXep`, `HangDoi`), `runner/viz/bang.py` (`Bang`). **Khác kế hoạch:**
+>
+> - Không kế thừa `list` (khác `viz.Mang`): kế thừa thì `sort`, `append`, `reverse`… đổi dữ liệu mà không sinh sự kiện, hoạt hình lệch với dữ liệu thật. Thay vào đó có sẵn tên quen của `list`/`deque`: `append`, `popleft`, `st[-1]`, `q[0]` (xem đỉnh/đầu → `read`).
+> - Trạng thái trong `snap` tự mô tả (`trang_thai()`, xem spec §7.3): ngăn xếp/hàng đợi ghi `kieu`, nên bộ vẽ biết vẽ đứng hay ngang ngay cả khi còn rỗng; bảng ghi nhãn hai trục (`nhan_hang`, `nhan_cot`, ví dụ hai xâu của LCS), ô đã ghi và ô đã đánh dấu.
+> - `Bang` thêm: `dp[i, j]`, gán cả hàng và gán lát cắt (sinh `cell_w` từng ô), `Bang.tu(luoi)` dựng từ lưới có sẵn, `danh_dau(i, j)` → sự kiện `mark`. In bảng không sinh sự kiện đọc.
+> - `recorder` ghi giá trị lạ (set, object) dạng chữ (`default=str`) thay vì làm hỏng bài chạy.
+>
+> Test: `runner/tests/test_ngan_xep.py`, `test_bang.py`; `VizContractTest` (app) chạy thật lời giải mẫu qua `run.py` rồi đưa vào model của bộ vẽ.
 
 **Files:**
 - Create: `runner/viz/ngan_xep.py` (`NganXep`, `HangDoi`), `runner/viz/bang.py` (`Bang`)

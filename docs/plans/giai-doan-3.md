@@ -348,6 +348,8 @@ Sai một bước → `SIM_RESULT{ok:false}`, đề hết hiệu lực, muốn l
 
 ### Task 3.18: Bộ vẽ `luoi`, bài LCS
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `GridModel`, `GridView`, bài `dsa.quy-hoach-dong.lcs` (đáp án là độ dài; lời giải mẫu truy vết và tô đường đi). **Khác kế hoạch:** tô đường truy vết bằng `dp.danh_dau(i, j)` → sự kiện `mark` có tên biến, không bằng `key "truy-vet"` — trình phát không chuyển `key` cho bộ vẽ. Không tính chính ô đang ghi là ô phụ thuộc (`dp[i][j] = max(dp[i][j], …)`), tối đa 6 mũi tên. Hai trục ghi chỉ số và nhãn nếu `Bang` có `nhan_hang`/`nhan_cot`. Test: `GridModelTest`, `VizContractTest`.
+
 **Files:**
 - Create: `source/client/src/main/java/labcast/client/views/luoi/GridModel.java`, `GridView.java`
 - Create: `content/dsa/quy-hoach-dong/lcs/` (dùng `viz.Bang`)

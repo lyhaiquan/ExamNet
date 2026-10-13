@@ -21,6 +21,17 @@ content/
 - `sinh_test.py <nho|tb|lon> <seed>` in một input ra stdout. Cùng seed thì cùng input. Server sinh `so_test_an` test ẩn cỡ `lon` (seed 1…N, output từ `loi_giai.py`) và một test `tb` (seed 1) để kiểm luật trace. Test `tb` phải đủ nhỏ để trace của lời giải mẫu dưới 10 000 sự kiện.
 - `luat.py` (tuỳ chọn) định nghĩa `kiem(su_kien, dau_vao) -> str | None`: nhận danh sách sự kiện trace (dict) của code học viên chạy test `tb`, trả `None` nếu đạt hoặc một câu giải thích vi phạm. Lời giải mẫu phải qua luật của chính nó — xem `runner/tests/test_chuan_bi_luat.py`.
 
+**Cấu trúc "gắn camera" có sẵn** (`runner/viz`, khai báo trong `khung_nhin` để chọn bộ vẽ):
+
+| Lớp Python | `kieu` | Thao tác sinh sự kiện |
+| --- | --- | --- |
+| `viz.Mang(ds, ten="a")` | `mang` | `a[i]` đọc, `a[i] = x` ghi, `a.con_tro("i", i)` |
+| `viz.NganXep(ten="st")` | `ngan-xep` | `push`/`append`, `pop`, xem đỉnh `top()`/`st[-1]` |
+| `viz.HangDoi(ten="q")` | `hang-doi` | `enq`/`append`, `deq`/`popleft`, xem đầu `dau()`/`q[0]` |
+| `viz.Bang(hang, cot, ten="dp", nhan_hang=…, nhan_cot=…)`, `viz.Bang.tu(luoi)` | `luoi` | `dp[i][j]` đọc/ghi (mũi tên từ ô vừa đọc tới ô được ghi), `dp.danh_dau(i, j)` tô xanh lá |
+
+Thêm vào đó `viz.say("…")` (lời thuyết minh) và `viz.key("…")` (bước quan trọng, nút ⏭ nhảy tới; lời kèm theo cũng hiện như thuyết minh). Ngăn xếp, hàng đợi, bảng không kế thừa `list`: học viên không có cách nào đổi dữ liệu mà không sinh sự kiện. Muốn đọc bảng mà không làm rối hình (ví dụ khi truy vết trong lời giải mẫu) thì dùng `dp.trang_thai()["o"]`.
+
 Mỗi bài phải qua kiểm nội dung trên CI trước khi merge: lời giải mẫu qua hết test, trace không vượt trần, `lesson.yaml` hợp lệ. genAI được dùng để soạn đề, lời giải mẫu và bộ sinh test; người soạn chịu trách nhiệm kiểm lại.
 
 **Bài SQL** (bộ máy SQL, spec §7.6):

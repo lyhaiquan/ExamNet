@@ -168,7 +168,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `kiem-tra-ngoac` | Kiểm tra dãy ngoặc hợp lệ | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code |  |
+| `kiem-tra-ngoac` | Kiểm tra dãy ngoặc hợp lệ | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code | **Đã làm sớm** 13/10 (bậc xem, code) |
 | `trung-to-hau-to` | Trung tố → hậu tố | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code | **Đã làm** ở GĐ2 task 4.8 (Người 4) |
 | `tinh-hau-to` | Tính biểu thức hậu tố | GG★ | `ngan-xep` | xem · dự đoán · tự mô phỏng · code |  |
 | `ngoac-dai-nhat` | Độ dài đoạn ngoặc hợp lệ dài nhất | BT◆ | `ngan-xep` | code |  |
@@ -187,7 +187,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | id | Bài | Loại | Bộ vẽ | Bậc | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
 | `hang-doi-vong` | Hàng đợi vòng trên mảng | GG★ | `mang` | xem · dự đoán · code | Con trỏ `dau`, `cuoi` |
-| `so-nhi-phan` | In các số nhị phân từ 1 đến n bằng hàng đợi | BT◆ | `ngan-xep` | dự đoán · code | `viz.HangDoi` vẽ nằm ngang |
+| `so-nhi-phan` | In các số nhị phân từ 1 đến n bằng hàng đợi | BT◆ | `ngan-xep` | dự đoán · code | `viz.HangDoi` vẽ nằm ngang. **Đã làm sớm** 13/10 (bậc code, có `luat.py`) |
 | `cua-so-max` | Max của mọi đoạn độ dài k (hàng đợi hai đầu) | BT | `ngan-xep`, `mang` | code | Cần O(n) |
 | `may-in` | Hàng đợi máy in theo độ ưu tiên: khi nào tài liệu k được in | BT | `ngan-xep` | code |  |
 | `josephus` | Bài toán Josephus mô phỏng bằng hàng đợi | LT | — | code |  |
@@ -238,7 +238,7 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 | --- | --- | --- | --- | --- | --- |
 | `fibonacci-ghi-nho` | Fibonacci có ghi nhớ | GG★ | `cay-goi`, `mang` | xem · dự đoán · code | So với bài `de-quy.fibonacci-cay-goi` |
 | `cai-tui` | Cái túi 0/1 | GG★ | `luoi` | xem · dự đoán · code | `viz.Bang`, truy vết |
-| `lcs` | Dãy con chung dài nhất | GG★ | `luoi` | xem · dự đoán · code | **Đã làm** ở GĐ3 task 3.18 (Người 3) |
+| `lcs` | Dãy con chung dài nhất | GG★ | `luoi` | xem · dự đoán · code | **Đã làm sớm** 13/10 (bậc xem, code), thuộc GĐ3 task 3.18 (Người 3) |
 | `lis` | Dãy con tăng dài nhất, O(n²) | GG★ | `mang` | xem · dự đoán · code |  |
 | `doi-tien` | Đổi tiền ít đồng nhất | GG★ | `mang` | xem · dự đoán · code |  |
 | `duong-di-luoi` | Đường đi tổng nhỏ nhất trên lưới | GG★ | `luoi` | xem · dự đoán · code |  |
