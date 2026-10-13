@@ -132,3 +132,25 @@ for _ in range(q):
     assert json.loads(dong[-1])["stdout"].split() == ["YES", "NO", "YES", "NO"]
     v = json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": dong[:-1]}, BAM)[0])
     assert not v["ok"] and "x mod m" in v["loi"]
+
+
+FIB = RUNNER.parent / "content" / "dsa" / "de-quy" / "fibonacci"
+FIB_VIEWS = [{"v": "fib", "kieu": "cay-goi"}, {"v": "code", "kieu": "code-bien"}]
+
+
+def luat_fib(code, du_lieu="10\n"):
+    dong = chay("run.py", {"code": code, "input": du_lieu, "trace": True, "views": FIB_VIEWS})
+    return json.loads(dong[-1]), json.loads(chay("kiem_luat.py", {"input": du_lieu, "trace": dong[:-1]}, FIB)[0])
+
+
+def test_fib_ghi_nho_qua_luat_vong_lap_va_khong_nho_thi_khong():
+    kq, v = luat_fib((FIB / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["stdout"] == "55\n" and v["ok"]
+
+    vong_lap = "def fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\nprint(fib(int(input())))\n"
+    kq, v = luat_fib(vong_lap)
+    assert kq["stdout"] == "55\n" and not v["ok"] and "đệ quy" in v["loi"]
+
+    khong_nho = "def fib(n):\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\nprint(fib(int(input())))\n"
+    kq, v = luat_fib(khong_nho)
+    assert kq["stdout"] == "55\n" and not v["ok"] and "ghi nhớ" in v["loi"]

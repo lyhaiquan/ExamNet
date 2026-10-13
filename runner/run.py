@@ -20,7 +20,7 @@ import math
 import sys
 import time
 
-from viz import recorder, theo_doi
+from viz import cay_goi, code_bien, recorder, theo_doi
 
 MAX_STDOUT = 1_000_000  # ký tự; in nhiều hơn thì cắt, tránh tràn bộ nhớ
 
@@ -84,7 +84,15 @@ def chay(job, out):
         recorder.current = recorder.Recorder(out=None, enabled=False)
 
     theo_doi.tat()
+    cay_goi.tat()
     code = job.get("code", "")
+    if co_trace:
+        # bộ vẽ không gắn với cấu trúc nào trong code: cây lời gọi (bien là tên hàm) và chạy từng dòng
+        for v in job.get("views", []):
+            if v.get("kieu") == "cay-goi":
+                cay_goi.bat(v.get("v", ""))
+            elif v.get("kieu") == "code-bien":
+                code_bien.bat(v.get("v", "code"), code)
     stdout_hv = GioiHanStdout()
     stdin_goc, stdout_goc = sys.stdin, sys.stdout
     sys.stdin = io.StringIO(job.get("input", ""))
@@ -102,6 +110,7 @@ def chay(job, out):
         ok, loi = False, loi_rut_gon(e, code)
     finally:
         theo_doi.tat()
+        cay_goi.tat()
         sys.stdin, sys.stdout = stdin_goc, stdout_goc
     thoi_gian = round((time.perf_counter() - bat_dau) * 1000)
 
