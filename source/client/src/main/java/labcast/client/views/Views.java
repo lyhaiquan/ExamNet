@@ -8,6 +8,7 @@ import labcast.client.player.View;
 import labcast.client.views.bangsql.SqlTableView;
 import labcast.client.views.cay.HeapView;
 import labcast.client.views.cay.TreeView;
+import labcast.client.views.dothi.GraphView;
 import labcast.client.views.luoi.GridView;
 import labcast.client.views.mang.ArrayView;
 import labcast.client.views.nganxep.StackView;
@@ -15,7 +16,8 @@ import labcast.client.views.nganxep.StackView;
 /** Dựng bộ vẽ theo khai báo {@code [{tên biến, kieu}]}. Bộ vẽ chưa có thì bỏ qua biến đó. */
 public final class Views {
     /** Mọi {@code kieu} đã có bộ vẽ. Bài khai báo {@code kieu} khác thì biến đó không được vẽ. */
-    public static final Set<String> KINDS = Set.of("mang", "ngan-xep", "hang-doi", "luoi", "bang-sql", "cay", "heap");
+    public static final Set<String> KINDS =
+            Set.of("mang", "ngan-xep", "hang-doi", "luoi", "bang-sql", "cay", "heap", "do-thi");
 
     private Views() {}
 
@@ -46,6 +48,7 @@ public final class Views {
             case "cay" -> new TreeView(name);
                 // heap là một viz.Mang vẽ thành cây nhị phân đầy đủ
             case "heap" -> new HeapView(name);
+            case "do-thi" -> new GraphView(name);
             default -> null;
         };
     }

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import labcast.client.views.cay.TreeModel;
+import labcast.client.views.dothi.GraphModel;
 import labcast.client.views.luoi.GridModel;
 import labcast.client.views.mang.ArrayModel;
 import labcast.client.views.nganxep.StackModel;
@@ -332,5 +333,52 @@ class VizContractTest {
                 assertTrue(Views.KINDS.contains(v.kieu()), l.id() + " khai báo kieu chưa có bộ vẽ: " + v.kieu());
             }
         }
+    }
+
+    // ---------- đồ thị ----------
+
+    static GraphModel graphFrom(JsonNode snap) {
+        GraphModel m = new GraphModel();
+        m.reset(snap);
+        return m;
+    }
+
+    @Test
+    void baiBfs_traceVaoDungBoVeDoThi() throws Exception {
+        String p = "dsa/do-thi/bfs";
+        kiem(
+                bai(p, "loi_giai.py"),
+                bai(p, "demo.in"),
+                "g",
+                VizContractTest::graphFrom,
+                GraphModel::apply,
+                GraphModel::describe);
+        kiem(
+                bai(p, "loi_giai.py"),
+                bai(p, "demo.in"),
+                "q",
+                VizContractTest::stackFrom,
+                StackModel::apply,
+                VizContractTest::stackState);
+        // lưới 5×5: hơn 200 sự kiện
+        StringBuilder in = new StringBuilder("25 40\n");
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 5; j++) {
+                int u = i * 5 + j + 1;
+                if (j < 4) {
+                    in.append(u).append(' ').append(u + 1).append('\n');
+                }
+                if (i < 4) {
+                    in.append(u).append(' ').append(u + 5).append('\n');
+                }
+            }
+        }
+        kiem(
+                bai(p, "loi_giai.py"),
+                in.toString(),
+                "g",
+                VizContractTest::graphFrom,
+                GraphModel::apply,
+                GraphModel::describe);
     }
 }
