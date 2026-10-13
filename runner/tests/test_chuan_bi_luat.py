@@ -236,3 +236,13 @@ def test_n_queens_sudoku_quay_lui_qua_luat_khong_de_quy_thi_khong():
         "        print(chr(10).join(''.join(h) for h in g))\n        break\n")
     kq, v = luat_bai(sd, views, vong_lap, "..43\n3.21\n43.2\n21.4\n")  # 4⁵ cách: vòng lặp chạy kịp
     assert kq["stdout"] == "1243\n3421\n4312\n2134\n" and not v["ok"] and "quay lui" in v["loi"]
+
+
+def test_fib_ghi_nho_mang_qua_luat_khong_nho_thi_khong():
+    bai = RUNNER.parent / "content" / "dsa" / "quy-hoach-dong" / "fibonacci-ghi-nho"
+    views = [{"v": "fib", "kieu": "cay-goi"}, {"v": "nho", "kieu": "mang"}]
+    kq, v = luat_bai(bai, views, (bai / "loi_giai.py").read_text(encoding="utf-8"))
+    assert kq["stdout"] == "144\n" and v["ok"], v
+    khong_nho = "def fib(i):\n    return i if i < 2 else fib(i - 1) + fib(i - 2)\nprint(fib(int(input())))\n"
+    kq, v = luat_bai(bai, views, khong_nho)
+    assert kq["stdout"] == "144\n" and not v["ok"] and "ghi nhớ" in v["loi"]

@@ -1,0 +1,19 @@
+id: dsa.quy-hoach-dong.lis
+mon: dsa
+chuong: quy-hoach-dong
+ten: Dãy con tăng dài nhất (LIS), O(n²)
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: a
+    kieu: mang
+  - bien: dp
+    kieu: mang
+cam_dung: []
+cam_import: [bisect]      # bài này học cách O(n²); cách O(n log n) ở bài lis-lon
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: [dsa.quy-hoach-dong.doi-tien]

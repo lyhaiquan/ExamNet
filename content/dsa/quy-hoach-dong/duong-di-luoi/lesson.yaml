@@ -1,0 +1,19 @@
+id: dsa.quy-hoach-dong.duong-di-luoi
+mon: dsa
+chuong: quy-hoach-dong
+ten: Đường đi tổng nhỏ nhất trên lưới
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: a
+    kieu: luoi
+  - bien: dp
+    kieu: luoi
+cam_dung: []
+cam_import: [functools]   # bài này học cách điền bảng, không dùng lru_cache
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: [dsa.quy-hoach-dong.leo-cau-thang]
