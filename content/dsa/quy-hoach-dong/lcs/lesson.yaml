@@ -1,0 +1,18 @@
+id: dsa.quy-hoach-dong.lcs
+mon: dsa
+chuong: quy-hoach-dong
+ten: Dãy con chung dài nhất (LCS)
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, du-doan, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: dp
+    kieu: luoi
+cay_goi: []
+cam_dung: []
+cam_import: [functools]   # không dùng lru_cache: bài này học cách điền bảng
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []

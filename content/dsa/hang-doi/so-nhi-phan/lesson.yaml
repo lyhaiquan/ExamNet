@@ -1,0 +1,18 @@
+id: dsa.hang-doi.so-nhi-phan
+mon: dsa
+chuong: hang-doi
+ten: In các số nhị phân từ 1 đến n bằng hàng đợi
+loai: bai-tap             # giang-giai | bai-tap | luyen-tap
+bac: [du-doan, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: q
+    kieu: hang-doi        # bộ vẽ ngan-xep, vẽ nằm ngang
+cay_goi: []
+cam_dung: [bin, format]   # phải sinh số bằng hàng đợi, không đổi cơ số sẵn
+cam_import: []
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
+test_xem: [nho-1]
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []
