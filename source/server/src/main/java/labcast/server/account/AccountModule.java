@@ -11,6 +11,7 @@ import labcast.common.protocol.PayloadWriter;
 import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
+import labcast.server.cast.CastModule;
 import labcast.server.classroom.ClassRepository;
 import labcast.server.net.Ctx;
 import labcast.server.net.Priority;
@@ -73,7 +74,10 @@ public final class AccountModule implements ServerModule {
         }
     }
 
-    /** {@code HELLO(str clientVersion, str device)} → {@code HELLO_ACK(i64 serverTime, str className)}. */
+    /**
+     * {@code HELLO(str clientVersion, str device)} → {@code HELLO_ACK(i64 serverTime, str className, i32 castId)}.
+     * {@code castId} để app bỏ gói chiếu của lớp khác cùng mạng LAN (0: server không chiếu).
+     */
     private void hello(Ctx c, Frame f) throws Exception {
         PayloadReader r = f.reader();
         String clientVersion = r.hasRemaining() ? r.str() : "";
@@ -85,6 +89,7 @@ public final class AccountModule implements ServerModule {
                 new PayloadWriter()
                         .i64(System.currentTimeMillis())
                         .str(ctx.config().lop())
+                        .i32(ctx.find(CastModule.class).map(CastModule::castId).orElse(0))
                         .toBytes());
     }
 

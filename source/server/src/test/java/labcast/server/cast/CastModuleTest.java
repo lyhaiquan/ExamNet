@@ -88,6 +88,26 @@ class CastModuleTest {
         assertTrue(cap.datagrams.isEmpty());
     }
 
+    /**
+     * Hai lớp (DSA, SQL) cùng một mạng LAN phát lên cùng nhóm multicast: app chỉ nhận gói mang castId của
+     * server mình đăng nhập, nên server báo castId ngay trong {@code HELLO_ACK}.
+     */
+    @Test
+    void helloAck_baoCastId_deAppBoGoiChieuCuaLopKhac() throws Exception {
+        try (var c = TestClient.connect(server.port())) {
+            c.send(
+                    MessageType.HELLO,
+                    new labcast.common.protocol.PayloadWriter()
+                            .str("1.0")
+                            .str("may-1")
+                            .toBytes());
+            var r = c.readUntil(MessageType.HELLO_ACK).reader();
+            r.i64();
+            r.str();
+            assertEquals(cast.castId(), r.i32());
+        }
+    }
+
     @Test
     void baiKhongCoAnimation_baoLoi() throws Exception {
         try (var c = TestClient.connect(server.port())) {
