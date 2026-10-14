@@ -17,6 +17,17 @@ class LessonRepositoryTest {
     }
 
     @Test
+    void chiMotMon_giuDungBaiCuaMonDo() {
+        var all = LessonRepository.load(TestPaths.repoRoot().resolve("content"));
+        var sql = all.chiMon("sql");
+        assertTrue(sql.all().size() > 0);
+        assertTrue(sql.all().stream().allMatch(Lesson::isSql));
+        assertEquals(all.all().stream().filter(Lesson::isSql).count(), sql.all().size());
+        assertTrue(sql.get("dsa.sap-xep.noi-bot").isEmpty());
+        assertTrue(all.chiMon("dsa").get("dsa.sap-xep.noi-bot").isPresent());
+    }
+
+    @Test
     void motBaiDungMotBaiThieuYaml() throws Exception {
         var repo = LessonRepository.load(contentGia());
         assertEquals(1, repo.all().size());

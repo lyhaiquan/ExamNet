@@ -51,6 +51,7 @@ public final class Dashboard {
         server.put("startedAt", info.startedAt().toEpochMilli());
         server.put("now", now);
         server.put("lop", ctx.config().lop());
+        server.put("mon", ctx.config().mon() == null ? "" : ctx.config().mon().toUpperCase());
         server.put("tcpPort", tcpPort);
         server.put("sandbox", ctx.config().khongSandbox() ? "Python trên máy server (--khong-sandbox)" : "Docker");
 

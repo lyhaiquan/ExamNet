@@ -164,6 +164,49 @@ class ServerConfigTest {
         assertTrue(e.getMessage().contains("cong"), e.getMessage());
     }
 
+    /** Mỗi lớp một môn: server lớp DSA chỉ nạp bài DSA, server lớp SQL chỉ nạp bài SQL. */
+    @Test
+    void mon_chiNhanDsaHoacSql_khongGhiThiNapCaHai() {
+        assertEquals(null, ServerConfig.parse(new String[0], Map.of()).mon());
+        assertEquals(
+                "sql",
+                ServerConfig.parse(new String[] {"--mon", "sql"}, Map.of()).mon());
+        assertEquals(
+                "dsa",
+                ServerConfig.parse(new String[] {"--mon", "DSA"}, Map.of()).mon());
+        assertEquals(
+                "dsa",
+                ServerConfig.parse(new String[0], Map.of("LABCAST_MON", "dsa")).mon());
+        assertEquals(
+                "sql",
+                parse(new String[] {"--cau-hinh", "a.conf"}, Map.of(), true, Map.of("a.conf", "mon = sql\n"))
+                        .mon());
+        var e = assertThrows(
+                IllegalArgumentException.class, () -> ServerConfig.parse(new String[] {"--mon", "java"}, Map.of()));
+        assertTrue(e.getMessage().contains("dsa") && e.getMessage().contains("sql"), e.getMessage());
+    }
+
+    /** Hai lớp trên cùng một máy: mỗi server một cổng app, một cổng dashboard, một database. */
+    @Test
+    void portDashboard_doiDuoc() {
+        assertEquals(8080, ServerConfig.parse(new String[0], Map.of()).statusPort());
+        assertEquals(
+                8081,
+                ServerConfig.parse(new String[] {"--port-dashboard", "8081"}, Map.of())
+                        .statusPort());
+        assertEquals(
+                8082,
+                parse(
+                                new String[] {"--cau-hinh", "a.conf"},
+                                Map.of(),
+                                true,
+                                Map.of("a.conf", "port-dashboard = 8082\n"))
+                        .statusPort());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> ServerConfig.parse(new String[] {"--port-dashboard", "x"}, Map.of()));
+    }
+
     @Test
     void thuMucRunner_canhThuMucContent() {
         var c = ServerConfig.defaults().withContent(Path.of("/repo/content"));

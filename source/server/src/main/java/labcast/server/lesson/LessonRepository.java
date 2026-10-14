@@ -61,6 +61,17 @@ public final class LessonRepository {
         return new LessonRepository(out, errors);
     }
 
+    /** Chỉ các bài của một môn: server của lớp DSA không đưa ra bài SQL và ngược lại. Giữ nguyên danh sách lỗi. */
+    public LessonRepository chiMon(String mon) {
+        Map<String, Lesson> out = new LinkedHashMap<>();
+        lessons.forEach((id, l) -> {
+            if (l.mon().equals(mon)) {
+                out.put(id, l);
+            }
+        });
+        return new LessonRepository(out, errors);
+    }
+
     public Optional<Lesson> get(String id) {
         return Optional.ofNullable(lessons.get(id));
     }

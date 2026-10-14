@@ -39,8 +39,11 @@ public final class LessonModule implements ServerModule {
     @Override
     public void install(ServerContext ctx) {
         this.ctx = ctx;
-        this.repo = LessonRepository.load(ctx.config().content());
-        LOG.info("Đã nạp " + repo.all().size() + " bài, " + repo.errors().size() + " bài lỗi");
+        LessonRepository all = LessonRepository.load(ctx.config().content());
+        String mon = ctx.config().mon();
+        this.repo = mon == null ? all : all.chiMon(mon);
+        LOG.info("Đã nạp " + repo.all().size() + " bài" + (mon == null ? "" : " môn " + mon.toUpperCase()) + ", "
+                + repo.errors().size() + " bài lỗi");
         try {
             syncToDb(ctx.db(), repo);
         } catch (SQLException e) {

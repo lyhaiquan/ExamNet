@@ -90,6 +90,10 @@ public final class ServerMain {
 
         System.out.println("LabCast " + info.version() + " (commit " + info.commit() + ")");
         System.out.println("  Lớp:            " + cfg.lop());
+        System.out.println("  Môn:            "
+                + (cfg.mon() == null
+                        ? "cả DSA và SQL — mỗi lớp một môn thì ghi mon = dsa hoặc mon = sql vào file cấu hình"
+                        : cfg.mon().toUpperCase()));
         System.out.println("  App nối tới:    " + host + ":" + server.port() + " (TCP)");
         System.out.println("  Tìm server:     UDP " + discovery.port());
         System.out.println("  Chiếu bài:      multicast "

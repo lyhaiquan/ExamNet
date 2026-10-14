@@ -201,7 +201,7 @@ const ORDER = (s) => (!s.inApp && s.online ? 0 : s.presence === "SUSPECT" ? 1
 
 function render(d) {
   const now = d.server.now;
-  $("lop").textContent = d.server.lop;
+  $("lop").textContent = d.server.mon ? d.server.lop + " · " + d.server.mon : d.server.lop;
   $("build").textContent = "v" + d.server.version + " · " + String(d.server.commit).slice(0, 7)
     + " · chạy từ " + time(d.server.startedAt) + " · " + d.server.sandbox;
   $("teachers").textContent = d.teachersOnline.length ? "Giáo viên đang vào: " + d.teachersOnline.join(", ") : "";

@@ -16,6 +16,7 @@ public record ServerConfig(
         String db,
         Path content,
         String lop,
+        String mon,
         String lan,
         String taoGiaoVien,
         boolean khongSandbox,
@@ -32,21 +33,32 @@ public record ServerConfig(
               --db <file>                   file SQLite (mặc định labcast.db)
               --content <thư mục>           thư mục bài học (mặc định content)
               --lop <tên>                   tên lớp hiện trên app học viên (mặc định "Lớp thực hành")
+              --mon <dsa|sql>               môn của lớp: chỉ nạp bài môn này (mặc định nạp cả hai môn)
               --lan <tên card hoặc IP>      card mạng quảng bá cho app (mặc định tự chọn card LAN)
               --tao-giao-vien <user:mật khẩu:họ tên>   tạo tài khoản giáo viên nếu chưa có
+              --port-dashboard <số>         cổng HTTP của /version và dashboard (mặc định 8080)
               --khong-sandbox               chạy code học viên bằng Python cục bộ, KHÔNG cách ly (chỉ để phát triển)
               --cau-hinh <file>             đọc các tham số trên từ file UTF-8, mỗi dòng "khoá = giá trị"
 
             Trên Windows, chữ tiếng Việt như ớ, ư, ạ KHÔNG đi qua được dòng lệnh (Java nhận thành '?').
             Tên lớp, họ tên giáo viên, đường dẫn có dấu: ghi vào file cấu hình, ví dụ lop.conf
 
-                lop = Lớp D22CQCN01
+                lop = Lớp D22CQCN01 — Cấu trúc dữ liệu và giải thuật
+                mon = dsa
                 tao-giao-vien = gv:matkhau:Nguyễn Thị Lan
                 content = D:/Bài giảng/content
 
             rồi chạy: java -jar labcast-server.jar --cau-hinh lop.conf
-            Hoặc đặt biến môi trường LABCAST_LOP, LABCAST_TAO_GIAO_VIEN, LABCAST_CONTENT, LABCAST_DB, LABCAST_LAN.
+            Hoặc đặt biến môi trường LABCAST_LOP, LABCAST_MON, LABCAST_TAO_GIAO_VIEN, LABCAST_CONTENT,
+            LABCAST_DB, LABCAST_LAN.
             Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định.
+
+            Mỗi lớp một server, mỗi server một môn: lớp DSA và lớp SQL là hai server, hai file cấu hình.
+            Chạy cả hai trên cùng một máy thì server thứ hai cần port, port-dashboard và db riêng, ví dụ
+                mon = sql
+                port = 7010
+                port-dashboard = 8081
+                db = lop-sql.db
             """;
 
     /** Khoá trong file cấu hình (tên tham số bỏ "--") → biến môi trường tương ứng. */
@@ -56,12 +68,13 @@ public record ServerConfig(
         ENV.put("db", "LABCAST_DB");
         ENV.put("content", "LABCAST_CONTENT");
         ENV.put("lop", "LABCAST_LOP");
+        ENV.put("mon", "LABCAST_MON");
         ENV.put("lan", "LABCAST_LAN");
         ENV.put("tao-giao-vien", "LABCAST_TAO_GIAO_VIEN");
     }
 
     private static final Set<String> KEYS =
-            Set.of("port", "db", "content", "lop", "lan", "tao-giao-vien", "khong-sandbox");
+            Set.of("port", "port-dashboard", "db", "content", "lop", "mon", "lan", "tao-giao-vien", "khong-sandbox");
 
     /** Đọc cấu hình của máy đang chạy: file cấu hình đọc bằng UTF-8. */
     public static ServerConfig parse(String[] args, Map<String, String> env) {
@@ -149,9 +162,11 @@ public record ServerConfig(
     private ServerConfig with(String key, String v, String where) {
         return switch (key) {
             case "port" -> withPort(port(v, where));
+            case "port-dashboard" -> withStatusPort(port(v, where));
             case "db" -> withDb(v);
             case "content" -> withContent(Path.of(v));
             case "lop" -> withLop(v);
+            case "mon" -> withMon(mon(v, where));
             case "lan" -> withLan(v);
             case "tao-giao-vien" -> withTaoGiaoVien(v);
             default -> throw new IllegalArgumentException(where + ": khoá lạ " + key);
@@ -166,6 +181,14 @@ public record ServerConfig(
                 + " = …\", rồi chạy --cau-hinh lop.conf"
                 + (key.equals("cau-hinh") ? " (đặt file ở thư mục tên không dấu)" : "")
                 + (env == null ? "." : ", hoặc đặt biến môi trường " + env + ".");
+    }
+
+    private static String mon(String v, String where) {
+        String m = v.strip().toLowerCase(Locale.ROOT);
+        if (!m.equals("dsa") && !m.equals("sql")) {
+            throw new IllegalArgumentException(where + ": mon phải là dsa hoặc sql, nhận được: " + v);
+        }
+        return m;
     }
 
     private static String unquote(String v) {
@@ -220,6 +243,7 @@ public record ServerConfig(
                 "Lớp thực hành",
                 null,
                 null,
+                null,
                 false,
                 DEFAULT_DISCOVERY_PORT,
                 8080);
@@ -237,34 +261,43 @@ public record ServerConfig(
     }
 
     public ServerConfig withPort(int p) {
-        return new ServerConfig(p, db, content, lop, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
+        return new ServerConfig(p, db, content, lop, mon, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
     }
 
     public ServerConfig withDb(String d) {
-        return new ServerConfig(port, d, content, lop, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
+        return new ServerConfig(port, d, content, lop, mon, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
     }
 
     public ServerConfig withContent(Path c) {
-        return new ServerConfig(port, db, c, lop, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
+        return new ServerConfig(port, db, c, lop, mon, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
     }
 
     public ServerConfig withLop(String l) {
-        return new ServerConfig(port, db, content, l, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
+        return new ServerConfig(port, db, content, l, mon, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
+    }
+
+    /** {@code null}: nạp bài của cả hai môn. */
+    public ServerConfig withMon(String m) {
+        return new ServerConfig(port, db, content, lop, m, lan, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
     }
 
     public ServerConfig withLan(String l) {
-        return new ServerConfig(port, db, content, lop, l, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
+        return new ServerConfig(port, db, content, lop, mon, l, taoGiaoVien, khongSandbox, discoveryPort, statusPort);
     }
 
     public ServerConfig withTaoGiaoVien(String t) {
-        return new ServerConfig(port, db, content, lop, lan, t, khongSandbox, discoveryPort, statusPort);
+        return new ServerConfig(port, db, content, lop, mon, lan, t, khongSandbox, discoveryPort, statusPort);
     }
 
     public ServerConfig withKhongSandbox(boolean k) {
-        return new ServerConfig(port, db, content, lop, lan, taoGiaoVien, k, discoveryPort, statusPort);
+        return new ServerConfig(port, db, content, lop, mon, lan, taoGiaoVien, k, discoveryPort, statusPort);
     }
 
     public ServerConfig withDiscoveryPort(int p) {
-        return new ServerConfig(port, db, content, lop, lan, taoGiaoVien, khongSandbox, p, statusPort);
+        return new ServerConfig(port, db, content, lop, mon, lan, taoGiaoVien, khongSandbox, p, statusPort);
+    }
+
+    public ServerConfig withStatusPort(int p) {
+        return new ServerConfig(port, db, content, lop, mon, lan, taoGiaoVien, khongSandbox, discoveryPort, p);
     }
 }
