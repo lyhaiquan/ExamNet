@@ -42,6 +42,9 @@ public final class CastReceiver implements AutoCloseable {
     private final Consumer<CastMessages.Nack> nack;
     private final LongSupplier clock;
     private volatile Predicate<byte[]> drop = d -> false;
+    /** castId của server app đăng nhập (từ {@code HELLO_ACK}); 0 khi chưa biết thì nhận castId gặp đầu tiên. */
+    private volatile int expected;
+
     private SeqTracker tracker;
     private MulticastSocket socket;
     private ScheduledExecutorService timer;
@@ -116,11 +119,20 @@ public final class CastReceiver implements AutoCloseable {
                 byte[] d = f.reader().blob();
                 f = FrameCodec.fromBytes(d, 0, d.length);
             }
-            viaTcp.incrementAndGet();
-            handle(f);
+            if (handle(f)) {
+                viaTcp.incrementAndGet();
+            }
         } catch (ProtocolException e) {
             LOG.fine("Gói chiếu qua TCP hỏng: " + e.getMessage());
         }
+    }
+
+    /**
+     * Chỉ nhận gói mang castId này: lớp khác cùng mạng LAN (lớp DSA, lớp SQL) phát lên cùng nhóm multicast,
+     * gói của họ phải bỏ chứ không được coi là "server vừa khởi động lại". Gọi lại mỗi lần nối lại server.
+     */
+    public void expectCastId(int castId) {
+        expected = castId;
     }
 
     /** SEQ lớn nhất đã nhận; −1 nếu chưa nhận gì. Gửi kèm heartbeat cho server ({@code lastCastSeq}). */
@@ -156,8 +168,9 @@ public final class CastReceiver implements AutoCloseable {
                     continue;
                 }
                 Frame f = FrameCodec.fromBytes(d, 0, d.length);
-                viaMulticast.incrementAndGet();
-                handle(f);
+                if (handle(f)) {
+                    viaMulticast.incrementAndGet();
+                }
             } catch (ProtocolException e) {
                 LOG.fine("Datagram chiếu hỏng: " + e.getMessage()); // gói rác trên cổng: bỏ
             } catch (SocketException e) {
@@ -171,25 +184,31 @@ public final class CastReceiver implements AutoCloseable {
         }
     }
 
-    private void handle(Frame f) throws ProtocolException {
+    /** {@code false}: không phải gói chiếu của lớp này (gói lạ, gói của lớp khác cùng mạng) — không đếm. */
+    private boolean handle(Frame f) throws ProtocolException {
         MessageType t = f.type();
         if (t != MessageType.CAST_CONTROL && t != MessageType.CAST_DATA && t != MessageType.CAST_KEYFRAME) {
-            return;
+            return false;
         }
         int id = CastMessages.castId(f);
+        int want = expected;
+        if (want != 0 && id != want) {
+            return false;
+        }
         boolean fresh;
         synchronized (this) {
             if (tracker == null || (id != tracker.castId() && t != MessageType.CAST_DATA)) {
                 tracker = new SeqTracker(id, f.seq()); // lần đầu, hoặc server đã khởi động lại
             }
             if (id != tracker.castId()) {
-                return;
+                return true; // khúc dữ liệu của lần chạy server trước
             }
             fresh = tracker.accept(id, f.seq(), clock.getAsLong());
         }
         if (fresh || t == MessageType.CAST_DATA) {
             deliver.accept(f);
         }
+        return true;
     }
 
     private void sendNacks() {

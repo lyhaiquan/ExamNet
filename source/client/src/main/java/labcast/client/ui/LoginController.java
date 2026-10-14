@@ -17,9 +17,16 @@ import labcast.common.protocol.Role;
 /** Logic của màn đăng nhập, tách khỏi giao diện: tìm lớp trong LAN, nối, chào, đăng nhập. */
 public final class LoginController {
 
-    /** Phiên đã đăng nhập. */
+    /** Phiên đã đăng nhập. {@code castId}: để chỉ nhận gói chiếu của server này (0: server không chiếu). */
     public record LoggedIn(
-            LcpClient client, String token, Role role, long userId, String fullName, long classId, String className) {}
+            LcpClient client,
+            String token,
+            Role role,
+            long userId,
+            String fullName,
+            long classId,
+            String className,
+            int castId) {}
 
     /** Đăng nhập không thành: sai mật khẩu, không nối được server… {@code getMessage()} hiện cho học viên. */
     public static final class LoginFailed extends Exception {
@@ -54,6 +61,7 @@ public final class LoginController {
             PayloadReader h = hello.get(5, TimeUnit.SECONDS).reader();
             h.i64();
             String className = h.str();
+            int castId = h.hasRemaining() ? h.i32() : 0;
 
             CompletableFuture<Frame> auth =
                     client.expect(MessageType.AUTH_OK, MessageType.AUTH_FAIL, MessageType.ERROR);
@@ -74,7 +82,7 @@ public final class LoginController {
             String fullName = r.str();
             long classId = r.i64();
             client.setToken(token);
-            return new LoggedIn(client, token, role, userId, fullName, classId, className);
+            return new LoggedIn(client, token, role, userId, fullName, classId, className, castId);
         } catch (LoginFailed e) {
             client.close();
             throw e;

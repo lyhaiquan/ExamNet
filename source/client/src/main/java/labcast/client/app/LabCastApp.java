@@ -70,7 +70,7 @@ public final class LabCastApp extends Application {
         clock.start(li.client());
         JournalClient journal = new JournalClient(li.client());
         stage.setTitle("LabCast — " + li.className() + " — " + li.fullName());
-        cast = new CastClient(li.client(), clock, Platform::runLater);
+        cast = new CastClient(li.client(), li.castId(), clock, Platform::runLater);
         cast.start();
         HomeScreen home = new HomeScreen(
                 li,

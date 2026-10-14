@@ -76,7 +76,7 @@ class CastFlowTest {
                 Thread.sleep(600); // đủ 5 mẫu, giữ mẫu trễ ít nhất
                 clock = sync;
             }
-            cast = new CastClient(li.client(), clock, ui, group);
+            cast = new CastClient(li.client(), li.castId(), clock, ui, group);
             Random r = new Random(seed);
             cast.receiver().setDrop(d -> r.nextDouble() < loss);
             on(() -> {
@@ -274,6 +274,91 @@ class CastFlowTest {
     }
 
     static void send(LoginController.LoggedIn gv, String action, int step, int speed) {
-        gv.client().send(MessageType.CAST_CONTROL, new CastMessages.Request(action, BAI, step, speed).encode());
+        send(gv, BAI, action, step, speed);
+    }
+
+    static void send(LoginController.LoggedIn gv, String bai, String action, int step, int speed) {
+        gv.client().send(MessageType.CAST_CONTROL, new CastMessages.Request(action, bai, step, speed).encode());
+    }
+
+    /** Một server lớp, trên một nhóm multicast dùng chung; {@code bai} là bài duy nhất có trace để chiếu. */
+    static LabCastServer lop(Database db, CastModule cast, String bai, List<String> trace) throws Exception {
+        var server = new LabCastServer(
+                ServerConfig.forTest(),
+                db,
+                List.of(
+                        new AccountModule(),
+                        new SyncModule(),
+                        new PracticeModule(),
+                        ctx -> ctx.register(
+                                DemoTraces.class,
+                                id -> CompletableFuture.completedFuture(id.equals(bai) ? trace : List.of())),
+                        cast));
+        server.start();
+        var users = new UserRepository(db);
+        users.create("gv", "Giáo viên", Role.TEACHER, "2");
+        users.create("sv", "Học viên", Role.STUDENT, "1");
+        return server;
+    }
+
+    /**
+     * Lớp DSA và lớp SQL học cùng lúc trong một mạng LAN, hai server phát lên cùng nhóm multicast: máy học
+     * viên lớp nào chỉ ghép trace của lớp đó, gói của lớp kia không làm máy đổi bài hay xin lại gói.
+     */
+    @Test
+    void haiLopCungMotMang_mayHocVienChiNhanChieuCuaLopMinh() throws Exception {
+        NetworkInterface lo = NetworkInterface.getByName("lo");
+        assumeTrue(lo != null, "không có card loopback tên lo");
+        InetSocketAddress group;
+        try (var s = new DatagramSocket(0)) {
+            group = new InetSocketAddress("239.255.70.1", s.getLocalPort());
+        }
+        assumeTrue(multicastWorks(lo, group), "máy này không chuyển multicast trên loopback");
+
+        String baiSql = "sql.co-ban.x";
+        CastModule castDsa = new CastModule(lo, group);
+        CastModule castSql = new CastModule(lo, group);
+        try (Database dbDsa = Database.open(":memory:");
+                Database dbSql = Database.open(":memory:");
+                var dsa = lop(dbDsa, castDsa, BAI, bigTrace());
+                var sql = lop(dbSql, castSql, baiSql, smallTrace(baiSql))) {
+            var gvDsa = LoginController.login("127.0.0.1", dsa.port(), "gv", "2");
+            var gvSql = LoginController.login("127.0.0.1", sql.port(), "gv", "2");
+            try (var svDsa = new Student(dsa.port(), "sv", group, 0, 1, 0);
+                    var svSql = new Student(sql.port(), "sv", group, 0, 2, 0)) {
+                svDsa.cast.start();
+                svSql.cast.start();
+
+                send(gvDsa, BAI, CastMessages.LOAD, -1, 1000);
+                waitUntil(svDsa::ready, 10_000, "máy lớp DSA ghép đủ trace");
+                send(gvDsa, BAI, CastMessages.PLAY, 0, 1000);
+                Thread.sleep(1_000);
+                assertEquals(false, svSql.ready(), "máy lớp SQL không được nhận bài lớp DSA");
+                assertEquals(0, svSql.cast.receiver().framesViaMulticast(), "gói lớp DSA phải bị bỏ");
+
+                send(gvSql, baiSql, CastMessages.LOAD, -1, 1000);
+                waitUntil(svSql::ready, 10_000, "máy lớp SQL ghép đủ trace của lớp mình");
+                Thread.sleep(500);
+                assertEquals(baiSql, svSql.on(() -> svSql.cast.session().traceId()));
+                assertEquals(BAI, svDsa.on(() -> svDsa.cast.session().traceId()), "máy lớp DSA vẫn ở bài cũ");
+                assertEquals(1, svDsa.state()[1], "máy lớp DSA vẫn đang chạy theo giáo viên lớp mình");
+                assertEquals(0, svDsa.cast.nacksSent(), "không mất gói thì không xin lại gì");
+                assertEquals(0, svSql.cast.nacksSent());
+            } finally {
+                gvDsa.client().close();
+                gvSql.client().close();
+            }
+        }
+    }
+
+    /** Trace nhỏ cho bài của lớp thứ hai. */
+    static List<String> smallTrace(String bai) {
+        List<String> lines = new ArrayList<>();
+        lines.add("{\"t\":\"hdr\",\"lesson\":\"" + bai + "\",\"views\":[{\"v\":\"a\",\"kieu\":\"mang\"}]}");
+        for (int i = 0; i < 50; i++) {
+            lines.add("{\"t\":\"say\",\"s\":\"bước " + i + "\"}");
+        }
+        lines.add("{\"t\":\"end\",\"truncated\":false}");
+        return lines;
     }
 }

@@ -11,6 +11,8 @@ import labcast.client.clock.Clock;
 import labcast.client.net.LcpClient;
 import labcast.common.cast.CastMessages;
 import labcast.common.protocol.MessageType;
+import labcast.common.protocol.PayloadReader;
+import labcast.common.protocol.ProtocolException;
 
 /**
  * Nối phần nhận chiếu vào kết nối của app: nghe multicast trên card của kết nối TCP, nhận gói sửa và
@@ -25,15 +27,17 @@ public final class CastClient implements AutoCloseable {
     private final CastReceiver receiver;
     private final AtomicLong nacks = new AtomicLong();
 
-    public CastClient(LcpClient client, Clock clock, Executor ui) {
-        this(client, clock, ui, CastReceiver.DEFAULT_GROUP);
+    /** {@code castId}: số server báo trong {@code HELLO_ACK} lúc đăng nhập, để bỏ gói chiếu của lớp khác. */
+    public CastClient(LcpClient client, int castId, Clock clock, Executor ui) {
+        this(client, castId, clock, ui, CastReceiver.DEFAULT_GROUP);
     }
 
-    public CastClient(LcpClient client, Clock clock, Executor ui, InetSocketAddress group) {
+    public CastClient(LcpClient client, int castId, Clock clock, Executor ui, InetSocketAddress group) {
         this.client = client;
         this.session = new CastSession(clock, this::sendNack);
         this.receiver =
                 new CastReceiver(nics(client), group, f -> ui.execute(() -> session.onFrame(f)), this::sendNack);
+        receiver.expectCastId(castId);
     }
 
     /** Bắt đầu nghe; trả số card đã tham gia nhóm (0 thì vẫn nhận được qua TCP). */
@@ -43,6 +47,17 @@ public final class CastClient implements AutoCloseable {
             client.on(t, receiver::offerTcp);
         }
         client.heartbeat().addField("lastCastSeq", receiver::lastSeq);
+        // Nối lại sau khi server khởi động lại: HELLO_ACK mới mang castId mới
+        client.on(MessageType.HELLO_ACK, f -> {
+            try {
+                PayloadReader r = f.reader();
+                r.i64();
+                r.str();
+                receiver.expectCastId(r.hasRemaining() ? r.i32() : 0);
+            } catch (ProtocolException e) {
+                LOG.fine("HELLO_ACK hỏng: " + e.getMessage());
+            }
+        });
         return receiver.start();
     }
 
