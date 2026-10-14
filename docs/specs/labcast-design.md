@@ -135,7 +135,7 @@ Mục tiêu đo được, kiểm chứng ở §14:
 
 ### In scope
 
-- Server Java chạy trên máy giáo viên. Một server phục vụ một lớp, tối đa 50 máy học viên.
+- Server Java chạy trên máy giáo viên. Một server phục vụ một lớp, tối đa 50 máy học viên. Mỗi lớp học một môn: lớp DSA và lớp SQL là hai lớp, hai server (khoá cấu hình `mon`), mỗi server chỉ nạp bài của môn mình. Hai lớp có thể học cùng lúc trong một mạng LAN, kể cả hai server trên cùng một máy.
 - Một app desktop JavaFX, hai chế độ theo vai trò: **giáo viên** và **học viên**.
 - Protocol nhị phân tự thiết kế LCP/1.0 trên TCP. UDP multicast có lớp tin cậy tự xây, tự lùi về TCP. UDP broadcast để tìm server. TLS tuỳ chọn.
 - Hai môn: **DSA** và **SQL**, mỗi môn khoảng 100 bài. Animation giảng giải cho khoảng 40 thuật toán DSA và 13 khái niệm SQL (§7.7).
@@ -598,7 +598,7 @@ App học viên                                  Server
   |== DISCOVER (UDP broadcast :7002) ========>|
   |<= DISCOVER_REPLY(lớp, cổng, TLS, vân tay) |
   |---- HELLO(ver) -------------------------->|
-  |<--- HELLO_ACK(serverTime) ----------------|
+  |<--- HELLO_ACK(serverTime, lớp, castId) ---|
   |---- AUTH(user, pwd) --------------------->|  PBKDF2; đăng nhập nơi khác → BYE cho phiên cũ
   |<--- AUTH_OK(token, role, classId) --------|
   |---- TIME_SYNC_REQ(t1) × 5 --------------->|  giữ mẫu RTT nhỏ nhất
@@ -761,6 +761,7 @@ Mỗi đóng góp có một chủ (§17) và ít nhất một thí nghiệm (§1
 - **Phát sự kiện, không phát hình.** Server phát lệnh điều khiển và dữ liệu trace; mỗi máy tự vẽ. Băng thông độc lập với độ phân giải màn hình, chữ luôn nét, học viên tách ra tự tua được.
 - **Phát hẹn giờ.** `CAST_CONTROL` mang thời điểm `at` theo **đồng hồ server** (thường là `now + 300 ms`). Mỗi máy đổi `at` sang giờ máy mình bằng `Clock` của ĐG3. Mọi máy bắt đầu cùng lúc bất kể gói đến sớm hay muộn.
 - **Tin cậy trên UDP.** Số thứ tự liên tục; thiếu thì NACK qua TCP; nhiều máy cùng thiếu thì phát lại qua multicast; `CAST_KEYFRAME` mỗi 2 s cho máy vào muộn; máy không nhận được multicast tự chuyển sang TCP.
+- **Hai lớp cùng mạng.** Lớp DSA và lớp SQL phát lên cùng nhóm `239.255.70.1:7001`. App biết `castId` của server mình từ `HELLO_ACK` (nối lại thì nhận `castId` mới) và bỏ hẳn gói mang `castId` khác. Gói lạ không được coi là "server vừa khởi động lại": coi như vậy thì máy lớp này nhảy sang bài lớp kia đang chiếu.
 - **Không chặn đầu hàng.** Mỗi `CAST_CONTROL` và `CAST_KEYFRAME` mang đủ trạng thái phát (bước, giờ hẹn, tốc độ, đang chạy hay dừng), khúc dữ liệu mang chỉ số khúc. App áp ngay gói vừa tới, bỏ gói điều khiển cũ hơn gói đã áp, không giữ gói lại chờ gói thiếu. Server và app tính vị trí bằng cùng một công thức số nguyên, nên cùng giờ server mọi máy ra cùng một bước.
 - **Đo:** TN1, TN3. Độ lệch giữa các màn hình (TN2) đo chung với ĐG3.
 

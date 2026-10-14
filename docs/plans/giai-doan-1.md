@@ -510,7 +510,7 @@ SQLite: mỗi `Database` giữ **một** `java.sql.Connection`, mọi thao tác 
 | Thông điệp | Payload |
 | --- | --- |
 | `HELLO` | `str clientVersion, str device` |
-| `HELLO_ACK` | `i64 serverTime, str className` |
+| `HELLO_ACK` | `i64 serverTime, str className, i32 castId` (castId: để app bỏ gói chiếu của lớp khác cùng mạng LAN; 0 nếu server không chiếu) |
 | `AUTH` | `str username, str password` |
 | `AUTH_OK` | `str token, str role, i64 userId, str fullName, i64 classId` |
 | `AUTH_FAIL` | `str reason` |
@@ -656,12 +656,14 @@ public final class DiscoveryClient {
 | `--db` | `labcast.db` (biến môi trường `LABCAST_DB` được ưu tiên) |
 | `--content` | `content` |
 | `--lop` | `Lớp thực hành` |
+| `--mon dsa\|sql` | không ghi thì nạp cả hai môn. Mỗi lớp một môn, mỗi môn một server |
+| `--port-dashboard` | 8080 (`/version` và dashboard) |
 | `--lan` | tự chọn (task 2.8) |
 | `--tao-giao-vien user:mật khẩu:họ tên` | không |
 | `--khong-sandbox` | tắt (chỉ để phát triển, spec §8.1) |
 | `--cau-hinh <file>` | không — file UTF-8, mỗi dòng `khoá = giá trị` (khoá = tên tham số bỏ `--`) |
 
-Biến môi trường `LABCAST_DB`, `LABCAST_CONTENT`, `LABCAST_LOP`, `LABCAST_LAN`, `LABCAST_TAO_GIAO_VIEN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. **Vì sao cần file và biến môi trường:** Windows chuyển tham số dòng lệnh sang Cp1252 trước khi tới Java, chữ ớ, ư, ạ… thành `?` và mất hẳn (đã đo 12/10/2026 với Git Bash, PowerShell, cmd kể cả `chcp 65001`); file UTF-8 và biến môi trường thì giữ nguyên. Tham số dòng lệnh có `?` trên máy như vậy → server dừng và chỉ cách sửa, không chạy với tên lớp sai hay tạo giáo viên có mật khẩu không gõ lại được.
+Biến môi trường `LABCAST_DB`, `LABCAST_CONTENT`, `LABCAST_LOP`, `LABCAST_MON`, `LABCAST_LAN`, `LABCAST_TAO_GIAO_VIEN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. **Vì sao cần file và biến môi trường:** Windows chuyển tham số dòng lệnh sang Cp1252 trước khi tới Java, chữ ớ, ư, ạ… thành `?` và mất hẳn (đã đo 12/10/2026 với Git Bash, PowerShell, cmd kể cả `chcp 65001`); file UTF-8 và biến môi trường thì giữ nguyên. Tham số dòng lệnh có `?` trên máy như vậy → server dừng và chỉ cách sửa, không chạy với tên lớp sai hay tạo giáo viên có mật khẩu không gõ lại được.
 
 `main` vẫn **giữ** `StatusEndpoint.start(...)` cho bước deploy. In ra địa chỉ card LAN đã chọn để giáo viên kiểm.
 
