@@ -139,6 +139,12 @@
     -fx-background-color: -lc-nav-2;
 }
 
+.button.on-dark.logout:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.2);
+    -fx-border-color: rgba(239, 68, 68, 0.6);
+    -fx-text-fill: #fca5a5;
+}
+
 /* ---------- Ô nhập ---------- */
 
 .text-field,
