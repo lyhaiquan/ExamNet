@@ -61,7 +61,11 @@ public final class LabCastApp extends Application {
             cast.close();
             cast = null;
         }
-        session = null;
+        if (session != null) {
+            session.client().close();
+            session = null;
+        }
+        stage.setTitle("LabCast");
         root.setContent(new LoginView(this::loggedIn));
     }
 
@@ -83,7 +87,8 @@ public final class LabCastApp extends Application {
                     a.initOwner(stage);
                     a.show();
                 },
-                cast.session());
+                cast.session(),
+                this::showLogin);
         // Học viên mở bài thì khoá toàn màn hình; giáo viên mở bài để giảng thì không
         if (li.role() == Role.STUDENT) {
             AppFocusReporter reporter = new AppFocusReporter(li.client());

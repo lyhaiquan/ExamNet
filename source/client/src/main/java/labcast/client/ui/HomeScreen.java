@@ -51,9 +51,11 @@ public final class HomeScreen extends BorderPane {
     private CastView castView;
     private boolean castShown;
     private boolean castWasActive;
+    private final Runnable onLogout;
+    private boolean loggedOut;
 
     public HomeScreen(LoginController.LoggedIn li, JournalClient journal, Runnable onSessionEnded) {
-        this(li, journal, onSessionEnded, null);
+        this(li, journal, onSessionEnded, null, null);
     }
 
     /**
@@ -61,8 +63,18 @@ public final class HomeScreen extends BorderPane {
      *     có nút "Chiếu cho lớp" trong màn bài học
      */
     public HomeScreen(LoginController.LoggedIn li, JournalClient journal, Runnable onSessionEnded, CastSession cast) {
+        this(li, journal, onSessionEnded, cast, null);
+    }
+
+    public HomeScreen(
+            LoginController.LoggedIn li,
+            JournalClient journal,
+            Runnable onSessionEnded,
+            CastSession cast,
+            Runnable onLogout) {
         this.li = li;
         this.cast = cast;
+        this.onLogout = onLogout;
         Theme.apply(this);
         this.journal = journal;
         LcpClient client = li.client();
@@ -111,6 +123,9 @@ public final class HomeScreen extends BorderPane {
         setCenter(emptyState());
 
         client.onStateChange(s -> Platform.runLater(() -> {
+            if (loggedOut) {
+                return;
+            }
             switch (s) {
                 case RECONNECTING -> setStatus("Mất kết nối, đang nối lại… code đang gõ vẫn được giữ", "warn");
                 case CONNECTED -> setStatus("Đã nối lại", "ok");
@@ -118,6 +133,9 @@ public final class HomeScreen extends BorderPane {
             }
         }));
         client.on(MessageType.ERROR, f -> {
+            if (loggedOut) {
+                return;
+            }
             try {
                 String msg = ErrorMessage.from(f).message();
                 Platform.runLater(() -> setStatus(msg, "error"));
@@ -225,6 +243,13 @@ public final class HomeScreen extends BorderPane {
             bar.getChildren().add(importBtn);
         }
         bar.getChildren().addAll(avatar, who);
+
+        Button logoutBtn = new Button("Đăng xuất");
+        logoutBtn.setId("logout-btn");
+        logoutBtn.getStyleClass().addAll("on-dark", "logout");
+        logoutBtn.setOnAction(e -> logout());
+        bar.getChildren().add(logoutBtn);
+
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("topbar");
         return bar;
@@ -288,6 +313,18 @@ public final class HomeScreen extends BorderPane {
         setCenter(emptyState());
         openLesson.set(null);
         updateSidebar();
+    }
+
+    /** Đăng xuất: đóng bài (nếu đang mở), giải phóng tài nguyên và quay về màn hình đăng nhập. */
+    public void logout() {
+        if (loggedOut) {
+            return;
+        }
+        loggedOut = true;
+        closeLesson();
+        if (onLogout != null) {
+            onLogout.run();
+        }
     }
 
     /** Hộp thoại có chủ là cửa sổ app: không có chủ thì nó mở ra nằm sau cửa sổ toàn màn hình. */
