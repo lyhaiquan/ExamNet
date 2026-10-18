@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import labcast.client.cast.CastClient;
 import labcast.client.clock.ClockSync;
@@ -38,6 +39,16 @@ public final class LabCastApp extends Application {
         Theme.loadFonts(); // font đóng gói phải nạp trước khi dựng màn đầu tiên
         this.stage = stage;
         stage.setTitle("LabCast");
+        // Icon trên thanh tiêu đề và taskbar; Windows chọn cỡ hợp nhất trong danh sách
+        for (int s : new int[] {16, 32, 48, 64, 128, 256}) {
+            try (var in = LabCastApp.class.getResourceAsStream("/labcast/client/ui/icon/labcast-" + s + ".png")) {
+                if (in != null) {
+                    stage.getIcons().add(new Image(in));
+                }
+            } catch (java.io.IOException ignored) {
+                // thiếu icon thì dùng icon mặc định của Java
+            }
+        }
         root = new ZoomPane();
         Scene scene = new Scene(root, 1200, 760);
         root.install(scene);
