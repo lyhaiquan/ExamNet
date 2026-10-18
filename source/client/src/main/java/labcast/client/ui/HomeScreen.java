@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringProperty;
@@ -11,9 +13,12 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -39,6 +44,15 @@ public final class HomeScreen extends BorderPane {
     private final LoginController.LoggedIn li;
     private final JournalClient journal;
     private final ListView<JsonNode> lessons = new ListView<>();
+    /** Mọi bài server gửi, theo thứ tự chương; {@code lessons} là phần đang hiện sau khi lọc và sắp. */
+    private final List<JsonNode> all = new ArrayList<>();
+
+    private final TextField search = new TextField();
+    private final ComboBox<String> order = new ComboBox<>();
+    private final Label count = new Label();
+    /** Đang thay danh sách hiện: thay đổi chọn bài lúc này không phải người dùng bấm. */
+    private boolean refreshing;
+
     private final VBox sidebar;
     private final Label status = new Label();
     private LessonScreen current;
@@ -83,14 +97,27 @@ public final class HomeScreen extends BorderPane {
 
         Label header = new Label("BÀI HỌC");
         header.getStyleClass().add("section-title");
-        Label count = new Label();
         count.getStyleClass().add("muted");
-        count.textProperty()
-                .bind(javafx.beans.binding.Bindings.size(lessons.getItems()).asString());
         Region gap = new Region();
         HBox.setHgrow(gap, Priority.ALWAYS);
         HBox sideHeader = new HBox(header, gap, count);
         sideHeader.getStyleClass().add("sidebar-header");
+
+        search.setId("lesson-search");
+        search.setPromptText("Tìm bài…");
+        search.textProperty().addListener((obs, o, n) -> refresh());
+        search.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ESCAPE) {
+                search.clear();
+            }
+        });
+        order.setId("lesson-order");
+        order.getItems().setAll(ORDER_AZ, ORDER_CHUONG);
+        order.getSelectionModel().select(ORDER_AZ);
+        order.setOnAction(e -> refresh());
+        order.setMaxWidth(Double.MAX_VALUE);
+        VBox tools = new VBox(6, search, order);
+        tools.getStyleClass().add("sidebar-tools");
 
         lessons.setId("lessons");
         lessons.getStyleClass().add("lesson-list");
@@ -110,11 +137,11 @@ public final class HomeScreen extends BorderPane {
             return cell;
         });
         lessons.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
-            if (n != null) {
+            if (n != null && !refreshing) {
                 open(n.path("id").asText());
             }
         });
-        sidebar = new VBox(sideHeader, lessons);
+        sidebar = new VBox(sideHeader, tools, lessons);
         VBox.setVgrow(lessons, Priority.ALWAYS);
         sidebar.getStyleClass().add("sidebar");
         sidebar.setPrefWidth(260);
@@ -180,9 +207,9 @@ public final class HomeScreen extends BorderPane {
         castChip.setVisible(cast.active());
     }
 
-    /** Tên bài theo mã, lấy từ danh sách bài bên trái. */
+    /** Tên bài theo mã, lấy từ danh sách bài bên trái (kể cả bài đang bị lọc ẩn). */
     private String lessonName(String id) {
-        for (JsonNode n : lessons.getItems()) {
+        for (JsonNode n : all) {
             if (n.path("id").asText().equals(id)) {
                 return n.path("ten").asText();
             }
@@ -336,6 +363,31 @@ public final class HomeScreen extends BorderPane {
         a.show();
     }
 
+    private static final String ORDER_AZ = "Sắp theo tên: A → Z";
+    private static final String ORDER_CHUONG = "Sắp theo chương";
+
+    /** Lọc theo ô tìm, sắp theo lựa chọn; bài đang mở mà vẫn còn trong danh sách thì giữ được chọn. */
+    private void refresh() {
+        LessonFilter.Order o =
+                ORDER_CHUONG.equals(order.getValue()) ? LessonFilter.Order.CHUONG : LessonFilter.Order.CHU_CAI;
+        List<JsonNode> shown = LessonFilter.apply(all, search.getText(), o);
+        String openId = openLesson.get();
+        refreshing = true;
+        try {
+            lessons.getItems().setAll(shown);
+            lessons.getSelectionModel().clearSelection();
+            for (JsonNode n : shown) {
+                if (n.path("id").asText().equals(openId)) {
+                    lessons.getSelectionModel().select(n);
+                }
+            }
+        } finally {
+            refreshing = false;
+        }
+        count.setText(shown.size() == all.size() ? String.valueOf(all.size()) : shown.size() + "/" + all.size());
+        lessons.setPlaceholder(new Label(all.isEmpty() ? "Đang tải danh sách bài…" : "Không có bài nào khớp"));
+    }
+
     private void loadLessons() {
         LcpClient c = li.client();
         var reply = c.expect(MessageType.LESSON_DATA);
@@ -344,8 +396,9 @@ public final class HomeScreen extends BorderPane {
             try {
                 JsonNode list = JsonPayload.tree(f).path("lessons");
                 Platform.runLater(() -> {
-                    lessons.getItems().clear();
-                    list.forEach(lessons.getItems()::add);
+                    all.clear();
+                    list.forEach(all::add);
+                    refresh();
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> setStatus("Không đọc được danh sách bài", "error"));

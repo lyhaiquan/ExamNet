@@ -482,6 +482,10 @@
     -fx-padding: 0 16 8 16;
 }
 
+.sidebar-tools {
+    -fx-padding: 0 16 10 16;
+}
+
 .lesson-list {
     -fx-background-color: transparent;
     -fx-border-color: transparent;

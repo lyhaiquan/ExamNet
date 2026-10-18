@@ -193,6 +193,16 @@ class UiSmokeTest {
             @SuppressWarnings("unchecked")
             ListView<Object> list = (ListView<Object>) fx(() -> scene.lookup("#lessons"));
             until(() -> !list.getItems().isEmpty(), "danh sách bài");
+            chup(scene, "1b-danh-sach-a-z");
+            // Tìm không dấu: còn đúng bài nổi bọt
+            javafx.scene.control.TextField search =
+                    (javafx.scene.control.TextField) fx(() -> scene.lookup("#lesson-search"));
+            fx(() -> {
+                search.setText("noi bot");
+                return null;
+            });
+            assertEquals(1, (int) fx(() -> list.getItems().size()));
+            chup(scene, "1c-tim-bai");
             fx(() -> {
                 list.getSelectionModel().select(0);
                 return null;
