@@ -1,0 +1,25 @@
+id: dsa.do-thi.tro-choi-bang-den
+mon: dsa
+chuong: do-thi
+ten: "Trò chơi trên bảng đen: cặp ghép cực đại (phỏng theo ICPC)"
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào; xếp từ trên xuống theo thứ tự này
+  - bien: g
+    kieu: do-thi
+  - bien: tim
+    kieu: cay-goi
+  - bien: q
+    kieu: hang-doi
+  - bien: ghep
+    kieu: mang
+  - bien: spf
+    kieu: mang
+cam_dung: []
+cam_import: [networkx, scipy]
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 3000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []
