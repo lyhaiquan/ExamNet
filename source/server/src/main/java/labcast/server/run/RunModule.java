@@ -48,6 +48,7 @@ public final class RunModule implements ServerModule {
         // chấm bài nộp (practice.SubmitModule) chạy script khác của runner trên cùng sandbox
         ctx.register(ScriptRunner.class, (ScriptRunner) sb);
         ctx.router().on(MessageType.RUN_REQ, this::run);
+        ctx.router().on(MessageType.PLAYGROUND_RUN_REQ, this::runPlayground);
     }
 
     private static Sandbox sandbox(ServerContext ctx) {
@@ -73,6 +74,7 @@ public final class RunModule implements ServerModule {
         String lessonId = r.str();
         long codeSeq = r.i64();
         String testId = r.str();
+        boolean lineTrace = r.hasRemaining() && r.bool(); // client cũ không gửi cờ: tắt tracing từng dòng
         Session s = c.session();
         LessonRepository repo = ctx.require(LessonRepository.class);
         Lesson l = repo.get(lessonId)
@@ -98,7 +100,7 @@ public final class RunModule implements ServerModule {
             return;
         }
 
-        Job job = new Job(snap.code(), input, true, l.thoiGianMs(), lessonId, LessonModule.views(l));
+        Job job = new Job(snap.code(), input, true, l.thoiGianMs(), lessonId, LessonModule.views(l), lineTrace);
         Chunker chunker = new Chunker(runId, s);
         String tid = testId;
         long seqRun = snap.seq();
@@ -127,6 +129,65 @@ public final class RunModule implements ServerModule {
             res.put("timeMs", o.timeMs());
             res.put("tests", List.of(Map.of("id", tid, "verdict", verdict)));
             s.send(JsonPayload.frame(MessageType.RUN_RESULT, res), Priority.NORMAL);
+        });
+    }
+
+    /** Workspace tự do: code Python do người dùng nhập, không chọn bài và không ghi submissions. */
+    private void runPlayground(Ctx c, Frame f) throws Exception {
+        var request = JsonPayload.tree(f);
+        String code = request.path("code").asText("");
+        String input = request.path("input").asText("");
+        boolean lineTrace = request.path("trace").asBoolean(false);
+        if (code.isBlank() || code.length() > 30_000 || input.length() > 20_000) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME,
+                    "Code tự do yêu cầu 1-30000 ký tự và stdin tối đa 20000 ký tự");
+        }
+        Session s = c.session();
+        long runId = runIds.incrementAndGet();
+        c.reply(MessageType.PLAYGROUND_RUN_QUEUED, new PayloadWriter().i64(runId).toBytes());
+        // Giới hạn thời gian, dung lượng và quyền truy cập giống Chạy thử Python.
+        Job job = new Job(code, input, lineTrace, 3000, "playground", List.of(), lineTrace);
+        List<String> pending = new ArrayList<>();
+        int[] part = {0};
+        Consumer<Boolean> sendChunk = last -> {
+            byte[] lines;
+            synchronized (pending) {
+                lines = String.join("\n", pending).getBytes(StandardCharsets.UTF_8);
+                pending.clear();
+            }
+            s.send(Frame.of(MessageType.PLAYGROUND_TRACE_CHUNK,
+                    new PayloadWriter().i64(runId).i32(part[0]++).bool(last).blob(lines).toBytes()),
+                    Priority.NORMAL);
+        };
+        Consumer<String> onLine = line -> {
+            boolean flush;
+            synchronized (pending) {
+                pending.add(line);
+                flush = pending.size() >= LINES_PER_CHUNK;
+            }
+            if (flush) sendChunk.accept(false);
+        };
+        runs.run(s.userId(), job, onLine).whenComplete((out, err) -> {
+            sendChunk.accept(true);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("runId", runId);
+            if (err != null) {
+                String message = RunService.isReplaced(err)
+                        ? "Lượt chạy đã bị một lượt mới thay thế"
+                        : "Không chạy được Python Runner: " + err.getMessage();
+                result.put("ok", false);
+                result.put("stdout", "");
+                result.put("error", message);
+                result.put("timeMs", 0);
+                result.put("truncated", false);
+            } else {
+                result.put("ok", out.ok());
+                result.put("stdout", out.stdout());
+                result.put("error", out.error());
+                result.put("timeMs", out.timeMs());
+                result.put("truncated", out.truncated());
+            }
+            s.send(JsonPayload.frame(MessageType.PLAYGROUND_RUN_RESULT, result), Priority.NORMAL);
         });
     }
 

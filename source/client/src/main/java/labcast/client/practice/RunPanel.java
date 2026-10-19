@@ -47,6 +47,8 @@ public final class RunPanel extends VBox {
     private final ComboBox<String> tests = new ComboBox<>();
     private final Button runBtn = new Button(RUN_TEXT);
     private final Button submitBtn = new Button(SUBMIT_TEXT);
+    private final Button traceBtn = new Button("⇥ Trace từng dòng");
+    private boolean lastRunLineTrace;
     private final Label verdict = new Label();
     private final TextArea output = new TextArea();
     private final List<String> lines = new ArrayList<>();
@@ -100,7 +102,10 @@ public final class RunPanel extends VBox {
         verdict.setVisible(false);
         runBtn.setId("run");
         runBtn.getStyleClass().add("success");
-        runBtn.setOnAction(e -> run());
+        runBtn.setOnAction(e -> run(false));
+        traceBtn.getStyleClass().add("trace-run-button");
+        traceBtn.setTooltip(new javafx.scene.control.Tooltip("Ghi lại từng dòng Python để xem Trace Table sau khi chạy"));
+        traceBtn.setOnAction(e -> run(true));
         submitBtn.setId("submit");
         submitBtn.getStyleClass().add("primary");
         submitBtn.setOnAction(e -> submit());
@@ -110,11 +115,12 @@ public final class RunPanel extends VBox {
         HBox.setHgrow(gap, Priority.ALWAYS);
         // nút và ô chọn test giữ đủ chữ; kết quả nằm hàng riêng để không chen các nút
         runBtn.setMinWidth(Region.USE_PREF_SIZE);
+        traceBtn.setMinWidth(Region.USE_PREF_SIZE);
         submitBtn.setMinWidth(Region.USE_PREF_SIZE);
         tests.setMinWidth(Region.USE_PREF_SIZE);
         testLabel.setMinWidth(Region.USE_PREF_SIZE);
         verdict.setWrapText(true);
-        HBox bar = new HBox(8, runBtn, testLabel, tests, gap, submitBtn);
+        HBox bar = new HBox(8, runBtn, traceBtn, testLabel, tests, gap, submitBtn);
         bar.setAlignment(Pos.CENTER_LEFT);
         getChildren().addAll(bar, verdict, output);
 
@@ -140,7 +146,18 @@ public final class RunPanel extends VBox {
         cooldownTicker.stop();
     }
 
-    private void run() {
+    /** Chỉ hiển thị cho bài Python; SQL không có trace theo dòng. */
+    public void enableLineTrace(boolean enabled) {
+        traceBtn.setVisible(enabled);
+        traceBtn.setManaged(enabled);
+    }
+
+    public boolean lastRunLineTrace() {
+        return lastRunLineTrace;
+    }
+
+    private void run(boolean traceLines) {
+        lastRunLineTrace = traceLines;
         long seq = flushCode.getAsLong();
         String testId = tests.getSelectionModel().getSelectedItem();
         synchronized (lines) {
@@ -157,6 +174,7 @@ public final class RunPanel extends VBox {
                         .str(lessonId)
                         .i64(seq)
                         .str(testId == null ? "" : testId)
+                        .bool(traceLines)
                         .toBytes());
     }
 
@@ -380,9 +398,11 @@ public final class RunPanel extends VBox {
             runCooldownUntil = 0;
             runBtn.setText(RUN_TEXT);
             runBtn.setDisable(inFlight || submitting);
+            traceBtn.setDisable(inFlight || submitting);
         } else {
             runBtn.setText("Chạy lại sau " + (runLeft + 999) / 1000 + " s");
             runBtn.setDisable(true);
+            traceBtn.setDisable(true);
         }
         if (cooldownUntil == 0 && runCooldownUntil == 0) {
             cooldownTicker.stop();
@@ -392,6 +412,7 @@ public final class RunPanel extends VBox {
     private void setBusy(boolean busy) {
         long now = System.currentTimeMillis();
         runBtn.setDisable(busy || runCooldownUntil > now);
+        traceBtn.setDisable(busy || runCooldownUntil > now);
         submitBtn.setDisable(busy || cooldownUntil > now);
     }
 

@@ -180,6 +180,7 @@ abstract class ProcessSandbox implements Sandbox, ScriptRunner {
         m.put("code", job.code());
         m.put("input", job.input());
         m.put("trace", job.trace());
+        m.put("line_trace", job.lineTrace());
         m.put("time_limit_ms", job.timeLimitMs());
         m.put("lesson", job.lessonId());
         m.put("views", job.views());

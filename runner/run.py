@@ -74,7 +74,8 @@ def chay(job, out):
     co_trace = bool(job.get("trace"))
     if co_trace:
         out.write(json.dumps(
-            {"t": "hdr", "lesson": job.get("lesson", ""), "views": job.get("views", [])},
+            {"t": "hdr", "lesson": job.get("lesson", ""), "views": job.get("views", []),
+             "source": job.get("code", "") if job.get("line_trace") else ""},
             ensure_ascii=False) + "\n")
         recorder.current = recorder.Recorder(
             out=out,
@@ -86,13 +87,19 @@ def chay(job, out):
     theo_doi.tat()
     cay_goi.tat()
     code = job.get("code", "")
+    if co_trace and job.get("line_trace") and not any(
+        v.get("kieu") == "code-bien" for v in job.get("views", [])
+    ):
+        # Debug opt-in: sinh sự kiện line/vars thật, không ảnh hưởng lần Chạy thử thông thường.
+        # Giới hạn 800 dòng để vòng lặp dài không làm nổ trace; chương trình vẫn chạy tiếp.
+        code_bien.bat("__trace_table__", code, max_lines=800)
     if co_trace:
         # bộ vẽ không gắn với cấu trúc nào trong code: cây lời gọi (bien là tên hàm) và chạy từng dòng
         for v in job.get("views", []):
             if v.get("kieu") == "cay-goi":
                 cay_goi.bat(v.get("v", ""))
             elif v.get("kieu") == "code-bien":
-                code_bien.bat(v.get("v", "code"), code)
+                code_bien.bat(v.get("v", "code"), code, max_lines=800 if job.get("line_trace") else None)
     stdout_hv = GioiHanStdout()
     stdin_goc, stdout_goc = sys.stdin, sys.stdout
     sys.stdin = io.StringIO(job.get("input", ""))

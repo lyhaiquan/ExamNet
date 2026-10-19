@@ -13,6 +13,7 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import labcast.common.protocol.CodeDelta;
+import labcast.client.ui.Theme;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
@@ -145,6 +146,23 @@ public final class CodeEditor {
                     + "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)",
             Pattern.CASE_INSENSITIVE);
 
+    /** To mau cho cac ban nhap ngoai Python. Khong thay doi engine cham bai. */
+    private static Pattern cStylePattern(String keywords) {
+        return Pattern.compile(
+                "(?<COMMENT>//[^\\n]*|/\\*[\\s\\S]*?\\*/)"
+                        + "|(?<STRING>\"([^\"\\\\\\n]|\\\\.)*\"|'([^'\\\\\\n]|\\\\.)*')"
+                        + "|(?<KEYWORD>\\b(?:" + keywords + ")\\b)"
+                        + "|(?<BUILTIN>\\b(?:printf|scanf|cout|cin|System|console|println|parseInt|size|push_back)\\b)"
+                        + "|(?<NUMBER>\\b\\d+(?:\\.\\d+)?\\b)");
+    }
+
+    private static final Pattern JAVA_PATTERN = cStylePattern(
+            "public|private|protected|class|static|void|int|long|double|float|boolean|char|String|new|return|if|else|for|while|switch|case|break|continue|import|package|final|null|true|false|try|catch|throw|extends|implements");
+    private static final Pattern CPP_PATTERN = cStylePattern(
+            "include|using|namespace|std|int|long|double|float|bool|char|void|string|auto|const|return|if|else|for|while|switch|case|break|continue|class|struct|public|private|new|nullptr|true|false|vector");
+    private static final Pattern JS_PATTERN = cStylePattern(
+            "const|let|var|function|class|return|if|else|for|while|switch|case|break|continue|new|null|undefined|true|false|async|await|import|export|default|try|catch|throw");
+
     private final GuardedArea area = new GuardedArea();
     private Pattern pattern = PATTERN;
     private final VirtualizedScrollPane<CodeArea> pane = new VirtualizedScrollPane<>(area);
@@ -155,7 +173,7 @@ public final class CodeEditor {
         // Số dòng luôn rộng 3 chữ số: để mặc định thì khi code vượt 9 dòng, cột số dòng của các dòng mới rộng
         // ra còn dòng cũ chưa vẽ lại, chữ code các dòng bị lệch nhau.
         area.setParagraphGraphicFactory(LineNumberFactory.get(area, digits -> "%" + Math.max(3, digits) + "d"));
-        area.getStylesheets().add(CodeEditor.class.getResource("python.css").toExternalForm());
+        Theme.applyEditor(area);
         area.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.TAB) {
                 area.replaceSelection("    ");
@@ -211,6 +229,24 @@ public final class CodeEditor {
 
     public String text() {
         return area.getText();
+    }
+
+    /** Chỉ chọn dòng đang xem trong Trace Table; không thay đổi code hoặc tạo delta. */
+    public void highlightTraceLine(int oneBased) {
+        if (oneBased < 1) return;
+        String content = area.getText();
+        int start = 0;
+        int row = 1;
+        while (row < oneBased && start < content.length()) {
+            int newline = content.indexOf('\n', start);
+            if (newline < 0) return;
+            start = newline + 1;
+            row++;
+        }
+        if (row != oneBased) return;
+        int end = content.indexOf('\n', start);
+        if (end < 0) end = content.length();
+        area.selectRange(start, end); // tô sáng mà không chỉnh sửa văn bản
     }
 
     public Node node() {
@@ -277,6 +313,18 @@ public final class CodeEditor {
                 replaceSelection(s);
             }
         }
+    }
+
+    /** Doi ngon ngu to mau cu phap trong editor (khong doi runner). */
+    public void setSyntaxLanguage(String language) {
+        pattern = switch (language) {
+            case "sql" -> SQL_PATTERN;
+            case "java" -> JAVA_PATTERN;
+            case "cpp" -> CPP_PATTERN;
+            case "javascript" -> JS_PATTERN;
+            default -> PATTERN;
+        };
+        area.setStyleSpans(0, highlight(area.getText(), pattern));
     }
 
     /** Bài SQL: tô màu cú pháp SQL thay cho Python. Gọi trước {@link #load}. */
