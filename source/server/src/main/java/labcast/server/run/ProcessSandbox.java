@@ -72,7 +72,7 @@ abstract class ProcessSandbox implements Sandbox, ScriptRunner {
                         onLine.accept(line);
                     }
                 });
-        if (e.killed) {
+        if (e.killed || (result[0] == null && hetGioCpu(e, job.timeLimitMs()))) {
             return new Outcome(false, "", "Quá thời gian " + job.timeLimitMs() + " ms", false, e.ms, true);
         }
         if (result[0] == null) {
@@ -120,6 +120,15 @@ abstract class ProcessSandbox implements Sandbox, ScriptRunner {
     }
 
     private record Exec(int exitCode, String stderr, boolean killed, long ms) {}
+
+    /**
+     * run.py tự đặt RLIMIT_CPU nên vòng lặp vô tận thường chết vì giới hạn CPU trước khi đồng hồ canh giờ ở
+     * đây kịp giết: SIGXCPU (mã 152) ở giới hạn mềm, hoặc SIGKILL (mã 137) ở giới hạn cứng khi run.py là
+     * PID 1 trong container (PID 1 bỏ qua SIGXCPU). Đã chạy quá giới hạn của bài thì cũng là quá giờ.
+     */
+    private static boolean hetGioCpu(Exec e, long limitMs) {
+        return (e.exitCode == 128 + 24 || e.exitCode == 128 + 9) && e.ms >= limitMs;
+    }
 
     /** Chạy {@code cmd}, ghi {@code stdin}, gọi {@code onLine} cho mỗi dòng stdout khác rỗng. */
     private Exec exec(List<String> cmd, String name, byte[] stdin, long deadlineMs, Consumer<String> onLine)
