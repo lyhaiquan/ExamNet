@@ -20,7 +20,8 @@ import math
 import sys
 import time
 
-from viz import cay_goi, code_bien, recorder, theo_doi
+import goi_y
+from viz import cay_goi, code_bien, recorder, theo_doi, tung_buoc
 
 MAX_STDOUT = 1_000_000  # ký tự; in nhiều hơn thì cắt, tránh tràn bộ nhớ
 
@@ -85,7 +86,9 @@ def chay(job, out):
 
     theo_doi.tat()
     cay_goi.tat()
+    tung_buoc.tat()
     code = job.get("code", "")
+    buoc = None
     if co_trace:
         # bộ vẽ không gắn với cấu trúc nào trong code: cây lời gọi (bien là tên hàm) và chạy từng dòng
         for v in job.get("views", []):
@@ -93,27 +96,44 @@ def chay(job, out):
                 cay_goi.bat(v.get("v", ""))
             elif v.get("kieu") == "code-bien":
                 code_bien.bat(v.get("v", "code"), code)
+            elif v.get("kieu") == "tung-dong":
+                buoc = v.get("v", "buoc")  # bật ngay trước exec: không ghi các dòng của run.py
     stdout_hv = GioiHanStdout()
     stdin_goc, stdout_goc = sys.stdin, sys.stdout
     sys.stdin = io.StringIO(job.get("input", ""))
     sys.stdout = stdout_hv
-    ok, loi, cat_trace = True, None, False
+    ok, loi, cat_trace, chi_tiet = True, None, False, None
     bat_dau = time.perf_counter()
     try:
-        exec(compile(code, "bai_lam.py", "exec"), {"__name__": "__main__"})
+        bien_dich = compile(code, "bai_lam.py", "exec")
+        if buoc is not None:
+            tung_buoc.bat(buoc, code, int(job.get("max_steps", tung_buoc.TRAN)))
+        exec(bien_dich, {"__name__": "__main__"})
     except recorder.TraceLimit:
         cat_trace = True
     except SystemExit as e:
         if e.code not in (None, 0):
             ok, loi = False, f"Chương trình thoát với mã {e.code}"
     except BaseException as e:  # noqa: BLE001 — mọi lỗi của bài làm đều phải báo về
-        ok, loi = False, loi_rut_gon(e, code)
+        tung_buoc.ngung()
+        chi_tiet = goi_y.thong_tin(e, code)
+        ok, loi = False, loi_rut_gon(e, code) + (f"\nGợi ý: {chi_tiet['goi_y']}" if chi_tiet["goi_y"] else "")
     finally:
+        tung_buoc.ngung()
         theo_doi.tat()
         cay_goi.tat()
         sys.stdin, sys.stdout = stdin_goc, stdout_goc
     thoi_gian = round((time.perf_counter() - bat_dau) * 1000)
 
+    if co_trace and buoc is not None and not cat_trace:
+        # chạy từng bước: dòng lỗi có cấu trúc (app tô đỏ dòng, không phải đọc chữ) và output cuối
+        try:
+            if chi_tiet is not None:
+                recorder.current.emit({"t": "loi", "v": buoc, **chi_tiet})
+            tung_buoc.xong(stdout_hv.getvalue(), ok)
+        except recorder.TraceLimit:
+            cat_trace = True
+    tung_buoc.tat()
     if co_trace:
         out.write(json.dumps({"t": "end", "truncated": cat_trace}) + "\n")
     ket_qua = {
@@ -125,6 +145,8 @@ def chay(job, out):
         "stdout_truncated": stdout_hv.cat,
         "time_ms": thoi_gian,
     }
+    if chi_tiet is not None:
+        ket_qua["error_line"], ket_qua["error_kind"] = chi_tiet["n"], chi_tiet["kieu"]
     out.write(json.dumps(ket_qua, ensure_ascii=False) + "\n")
     out.flush()
 
