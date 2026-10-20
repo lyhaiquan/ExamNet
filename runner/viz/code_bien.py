@@ -14,8 +14,8 @@ DAI_GIA_TRI = 40
 TOI_DA_BIEN = 12
 
 
-def bat(ten, code):
-    return CodeBien(ten, code)
+def bat(ten, code, max_lines=None):
+    return CodeBien(ten, code, max_lines=max_lines)
 
 
 def _hien(x):
@@ -33,9 +33,11 @@ def _bo_qua(ten, x):
 
 
 class CodeBien:
-    def __init__(self, ten, code):
+    def __init__(self, ten, code, max_lines=None):
         self.ten = ten
         self._src = code
+        self._max_lines = max_lines
+        self._recorded_lines = 0
         self._dong = 0
         self._ham = ""
         self._bien = []
@@ -43,6 +45,9 @@ class CodeBien:
         theo_doi.them_moc_dong(self._moc)
 
     def _moc(self, frame):
+        if self._max_lines is not None and self._recorded_lines >= self._max_lines:
+            return
+        self._recorded_lines += 1
         self._dong = frame.f_lineno
         self._ghi({"t": "line", "n": self._dong})
         ham = "" if frame.f_code.co_name == "<module>" else frame.f_code.co_name

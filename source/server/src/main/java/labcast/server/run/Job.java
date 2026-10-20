@@ -8,9 +8,25 @@ import java.util.Map;
  * của trace (trình phát cần biết vẽ biến nào bằng bộ vẽ nào).
  */
 public record Job(
-        String code, String input, boolean trace, int timeLimitMs, String lessonId, List<Map<String, String>> views) {
+        String code,
+        String input,
+        boolean trace,
+        int timeLimitMs,
+        String lessonId,
+        List<Map<String, String>> views,
+        boolean lineTrace) {
+
+    public Job(
+            String code,
+            String input,
+            boolean trace,
+            int timeLimitMs,
+            String lessonId,
+            List<Map<String, String>> views) {
+        this(code, input, trace, timeLimitMs, lessonId, views, false);
+    }
 
     public Job(String code, String input, boolean trace, int timeLimitMs) {
-        this(code, input, trace, timeLimitMs, "", List.of());
+        this(code, input, trace, timeLimitMs, "", List.of(), false);
     }
 }

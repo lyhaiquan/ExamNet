@@ -3,8 +3,10 @@ package labcast.server.lesson;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +66,29 @@ public final class LessonModule implements ServerModule {
         ctx.router().on(MessageType.LESSON_LIST, this::list).on(MessageType.LESSON_FETCH, this::fetch);
     }
 
-    /** {@code LESSON_LIST} → {@code LESSON_DATA JSON{kind: "list", lessons:[{id, mon, chuong, ten, loai}]}}. */
-    private void list(Ctx c, labcast.common.protocol.Frame f) {
+    /**
+     * Danh sách bài kèm tiến độ của CHÍNH tài khoản đang đăng nhập:
+     * MASTERED = nộp đúng; OPEN = đã nộp nhưng chưa đạt;
+     * NOT_STARTED = chưa có dòng progress (có thể đã lưu code nháp).
+     */
+    private void list(Ctx c, labcast.common.protocol.Frame f) throws SQLException {
+        Map<String, Map<String, Object>> progress = new HashMap<>();
+        ctx.db().read(dbConn -> {
+            try (PreparedStatement ps =
+                    dbConn.prepareStatement("SELECT lesson_id, status, score FROM progress WHERE user_id = ?")) {
+                ps.setLong(1, c.session().userId());
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Map<String, Object> data = new HashMap<>();
+                        data.put("status", rs.getString("status"));
+                        int score = rs.getInt("score");
+                        if (!rs.wasNull()) data.put("score", score);
+                        progress.put(rs.getString("lesson_id"), data);
+                    }
+                }
+            }
+            return null;
+        });
         List<Map<String, Object>> items = new ArrayList<>();
         for (Lesson l : repo.all()) {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -74,6 +97,9 @@ public final class LessonModule implements ServerModule {
             m.put("chuong", l.chuong());
             m.put("ten", l.ten());
             m.put("loai", l.loai());
+            Map<String, Object> state = progress.get(l.id());
+            m.put("status", state == null ? "NOT_STARTED" : state.get("status"));
+            if (state != null && state.containsKey("score")) m.put("score", state.get("score"));
             items.add(m);
         }
         c.reply(JsonPayload.frame(MessageType.LESSON_DATA, Map.of("kind", "list", "lessons", items)), Priority.NORMAL);

@@ -115,6 +115,18 @@ public final class LoginView extends StackPane {
         card.setMaxWidth(440);
         card.setMaxHeight(Region.USE_PREF_SIZE);
         getChildren().add(card);
+
+        // Cho phep doi Dark/Light ngay ca khi chua dang nhap.
+        Button themeBtn = new Button(Theme.isDark() ? "☀ Light" : "☾ Dark");
+        themeBtn.getStyleClass().add("login-theme-toggle");
+        themeBtn.setOnAction(e -> {
+            Theme.setDark(!Theme.isDark());
+            themeBtn.setText(Theme.isDark() ? "☀ Light" : "☾ Dark");
+        });
+        StackPane.setAlignment(themeBtn, Pos.TOP_RIGHT);
+        StackPane.setMargin(themeBtn, new javafx.geometry.Insets(16));
+        getChildren().add(themeBtn);
+
         discover();
     }
 

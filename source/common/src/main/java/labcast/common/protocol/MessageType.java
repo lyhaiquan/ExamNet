@@ -61,6 +61,11 @@ public enum MessageType {
     SUBMIT_RESULT(0x45),
     HINT_REQ(0x46),
     HINT_DATA(0x47),
+    // Workspace độc lập: không yêu cầu lessonId, không tác động nộp bài.
+    PLAYGROUND_RUN_REQ(0x48),
+    PLAYGROUND_RUN_QUEUED(0x49),
+    PLAYGROUND_TRACE_CHUNK(0x4A),
+    PLAYGROUND_RUN_RESULT(0x4B),
 
     // 0x50–0x6F: dòng code, mốc lưu, trợ giúp — Người 1
     CODE_DELTA(0x50),

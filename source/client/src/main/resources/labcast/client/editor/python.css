@@ -1,21 +1,35 @@
-/* Ô soạn code Python (CodeEditor): chữ, lề số dòng, con trỏ, màu cú pháp */
+/* LabCast Dark — RichTextFX CodeEditor (Python va SQL) */
 .code-area {
     -fx-font-family: "JetBrains Mono";
     -fx-font-size: 14px;
-    -fx-background-color: white;
+    -fx-background-color: #0B1220;
     -fx-padding: 6 0 0 0;
 }
-.code-area .caret { -fx-stroke: #4f46e5; }
-.code-area .selection { -fx-fill: #c7d2fe; }
-
-.keyword { -fx-fill: #7c3aed; -fx-font-weight: bold; }
-.builtin { -fx-fill: #2563eb; }
-.string  { -fx-fill: #059669; }
-.comment { -fx-fill: #94a3b8; -fx-font-style: italic; }
-.number  { -fx-fill: #ea580c; }
-.lineno  {
+.code-area .virtual-flow,
+.code-area .virtual-flow .clipped-container,
+.code-area .paragraph-box,
+.code-area .paragraph-text {
+    -fx-background-color: #0B1220;
+}
+.code-area .text {
+    -fx-fill: #E2E8F0;
+}
+.code-area .caret { -fx-stroke: #60A5FA; }
+.code-area .selection { -fx-fill: #264B74; }
+.code-area .text.keyword { -fx-fill: #C4B5FD; -fx-font-weight: bold; }
+.code-area .text.builtin { -fx-fill: #7DD3FC; }
+.code-area .text.string  { -fx-fill: #86EFAC; }
+.code-area .text.comment { -fx-fill: #94A3B8; -fx-font-style: italic; }
+.code-area .text.number  { -fx-fill: #FDBA74; }
+/* RichTextFX phien ban khac co the gan style tren TextExt khong co class 'text'. */
+.code-area .keyword { -fx-fill: #C4B5FD; -fx-font-weight: bold; }
+.code-area .builtin { -fx-fill: #7DD3FC; }
+.code-area .string  { -fx-fill: #86EFAC; }
+.code-area .comment { -fx-fill: #94A3B8; -fx-font-style: italic; }
+.code-area .number  { -fx-fill: #FDBA74; }
+.lineno {
     -fx-font-family: "JetBrains Mono";
-    -fx-background-color: #f8fafc;
-    -fx-text-fill: #94a3b8;
+    -fx-background-color: #101C2E;
+    -fx-text-fill: #7186A2;
     -fx-padding: 0 10 0 12;
 }

@@ -16,8 +16,9 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.Clipboard;
@@ -135,6 +136,23 @@ class UiSmokeTest {
         return null;
     }
 
+    /** Các dòng bài trong cây bài học (lá của cây môn → chương → bài). */
+    static List<TreeItem<Object>> baiTrongCay(TreeView<Object> tree) {
+        List<TreeItem<Object>> out = new java.util.ArrayList<>();
+        java.util.ArrayDeque<TreeItem<Object>> stack = new java.util.ArrayDeque<>();
+        if (tree.getRoot() != null) {
+            stack.push(tree.getRoot());
+        }
+        while (!stack.isEmpty()) {
+            TreeItem<Object> it = stack.pop();
+            if (it.getChildren().isEmpty() && it != tree.getRoot()) {
+                out.add(it);
+            }
+            it.getChildren().forEach(stack::push);
+        }
+        return out;
+    }
+
     static Path repoRoot() {
         Path p = Path.of("").toAbsolutePath();
         while (p != null && !Files.exists(p.resolve("runner/run.py"))) {
@@ -191,8 +209,8 @@ class UiSmokeTest {
             var li = LoginController.login("127.0.0.1", server.port(), "sv", "1");
             Scene scene = fx(() -> new Scene(new HomeScreen(li, new JournalClient(li.client()), () -> {}), 1280, 800));
             @SuppressWarnings("unchecked")
-            ListView<Object> list = (ListView<Object>) fx(() -> scene.lookup("#lessons"));
-            until(() -> !list.getItems().isEmpty(), "danh sách bài");
+            TreeView<Object> list = (TreeView<Object>) fx(() -> scene.lookup("#lessons"));
+            until(() -> !baiTrongCay(list).isEmpty(), "danh sách bài");
             chup(scene, "1b-danh-sach-a-z");
             // Tìm không dấu: còn đúng bài nổi bọt
             javafx.scene.control.TextField search =
@@ -201,10 +219,11 @@ class UiSmokeTest {
                 search.setText("noi bot");
                 return null;
             });
-            assertEquals(1, (int) fx(() -> list.getItems().size()));
+            List<TreeItem<Object>> conLai = fx(() -> baiTrongCay(list));
+            assertEquals(1, conLai.size());
             chup(scene, "1c-tim-bai");
             fx(() -> {
-                list.getSelectionModel().select(0);
+                list.getSelectionModel().select(conLai.get(0));
                 return null;
             });
             try {
