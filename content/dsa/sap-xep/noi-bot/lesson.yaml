@@ -1,0 +1,17 @@
+id: dsa.sap-xep.noi-bot
+mon: dsa
+chuong: sap-xep
+ten: Sắp xếp nổi bọt
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, du-doan, mo-phong, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: a
+    kieu: mang
+cam_dung: [sorted, sort]  # hàm cấm gọi
+cam_import: []
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
+test_xem: [nho-1]         # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: [dsa.sap-xep.chon]

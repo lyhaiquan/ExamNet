@@ -126,6 +126,14 @@ void forward(Connection teacher, long studentId, CodeDelta d) {
 
 ### Task 1.14: Đánh dấu dán khối lớn
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `CodeStore.onLargeInsert` → `ClassEvents.flagPaste` (bản tối thiểu, xem task 2.12), một dòng `audit_log` `PASTE_FLAG` (tối đa 1 dòng/giây mỗi học viên), cột "Dán khối lớn" trên dashboard web. Chưa có sơ đồ lớp trong app (task 2.12). **Khác kế hoạch:**
+>
+> - Thêm luật **cộng dồn**: hơn 200 ký tự mới trong 2 s → cờ "nhanh hơn người gõ". App gộp phím mỗi 100 ms, nên phần mềm gõ phím tự động (gõ thẳng code chép từ ChatGPT, việc chặn dán ở app không thấy) chỉ tạo các delta ~100 ký tự, luật "một delta > 200" bỏ lọt. Tính theo `clientTs` app ghi trên delta, để app gửi bù cả loạt delta sau khi mất mạng không bị coi là gõ nhanh. Người cố tình cho máy gõ chậm lại vẫn lách được.
+> - Không tính chữ **đã có trong code** hoặc **vừa bị xoá** (khối ≥ 20 ký tự): chép lại đoạn của chính mình, cắt rồi dán chỗ khác, chọn cả khối xoá rồi Ctrl+Z. Giữ Backspace xoá dần một khối dài rồi Ctrl+Z thì vẫn bị đánh dấu: server chỉ thấy các lần xoá vài ký tự, còn ô soạn gộp chúng thành một bước hoàn tác. Spec §8.4 cũ đánh dấu cả các trường hợp này; bỏ vì chỉ gây nhiễu, giáo viên sẽ quen bỏ qua cờ.
+> - Đếm theo ký tự Unicode, không theo độ dài chuỗi Java. Delta app gửi lại không đánh dấu lần nữa. Giáo viên không bị đánh dấu. Cờ mất khi nộp đúng bài đó.
+>
+> Test: bổ sung `CodeStoreTest` (8 test), `PasteFlagFlowTest`.
+
 **Files:**
 - Modify: `source/server/src/main/java/labcast/server/journal/CodeStore.java`
 - Test: bổ sung `CodeStoreTest`
@@ -173,6 +181,8 @@ Bài tập đồ thị đưa `DoThi` sẵn trong `khung.py`; học viên gọi `
 ---
 
 ## Người 4 — ĐG1 hoàn thiện
+
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** task 4.9 (`NackAggregator`, sửa gói, dựng lại khúc đã trôi khỏi vòng đệm), 4.10 (`TcpFallback`) và 4.11 (vào lớp muộn — nằm trong `CastSession`: một khung khoá là đủ để xin cả trace). Máy đang nhận qua TCP thì NACK luôn được sửa riêng, không tính vào ngưỡng gộp. **Chưa làm:** 4.12 (cần `RunService.lastTrace`, task 3.20), 4.13.
 
 ### Task 4.9: Sửa gói mất và gộp NACK
 
@@ -260,6 +270,8 @@ Hiện code (lấy từ ô soạn hoặc `LESSON_DATA`), tô sáng dòng theo s�
 
 ### Task 3.14: SQL — các bước còn lại
 
+> **Đã làm sớm (13/10/2026, cùng task 3.12):** GROUP BY (theo biểu thức, số thứ tự cột, tên gọi khác), hàm gộp kể cả không có GROUP BY, HAVING, DISTINCT, ORDER BY, LIMIT/OFFSET, UNION/INTERSECT/EXCEPT (hai vế rồi kết quả), INSERT/UPDATE/DELETE (`sql.diff`). Câu ngoài phạm vi (WITH, truy vấn con ở FROM, hàm cửa sổ, bảng > 60 dòng) và mọi trường hợp các bước tách ra không khớp kết quả chạy thật chỉ hiện kết quả cuối kèm lời giải thích. **Chưa làm:** hiện câu con (IN, EXISTS) thành bảng tạm (`sql.sub`) — câu có truy vấn con trong WHERE vẫn tách bước, SQLite tính điều kiện, chỉ không vẽ riêng câu con. Bài `diem-trung-binh-lop` đã có.
+
 **Files:**
 - Modify: `source/server/src/main/java/labcast/server/sqlviz/SqliteEngine.java`
 - Create: `source/server/src/main/java/labcast/server/sqlviz/StepPlanner.java`, `Grouping.java`
@@ -335,6 +347,8 @@ Sai một bước → `SIM_RESULT{ok:false}`, đề hết hiệu lực, muốn l
 **Commit:** `feat(runner): chạy từng dòng, chụp biến thường và dựng cây lời gọi`
 
 ### Task 3.18: Bộ vẽ `luoi`, bài LCS
+
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `GridModel`, `GridView`, bài `dsa.quy-hoach-dong.lcs` (đáp án là độ dài; lời giải mẫu truy vết và tô đường đi). **Khác kế hoạch:** tô đường truy vết bằng `dp.danh_dau(i, j)` → sự kiện `mark` có tên biến, không bằng `key "truy-vet"` — trình phát không chuyển `key` cho bộ vẽ. Không tính chính ô đang ghi là ô phụ thuộc (`dp[i][j] = max(dp[i][j], …)`), tối đa 6 mũi tên. Hai trục ghi chỉ số và nhãn nếu `Bang` có `nhan_hang`/`nhan_cot`. Test: `GridModelTest`, `VizContractTest`.
 
 **Files:**
 - Create: `source/client/src/main/java/labcast/client/views/luoi/GridModel.java`, `GridView.java`
@@ -432,7 +446,7 @@ Mỗi dòng của spec §12 thuộc tầng mạng chung có một test:
 | TCP trả về từng byte | Frame vẫn đúng (đã có ở giai đoạn 1) |
 | `MAGIC` sai, `LEN` > 8 MB, `TYPE` lạ | `ERROR(BAD_FRAME)` rồi đóng; có dòng `audit_log` |
 | Im lặng quá `SO_TIMEOUT` | Đóng kết nối, phiên vẫn còn để `RESUME` |
-| > 500 thông điệp/s trong 5 s | `BYE(TOO_MANY_MESSAGES)` |
+| > 500 thông điệp/s trong 5 s | `BYE(TOO_MANY_MESSAGES)` (đã có `ConnectionFloodTest`, task 3.11) |
 | Đăng nhập hai máy | Phiên cũ nhận `BYE(LOGGED_IN_ELSEWHERE)` |
 | Server khởi động lại | App tự nối lại, `RESUME_REQ` với token cũ thành công (token lưu bảng `sessions`) |
 

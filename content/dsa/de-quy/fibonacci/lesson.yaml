@@ -1,0 +1,19 @@
+id: dsa.de-quy.fibonacci
+mon: dsa
+chuong: de-quy
+ten: Fibonacci đệ quy có ghi nhớ
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: fib             # cây lời gọi: bien là tên HÀM
+    kieu: cay-goi
+  - bien: code            # chạy từng dòng (chỉ dùng ở bài giảng giải: trace mẫu chứa code lời giải)
+    kieu: code-bien
+cam_dung: []
+cam_import: [functools]   # phải tự ghi nhớ, không dùng lru_cache
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []

@@ -49,6 +49,17 @@ Ngày 15    Nghiệm thu M2
 
 ## Người 4 — ĐG1: chiếu animation qua multicast
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** task 4.4–4.7, cùng 4.9–4.11 của giai đoạn 3. Test đầu–cuối `CastFlowTest`: server thật, multicast thật trên card loopback, hai máy mất 5% gói và một máy vào lớp muộn đều dừng đúng bước server tính (nạp bài 0,3 s, vào muộn bắt kịp 0,8 s). Chưa thử trên nhiều máy thật trong phòng lab. **Khác kế hoạch:**
+>
+> - `CAST_CONTROL` server → lớp có thêm `bool playing` ở cuối: mỗi gói điều khiển mang đủ trạng thái phát. Dừng và đổi tốc độ thì **server** tính bước ở giờ hẹn, nên cả lớp dừng cùng một bước dù giáo viên bấm lúc nào.
+> - `SeqTracker` **không giữ gói đến sớm để chờ gói thiếu**: giữ lại thì một gói điều khiển mất hẳn sẽ chặn mọi gói sau. App áp gói điều khiển/khung khoá có SEQ lớn nhất, khúc dữ liệu theo chỉ số khúc. Gói thiếu vẫn được xin lại (chờ 30 ms, xin lại sau 200 ms, 3 lần không tới thì bỏ vì khung khoá bù). Hàm: `accept(castId, seq, now) → boolean`, `due(now) → dải cần NACK`.
+> - Công thức vị trí dùng chung `CastMessages.positionAt` (số nguyên) cho server và app. `Player.followAt(step, at, speedMilli, playing, clock)` nhận tốc độ dạng `int`.
+> - `CastSession(Clock, Consumer<Nack>)` với giao diện `Screen` (nơi hiện chiếu) thay cho `CastSession(Clock, Player)`: trace mới thì cần trình phát mới.
+> - Server luôn gửi kèm **bản sao mọi gói chiếu qua TCP cho giáo viên** (cờ `VIA_TCP`): trình phát của giáo viên theo đúng buổi chiếu, không đi trước lớp 300 ms.
+> - Không có `PresenterPane` riêng: nút "📡 Chiếu cho lớp" nằm trong màn bài học của giáo viên; nút của trình phát đi qua `PlayerControls`, giáo viên thì là `PresenterController`.
+> - `LocalNic`: app nối tới server qua 127.0.0.1 thì nghe trên mọi card. Đã thử trên Windows: server phát trên Wi-Fi, app nghe trên loopback là không nhận được gói nào.
+> - `CastModule` mở socket multicast ở lần chiếu đầu; không mở được thì vẫn chiếu qua TCP.
+
 ### Task 4.4: Phát multicast phía server
 
 **Files:**
@@ -63,7 +74,7 @@ Ngày 15    Nghiệm thu M2
 | Thông điệp | Kênh | Payload |
 | --- | --- | --- |
 | `CAST_CONTROL` (giáo viên → server) | TCP | `str action, str traceId, i32 step, i32 speedMilli` (1000 = 1×) |
-| `CAST_CONTROL` (server → lớp) | UDP | `i32 castId, str action, str traceId, i32 step, i32 speedMilli, i64 at` |
+| `CAST_CONTROL` (server → lớp) | UDP | `i32 castId, str action, str traceId, i32 step, i32 speedMilli, i64 at, bool playing` |
 | `CAST_DATA` | UDP | `i32 castId, str traceId, i32 chunkIndex, i32 totalChunks, blob bytes` |
 | `CAST_KEYFRAME` | UDP | `i32 castId, str traceId, i32 totalChunks, i32 firstDataSeq, i32 step, bool playing, i32 speedMilli, i64 anchorAt, i32 lastSeq` |
 
@@ -211,6 +222,8 @@ public final class CastSession {
 
 ### Task 4.8: Bộ vẽ `ngan-xep`, `dslk`, `bam` và bài trung tố → hậu tố
 
+> **Một phần đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `StackModel`, `StackView`. Bài mẫu là `dsa.ngan-xep.kiem-tra-ngoac` (giảng giải) và `dsa.hang-doi.so-nhi-phan` (bài tập, có `luat.py` bắt in số mà không dùng hàng đợi) thay cho bài trung tố → hậu tố. **Chưa làm:** `dslk`, `bam`, bài trung tố → hậu tố. **Khác kế hoạch:** `Views` nhận thêm `kieu: hang-doi` (cùng `StackView`, vẽ ngang); `ngan-xep` gặp `enq`/`deq` hoặc ảnh chụp `kieu: hang-doi` cũng tự vẽ ngang. Model ném `IllegalStateException` khi trace lấy ra từ cấu trúc rỗng, nhưng `StackView` bắt lại và dựng lại hình, không làm dừng trình phát. Quá 8 phần tử (ngăn xếp) hay quá bề ngang (hàng đợi) thì gộp phần giữa thành ô "…", luôn thấy đỉnh / hai đầu. Giá trị là chữ (`VizText`): dấu ngoặc, xâu, toạ độ `(r, c)`.
+
 **Files:**
 - Create: `source/client/src/main/java/labcast/client/views/nganxep/StackModel.java`, `StackView.java`
 - Create: `source/client/src/main/java/labcast/client/views/dslk/ListModel.java`, `ListView.java`
@@ -260,6 +273,8 @@ Thứ tự bắt buộc trong `JournalClient.submit`: `journal.append(d)` → `c
 **Commit:** `feat(client): nhật ký thay đổi trên đĩa, ghi trước khi gửi`
 
 ### Task 1.6: Khôi phục sau rớt mạng
+
+> **Đã có từ giai đoạn 1:** `JournalModule` đã gọi `setCodeSeqLookup(store::lastSeq)`; `LcpClient` tự nối lại và gửi `RESUME_REQ`; `JournalClient` gửi lại mọi delta chưa ACK khi nối lại (server bỏ trùng). Task này còn: đối chiếu `RESUME_STATE.serverLastSeq` để chỉ gửi phần thiếu, và nhật ký trên đĩa (task 1.5).
 
 **Files:**
 - Modify: `source/client/src/main/java/labcast/client/journal/JournalClient.java`
@@ -352,6 +367,8 @@ Khi mở một bài: gửi `CHECKPOINT_FETCH(lessonId, 0, −1)` → nạp `code
 
 ### Task 3.6: Đồng hồ — đồng bộ lại, bù trôi, chỉnh dần
 
+> **Đã có từ giai đoạn 1:** `ClockSync(LongSupplier)` (đồng hồ giả cho test) và `start(LcpClient)` đo 5 mẫu lúc vào lớp. Task này thêm đo lại định kỳ, bù trôi, chỉnh dần.
+
 **Files:**
 - Modify: `source/client/src/main/java/labcast/client/clock/ClockSync.java`
 - Create: `source/client/src/main/java/labcast/client/clock/DriftEstimator.java`
@@ -436,7 +453,9 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 - Create: `source/server/src/main/java/labcast/server/practice/SubmitHandler.java`
 - Test: `runner/tests/test_kiem_cam.py`, `GraderTest`
 
-**Payload:** `SUBMIT_REQ` `str lessonId, i64 codeSeq`. `SUBMIT_RESULT` `JSON{verdict, score, cooldownMs, unlocked:[lessonId…], tests:[{id, verdict, timeMs}]}` — test ẩn **không** kèm input/output.
+**Payload:** `SUBMIT_REQ` `str lessonId, i64 codeSeq`. `SUBMIT_RESULT` `JSON{lessonId, verdict, message, score, cooldownMs, mastered, failedTest, unlocked:[lessonId…], tests:[{id, hidden, verdict, timeMs, error?}]}` — test ẩn **không** kèm input, output hay thông báo lỗi (`error` chỉ có ở test xem được). Đang phải chờ → `ERROR(COOLDOWN, retryAfterMs)`; lượt nộp trước chưa chấm xong → `ERROR(RATE_LIMITED)`; hạ tầng hỏng → `ERROR(SANDBOX_DOWN)`, không tính lượt sai.
+
+> **Đã làm sớm (12/10/2026, nhánh `feat/giai-doan-1`):** `runner/kiem_cam.py`, `cham.py` (mỗi test một tiến trình con, dòng kết quả kèm khoá bí mật để code học viên không in giả được), `chuan_bi.py` + `LessonPreparer` (phần test ẩn của task 3.7, chưa có đề biến thể), `kiem_luat.py`, `Grader`, `SubmitModule`, và phần thời gian chờ / điểm của `ProgressService` (task 3.10). **Chưa làm:** khoá nộp sau 3 lần sai (cần bậc dự đoán, task 3.10), gọi `CodeStore.checkpoint` (task 1.7) và `ClassEvents.publish` (task 2.12) — hai phần đó chưa có; kết quả đã nằm trong bảng `submissions`. Test đầu-cuối: `SubmitFlowTest`.
 
 **Quy trình chấm** (spec §8.2):
 
@@ -450,6 +469,15 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 **Commit:** `feat(server): chấm bài nộp bằng test ẩn, kiểm hàm cấm và luật trace`
 
 ### Task 3.9: Thêm cấu trúc gắn camera cho Python
+
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `runner/viz/ngan_xep.py` (`NganXep`, `HangDoi`), `runner/viz/bang.py` (`Bang`). **Khác kế hoạch:**
+>
+> - Không kế thừa `list` (khác `viz.Mang`): kế thừa thì `sort`, `append`, `reverse`… đổi dữ liệu mà không sinh sự kiện, hoạt hình lệch với dữ liệu thật. Thay vào đó có sẵn tên quen của `list`/`deque`: `append`, `popleft`, `st[-1]`, `q[0]` (xem đỉnh/đầu → `read`).
+> - Trạng thái trong `snap` tự mô tả (`trang_thai()`, xem spec §7.3): ngăn xếp/hàng đợi ghi `kieu`, nên bộ vẽ biết vẽ đứng hay ngang ngay cả khi còn rỗng; bảng ghi nhãn hai trục (`nhan_hang`, `nhan_cot`, ví dụ hai xâu của LCS), ô đã ghi và ô đã đánh dấu.
+> - `Bang` thêm: `dp[i, j]`, gán cả hàng và gán lát cắt (sinh `cell_w` từng ô), `Bang.tu(luoi)` dựng từ lưới có sẵn, `danh_dau(i, j)` → sự kiện `mark`. In bảng không sinh sự kiện đọc.
+> - `recorder` ghi giá trị lạ (set, object) dạng chữ (`default=str`) thay vì làm hỏng bài chạy.
+>
+> Test: `runner/tests/test_ngan_xep.py`, `test_bang.py`; `VizContractTest` (app) chạy thật lời giải mẫu qua `run.py` rồi đưa vào model của bộ vẽ.
 
 **Files:**
 - Create: `runner/viz/ngan_xep.py` (`NganXep`, `HangDoi`), `runner/viz/bang.py` (`Bang`)
@@ -484,6 +512,19 @@ Một lần chạy sandbox **cho cả bài** (spec §8.3) sinh ra:
 
 ### Task 3.11: Giới hạn tốc độ và hàng đợi chạy công bằng
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`):** `TokenBucket`, `RateLimitPolicy`, `PracticeModule` (hiện chỉ cài luật; bậc dự đoán của task 3.10 thêm vào sau), hàng đợi chạy công bằng trong `RunService`. **Khác kế hoạch:**
+>
+> - "Mọi thông điệp khác 50 / s" đếm theo **kết nối**, kể cả trước khi đăng nhập: thêm hàm mặc định `FramePolicy.check(Connection, type)` (gọi bản cũ), luật giữ số đếm trong `Connection.attr`. `RUN_REQ`, `PREDICT_ANSWER` đếm theo **người**, nối lại không được thùng mới. Giáo viên không bị giới hạn `RUN_REQ` (chạy mẫu khi giảng).
+> - Không đếm `CODE_DELTA` (chặn một delta là đứt mạch `seq`, app chỉ gửi lại khi nối lại), `HEARTBEAT_ACK`, `TIME_SYNC_REQ`, `BYE`.
+> - Vượt 50 / s: trả `ERROR(RATE_LIMITED)` một lần mỗi giây, các frame còn lại bỏ im lặng (`Decision.DROP`). `Decision` có thêm lời báo tiếng Việt cho học viên.
+> - Ngắt kết nối khi dồn > 500 / s suốt 5 s nằm ở `Connection` (tầng mạng chung), không ở `RateLimitPolicy`: đếm cả frame bị chặn và frame trước khi đăng nhập, ghi `audit_log` `TOO_MANY_MESSAGES`.
+> - `SUBMIT_REQ`: mỗi **người** một lượt đang chấm (trước là mỗi bài một lượt), để nộp 5 bài cùng lúc không chiếm 5 luồng chạy code.
+> - `CAST_NACK` có thùng riêng theo kết nối (100 / s, đợt 300, vượt thì bỏ im lặng): trace lớn trên mạng mất gói nhiều thì app xin lại cả trăm dải gói mỗi giây. `CAST_CONTROL` của giáo viên không bị đếm.
+> - Lượt cũ bị thay giữ chỗ của nó trong hàng (bấm lại không bị đẩy xuống cuối). Lời giải mẫu chạy như việc ưu tiên, không phải chạy thử của "người 0".
+> - App: bị chặn thì nút Chạy thử đếm ngược "Chạy lại sau N s".
+>
+> Test: `TokenBucketTest`, `RateLimitPolicyTest`, `RunQueueTest`, `ConnectionFloodTest`, `RateLimitFlowTest`.
+
 **Files:**
 - Create: `source/server/src/main/java/labcast/server/practice/RateLimitPolicy.java` (`implements FramePolicy`)
 - Create: `source/server/src/main/java/labcast/server/practice/TokenBucket.java`
@@ -507,6 +548,8 @@ Quá 500 thông điệp/s trong 5 s → `BYE(TOO_MANY_MESSAGES)` và đóng kế
 
 ### Task 3.12: Bộ máy SQL bản đầu
 
+> **Đã làm sớm (13/10/2026, nhánh `feat/giai-doan-1`) cùng task 3.14:** `SqlGuard`, `SqliteEngine`, `ResultComparer`, `StepPlanner`, `SqlLab`; bài SQL đi qua `RUN_REQ`/`SUBMIT_REQ` như bài DSA (rẽ nhánh trong `RunModule`/`SubmitModule`). **Khác kế hoạch:** không có giao diện `SqlEngine` ba hàm — `SqliteEngine` chạy câu, `StepPlanner` tách bước; ngắt câu quá giờ bằng progress handler của SQLite (không dựa vào `setQueryTimeout`), thêm trần độ dài chuỗi/blob và cấm `ATTACH`. Test đầu–cuối: `SqlFlowTest`.
+
 **Files:**
 - Create: `source/server/src/main/java/labcast/server/sqlviz/SqlEngine.java`, `SqliteEngine.java`, `SqlGuard.java`, `ResultComparer.java`
 - Modify: `source/server/pom.xml` — thêm `jsqlparser`
@@ -524,6 +567,8 @@ Quá 500 thông điệp/s trong 5 s → `BYE(TOO_MANY_MESSAGES)` và đóng kế
 **Commit:** `feat(server): bộ máy SQL bản đầu — chặn câu nguy hiểm, chấm, tách bước FROM/JOIN/WHERE`
 
 ### Task 3.13: Màn các bậc học và bộ vẽ `bang-sql`
+
+> **Đã làm một phần (13/10/2026):** bộ vẽ `bang-sql` (`SqlTableModel`, `SqlTableView` trong `client.views.bangsql`), ô soạn SQL có tô màu. **Chưa làm:** tab các bậc học và bậc dự đoán (`PracticeController`, `PredictPane`).
 
 **Files:**
 - Create: `source/client/src/main/java/labcast/client/practice/PracticeController.java`, `PredictPane.java`, `RunPanel.java`, `ResultPane.java`
@@ -569,6 +614,8 @@ Có công tắc `--heartbeat co-dinh` để đo thí nghiệm 9 (chu kỳ cố �
 
 ### Task 2.12: Sơ đồ lớp và giao bài
 
+> **Một phần đã có (13/10/2026, cùng task 1.14):** `ClassEvents` đúng chữ ký dưới đây, đăng ký sẵn trong `LabCastServer.installCore`. Hiện giữ trạng thái mới nhất và cờ dán khối lớn trong bộ nhớ, `onChange(userId)` để đẩy `CLASS_STATE`; `SubmitModule` đã gọi `publish` (`DA_QUA` / `SAI_TEST`). Dashboard web đọc cờ dán. **Còn lại:** `ClassroomState`, `ClassroomModule`, `CLASS_STATE`, `LESSON_PUSH`, `ClassMapPane`, giơ tay.
+
 **Files:**
 - Create: `source/server/src/main/java/labcast/server/classroom/ClassEvents.java`, `ClassroomState.java`, `ClassroomModule.java`
 - Create: `source/client/src/main/java/labcast/client/ui/ClassMapPane.java`
@@ -588,7 +635,9 @@ public final class ClassEvents {                                       // spec �
 
 Chữ ký này **chốt ở ngày 1** (luật giao diện trước): đủ trường cho `CLASS_STATE` bên dưới, để Người 1 và Người 3 không phải chờ đổi.
 
-**Payload:** `CLASS_JOIN` trống (giáo viên gửi để nhận sơ đồ). `CLASS_STATE` `JSON{students:[{userId, name, presence, lessonId, status, failedTest, pasteFlag}], stats:[{lessonId, testId, failCount}]}` — gửi `Priority.CONFLATABLE`, key `"lop"`, nên giáo viên xem chậm chỉ nhận bản mới nhất. `LESSON_PUSH` `str lessonId` (giáo viên → server → mọi học viên trong lớp).
+**Payload:** `CLASS_JOIN` trống (giáo viên gửi để nhận sơ đồ). `CLASS_STATE` `JSON{students:[{userId, name, presence, lessonId, status, failedTest, pasteFlag, appFocus:{inApp, leaves, awayMs}}], stats:[{lessonId, testId, failCount}]}` — gửi `Priority.CONFLATABLE`, key `"lop"`, nên giáo viên xem chậm chỉ nhận bản mới nhất. `LESSON_PUSH` `str lessonId` (giáo viên → server → mọi học viên trong lớp).
+
+`appFocus` lấy từ `ctx.require(AppFocus.class).state(userId)` (đã có, `labcast.server.presence`); nghe `AppFocus.onChange(...)` để đẩy `CLASS_STATE` ngay khi học viên rời app hoặc quay lại. Ô học viên đang ở ngoài app hiện cờ "rời app" kèm số lần rời và tổng thời gian ở ngoài.
 
 Nguồn sự kiện: `Presence.onStateChange` (có mặt), `ClassEvents.publish` (Người 3 khi chấm, Người 1 khi giơ tay), gom lại và đẩy tối đa 5 lần/giây.
 

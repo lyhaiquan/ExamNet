@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabCast Dashboard</title>
+<!--
+  Trang dashboard của server LabCast. Mọi thứ nằm trong file này (không tải gì từ Internet: phòng máy
+  có thể không có mạng ngoài). Số liệu lấy từ /api/dashboard mỗi 2 giây. Dữ liệu chèn vào trang CHỈ
+  bằng textContent, không ghép chuỗi HTML: tên đăng nhập sai trong nhật ký là chữ bất kỳ người khác gõ.
+-->
+<style>
+:root {
+  --bg: #f3f5fa; --surface: #fff; --surface-2: #f8fafc; --border: #e2e8f0;
+  --text: #1e293b; --muted: #64748b; --faint: #94a3b8;
+  --primary: #4f46e5; --primary-soft: #eef2ff;
+  --ok: #15803d; --ok-soft: #dcfce7; --warn: #b45309; --warn-soft: #fef3c7;
+  --bad: #b91c1c; --bad-soft: #fee2e2; --idle-soft: #f1f5f9;
+  --nav: #141a2e;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1020; --surface: #131a2e; --surface-2: #182038; --border: #26304a;
+    --text: #e2e8f0; --muted: #94a3b8; --faint: #64748b;
+    --primary: #818cf8; --primary-soft: #232a52;
+    --ok: #4ade80; --ok-soft: #12331f; --warn: #fbbf24; --warn-soft: #3a2c0b;
+    --bad: #f87171; --bad-soft: #3d1414; --idle-soft: #1c2438;
+    --nav: #070b16;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+header { background: var(--nav); color: #fff; padding: 12px 20px; display: flex; align-items: center;
+  gap: 12px; flex-wrap: wrap; }
+.mark { background: #4f46e5; border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center;
+  font-weight: 700; font-size: 13px; }
+header h1 { font-size: 16px; margin: 0; }
+.chip { background: #222a44; color: #c7d2fe; border-radius: 999px; padding: 3px 12px; font-size: 12px; }
+header .spacer { flex: 1; }
+.live { font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+.live.down .dot { background: #ef4444; }
+main { padding: 16px 20px 32px; max-width: 1400px; margin: 0 auto; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.tile .label { color: var(--muted); font-size: 12px; }
+.tile .value { font-size: 24px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.tile.alert .value { color: var(--bad); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  margin-bottom: 16px; }
+.card h2 { font-size: 13px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; }
+.card h2 .count { color: var(--muted); font-weight: 400; }
+.card h2 .spacer { flex: 1; }
+.scroll { overflow: auto; max-height: 440px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 7px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 600; }
+td.wrap { white-space: normal; }
+tr:last-child td { border-bottom: none; }
+.sub { color: var(--faint); font-size: 12px; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+.pill { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 12px; font-weight: 600; }
+.ok { background: var(--ok-soft); color: var(--ok); }
+.warn { background: var(--warn-soft); color: var(--warn); }
+.bad { background: var(--bad-soft); color: var(--bad); }
+.idle { background: var(--idle-soft); color: var(--muted); }
+.empty { color: var(--muted); padding: 18px 14px; }
+.logs { font: 12px/1.5 Consolas, "Cascadia Mono", monospace; }
+.logs td { padding: 3px 14px; }
+.logs td.msg { white-space: pre-wrap; word-break: break-word; }
+select { font: inherit; background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 2px 6px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="mark">LC</div>
+  <h1>LabCast · Dashboard</h1>
+  <span class="chip" id="lop">—</span>
+  <span class="chip" id="build">—</span>
+  <span class="spacer"></span>
+  <span class="live" id="live"><span class="dot"></span><span id="liveText">Đang tải…</span></span>
+</header>
+<main>
+  <section class="tiles">
+    <div class="tile"><div class="label">Học viên đang vào</div><div class="value" id="tOnline">—</div></div>
+    <div class="tile" id="tileAway"><div class="label">Đang rời app</div><div class="value" id="tAway">—</div></div>
+    <div class="tile" id="tileWeak"><div class="label">Mạng chập chờn / mất kết nối</div><div class="value" id="tWeak">—</div></div>
+    <div class="tile"><div class="label">Lượt chạy code 10 phút qua</div><div class="value" id="tRuns">—</div></div>
+    <div class="tile" id="tileWarn"><div class="label">Cảnh báo trong log</div><div class="value" id="tWarn">—</div></div>
+    <div class="tile" id="tileCast" title="Chiếu animation qua multicast (ĐG1)"><div class="label" id="lCast">Chiếu cho lớp</div><div class="value" id="tCast">—</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Học viên <span class="count" id="cStudents"></span><span class="spacer"></span>
+      <span class="sub" id="teachers"></span></h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Học viên</th><th>Kết nối</th><th class="num">RTT</th><th>App</th>
+          <th class="num">Số lần rời</th><th class="num">Tổng thời gian ngoài</th><th>Dán khối lớn</th><th>Bài</th></tr></thead>
+        <tbody id="students"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Lượt chạy code gần đây</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Lúc</th><th>Học viên</th><th>Bài</th><th>Kết quả</th></tr></thead>
+          <tbody id="runs"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Nhật ký sự kiện</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Lúc</th><th>Ai</th><th>Việc</th><th>Chi tiết</th></tr></thead>
+          <tbody id="audit"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Log server <span class="spacer"></span>
+      <select id="level"><option value="all">Tất cả</option><option value="warn">Chỉ cảnh báo và lỗi</option></select></h2>
+    <div class="scroll">
+      <table class="logs"><tbody id="logs"></tbody></table>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+let last = null;
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text !== undefined && text !== null) e.textContent = String(text);
+  if (cls) e.className = cls;
+  return e;
+}
+function pill(text, cls) { return el("span", text, "pill " + cls); }
+function td(content, cls) {
+  const c = el("td", undefined, cls);
+  if (content instanceof Node) c.appendChild(content); else c.textContent = content == null ? "" : String(content);
+  return c;
+}
+function row(cells) { const r = document.createElement("tr"); cells.forEach((c) => r.appendChild(c)); return r; }
+function fill(tbody, rows, emptyText, cols) {
+  tbody.replaceChildren();
+  if (rows.length === 0) {
+    const c = el("td", emptyText, "empty"); c.colSpan = cols; tbody.appendChild(row([c])); return;
+  }
+  rows.forEach((r) => tbody.appendChild(r));
+}
+function time(ms) {
+  const d = new Date(ms);
+  return d.toLocaleTimeString("vi-VN", { hour12: false });
+}
+function duration(ms) {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return s + " s";
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + " ph " + (s % 60) + " s";
+  return Math.floor(m / 60) + " giờ " + (m % 60) + " ph";
+}
+function person(name, username) {
+  const box = document.createElement("div");
+  box.appendChild(el("div", name));
+  box.appendChild(el("div", username, "sub"));
+  return box;
+}
+
+const PRESENCE = {
+  ALIVE: ["Đang vào", "ok"], SUSPECT: ["Chập chờn", "warn"],
+  DISCONNECTED: ["Mất kết nối", "bad"], CHUA_VAO: ["Chưa vào", "idle"],
+};
+const VERDICT = {
+  OK: ["Đúng", "ok"], WRONG: ["Sai kết quả", "bad"], TIME_LIMIT: ["Quá thời gian", "warn"],
+  RUNTIME_ERROR: ["Lỗi khi chạy", "bad"], NO_EXPECTED: ["Chạy xong", "idle"],
+  FORBIDDEN_CALL: ["Dùng hàm cấm", "bad"], TRACE_RULE: ["Sai luật trace", "bad"],
+};
+const ACTION = {
+  AUTH_OK: ["Đăng nhập", "ok"], AUTH_FAIL: ["Đăng nhập sai", "bad"],
+  LOGGED_IN_ELSEWHERE: ["Đăng nhập ở máy khác", "warn"], BAD_FRAME: ["Gói tin hỏng", "bad"],
+  APP_LEAVE: ["Rời app", "warn"], APP_RETURN: ["Quay lại app", "ok"],
+  PASTE_FLAG: ["Dán khối lớn", "warn"], TOO_MANY_MESSAGES: ["Gửi dồn, bị ngắt", "bad"],
+  ADMIN_ROSTER_IMPORT: ["Nhập danh sách lớp", "idle"],
+};
+// Học viên cần chú ý lên đầu
+const ORDER = (s) => (!s.inApp && s.online ? 0 : s.presence === "SUSPECT" ? 1
+  : s.loggedIn && !s.online ? 2 : s.online ? 3 : 4);
+
+function render(d) {
+  const now = d.server.now;
+  $("lop").textContent = d.server.mon ? d.server.lop + " · " + d.server.mon : d.server.lop;
+  $("build").textContent = "v" + d.server.version + " · " + String(d.server.commit).slice(0, 7)
+    + " · chạy từ " + time(d.server.startedAt) + " · " + d.server.sandbox;
+  $("teachers").textContent = d.teachersOnline.length ? "Giáo viên đang vào: " + d.teachersOnline.join(", ") : "";
+
+  const st = d.students;
+  const online = st.filter((s) => s.online).length;
+  const away = st.filter((s) => s.online && !s.inApp).length;
+  const weak = st.filter((s) => s.presence === "SUSPECT" || (s.loggedIn && !s.online)).length;
+  const runs10 = d.runs.filter((r) => now - r.ts < 10 * 60 * 1000).length;
+  const warns = d.logs.filter((l) => l.level === "WARNING" || l.level === "SEVERE").length;
+  $("tOnline").textContent = online + " / " + st.length;
+  $("tAway").textContent = away;
+  $("tWeak").textContent = weak;
+  $("tRuns").textContent = runs10;
+  $("tWarn").textContent = warns;
+  const c = d.cast;
+  if (!c) {
+    $("lCast").textContent = "Chiếu cho lớp";
+    $("tCast").textContent = "—";
+  } else if (c.dangChieu) {
+    $("lCast").textContent = "Đang chiếu " + c.traceId;
+    $("tCast").textContent = "Bước " + (c.buoc + 1);
+    $("tileCast").title = c.goiDaPhat + " gói multicast (" + Math.round(c.byteDaPhat / 1024) + " KB) · NACK "
+      + c.nackNhan + " · sửa riêng " + c.suaRieng + " · phát lại " + c.phatLai + " · máy nhận qua TCP " + c.mayQuaTcp;
+  } else {
+    $("lCast").textContent = "Chiếu cho lớp";
+    $("tCast").textContent = "Không chiếu";
+  }
+  $("tileAway").classList.toggle("alert", away > 0);
+  $("tileWeak").classList.toggle("alert", weak > 0);
+  $("tileWarn").classList.toggle("alert", warns > 0);
+  $("cStudents").textContent = "(" + st.length + ")";
+
+  const sorted = st.slice().sort((a, b) => ORDER(a) - ORDER(b) || a.username.localeCompare(b.username));
+  fill($("students"), sorted.map((s) => {
+    const p = PRESENCE[s.presence] || [s.presence, "idle"];
+    let app;
+    if (!s.loggedIn) app = el("span", "—", "sub");
+    else if (s.inApp) app = pill("Trong app", "ok");
+    else {
+      app = document.createElement("span");
+      app.appendChild(pill("Rời app", "bad"));
+      if (s.leftAt) app.appendChild(el("span", "  từ " + time(s.leftAt) + " (" + duration(now - s.leftAt) + ")", "sub"));
+    }
+    // Chỉ là gợi ý: giáo viên xem code rồi tự xét. Cờ mất khi học viên nộp đúng bài đó.
+    let paste = el("span", "—", "sub");
+    if (s.pasteFlags && s.pasteFlags.length) {
+      const times = s.pasteFlags.reduce((n, x) => n + x.times, 0);
+      paste = pill("📋 " + times + " lần", "warn");
+      paste.title = s.pasteFlags.map((x) => x.lessonId + ": " + x.times + " lần, gần nhất " + time(x.at)
+        + " — " + x.detail).join("\n");
+    }
+    return row([
+      td(person(s.fullName, s.username)),
+      td(pill(p[0], p[1])),
+      td(s.srttMs == null ? "—" : s.srttMs + " ms", "num"),
+      td(app),
+      td(s.leaves, "num"),
+      td(s.awayMs ? duration(s.awayMs) : "—", "num"),
+      td(paste),
+      td(s.lessonId || "—", "sub"),
+    ]);
+  }), "Chưa có học viên nào. Giáo viên nhập danh sách lớp trong app.", 8);
+
+  fill($("runs"), d.runs.map((r) => {
+    const v = VERDICT[r.verdict] || [r.verdict, "idle"];
+    return row([td(time(r.ts), "sub"), td(person(r.fullName, r.username)), td(r.lessonId, "sub"),
+      td(pill((r.kind === "SUBMIT" ? "Nộp · " : "") + v[0], v[1]))]);
+  }), "Chưa có lượt chạy nào.", 4);
+
+  fill($("audit"), d.audit.map((a) => {
+    const v = ACTION[a.action] || [a.action, "idle"];
+    return row([td(time(a.ts), "sub"), td(a.actor), td(pill(v[0], v[1])), td(a.detail, "wrap sub")]);
+  }), "Chưa có sự kiện nào.", 4);
+
+  const onlyWarn = $("level").value === "warn";
+  const logs = d.logs.filter((l) => !onlyWarn || l.level === "WARNING" || l.level === "SEVERE");
+  fill($("logs"), logs.map((l) => {
+    const cls = l.level === "SEVERE" ? "bad" : l.level === "WARNING" ? "warn" : "idle";
+    return row([td(time(l.ts), "sub"), td(pill(l.level, cls)), td(l.logger, "sub"), td(l.message, "msg")]);
+  }), "Chưa có dòng log nào.", 4);
+}
+
+async function tick() {
+  try {
+    const res = await fetch("/api/dashboard", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    last = await res.json();
+    render(last);
+    $("live").classList.remove("down");
+    $("liveText").textContent = "Cập nhật " + time(Date.now());
+  } catch (e) {
+    $("live").classList.add("down");
+    $("liveText").textContent = "Mất kết nối tới server (" + e.message + ")";
+  }
+}
+$("level").addEventListener("change", () => { if (last) render(last); });
+tick();
+setInterval(tick, 2000);
+</script>
+</body>
+</html>

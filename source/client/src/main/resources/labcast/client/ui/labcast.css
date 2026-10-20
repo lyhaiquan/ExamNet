@@ -1,0 +1,1040 @@
+/*
+ * Giao diện chung của app LabCast. Gắn vào gốc mỗi màn bằng Theme.apply(...): màn đăng nhập, màn
+ * chính, và cả các Scene test tự dựng (UiSmokeTest) đều nhận cùng một bộ màu.
+ *
+ * Màu khai báo một chỗ ở .lc-root, các luật bên dưới chỉ dùng tên màu. Màu của bộ vẽ animation
+ * (vàng đang xét, xanh dương vừa ghi…) nằm ở VizPalette vì bộ vẽ tô bằng code Java.
+ */
+
+.lc-root {
+    /* LabCast Dark: mot bo mau dung chung cho moi man JavaFX */
+    -lc-bg: #0F172A;
+    -lc-surface: #1E293B;
+    -lc-surface-2: #26364D;
+    -lc-border: #334155;
+    -lc-border-strong: #475569;
+    -lc-text: #F1F5F9;
+    -lc-muted: #B6C3D5;
+    -lc-faint: #94A3B8;
+    -lc-primary: #3B82F6;
+    -lc-primary-hover: #2563EB;
+    -lc-primary-soft: #1A3558;
+    -lc-primary-text: #BFDBFE;
+    -lc-success: #86EFAC;
+    -lc-success-bg: #15803D;
+    -lc-success-soft: #163D30;
+    -lc-danger: #FDA4AF;
+    -lc-danger-soft: #4A2631;
+    -lc-warning: #FCD34D;
+    -lc-warning-soft: #493719;
+    -lc-nav: #0B1220;
+    -lc-nav-2: #1E293B;
+    -lc-console: #080F1E;
+
+    -fx-font-family: "Inter";
+    -fx-font-size: 13px;
+    -fx-background-color: -lc-bg;
+    -fx-accent: -lc-primary;
+    -fx-focus-color: -lc-primary;
+    -fx-faint-focus-color: transparent;
+    -fx-text-fill: -lc-text;
+    -fx-text-base-color: -lc-text;
+    -fx-control-inner-background: -lc-surface;
+    -fx-control-inner-background-alt: -lc-surface-2;
+    -fx-base: -lc-surface;
+}
+
+/* ---------- Chữ ---------- */
+
+.label {
+    -fx-text-fill: -lc-text;
+}
+
+.h1 {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.muted {
+    -fx-text-fill: -lc-muted;
+}
+
+.section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lc-muted;
+}
+
+.card-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Nút ---------- */
+
+.button {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border-strong;
+    -fx-border-radius: 8;
+    -fx-padding: 6 14;
+    -fx-text-fill: -lc-text;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: -lc-surface-2;
+    -fx-border-color: -lc-faint;
+}
+
+.button:pressed {
+    -fx-background-color: #34445B;
+}
+
+.button:focused {
+    -fx-border-color: -lc-primary;
+}
+
+.button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.button.primary {
+    -fx-background-color: -lc-primary;
+    -fx-border-color: -lc-primary;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button.primary:hover {
+    -fx-background-color: -lc-primary-hover;
+    -fx-border-color: -lc-primary-hover;
+}
+
+.button.success {
+    -fx-background-color: -lc-success-bg;
+    -fx-border-color: -lc-success-bg;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button.success:hover {
+    -fx-background-color: -lc-success;
+    -fx-border-color: -lc-success;
+}
+
+.button.ghost {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -lc-primary;
+    -fx-padding: 4 8;
+}
+
+.button.ghost:hover {
+    -fx-background-color: -lc-primary-soft;
+}
+
+.button.on-dark {
+    -fx-background-color: transparent;
+    -fx-border-color: #405270;
+    -fx-text-fill: #E2E8F0;
+}
+
+.button.on-dark:hover {
+    -fx-background-color: -lc-nav-2;
+}
+
+.button.on-dark.logout:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.2);
+    -fx-border-color: rgba(239, 68, 68, 0.6);
+    -fx-text-fill: #fca5a5;
+}
+
+/* ---------- Ô nhập ---------- */
+
+.text-field,
+.password-field {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border-strong;
+    -fx-border-radius: 8;
+    -fx-padding: 8 10;
+    -fx-prompt-text-fill: -lc-faint;
+    -fx-text-fill: -lc-text;
+}
+
+.text-field:focused,
+.password-field:focused {
+    -fx-border-color: -lc-primary;
+    -fx-effect: dropshadow(three-pass-box, rgba(59, 130, 246, 0.25), 6, 0.3, 0, 0);
+}
+
+.combo-box {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border-strong;
+    -fx-border-radius: 8;
+    -fx-padding: 1 2;
+}
+
+.combo-box:focused {
+    -fx-border-color: -lc-primary;
+}
+
+.combo-box > .list-cell {
+    -fx-text-fill: -lc-text;
+    -fx-padding: 4 6;
+}
+
+.combo-box > .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.combo-box > .arrow-button > .arrow {
+    -fx-background-color: -lc-muted;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 12, 0, 0, 4);
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 5 10;
+    -fx-text-fill: -lc-text;
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:hover,
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+}
+
+/* ---------- Thanh cuộn mảnh ---------- */
+
+.scroll-bar {
+    -fx-background-color: transparent;
+    -fx-padding: 2;
+}
+
+.scroll-bar > .track,
+.scroll-bar > .track-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar > .thumb {
+    -fx-background-color: rgba(148, 163, 184, 0.38);
+    -fx-background-radius: 6;
+}
+
+.scroll-bar > .thumb:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.62);
+}
+
+.scroll-bar > .increment-button,
+.scroll-bar > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar > .increment-button > .increment-arrow,
+.scroll-bar > .decrement-button > .decrement-arrow {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .corner {
+    -fx-background-color: transparent;
+}
+
+/* ---------- Thẻ, nhãn nhỏ ---------- */
+
+.card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.20), 14, 0, 0, 2);
+}
+
+.badge {
+    -fx-background-radius: 999;
+    -fx-padding: 2 9;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-background-color: #334155;
+    -fx-text-fill: -lc-muted;
+}
+
+.badge-giang-giai {
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+}
+
+.badge-bai-tap {
+    -fx-background-color: #4B382A;
+    -fx-text-fill: #FCD34D;
+}
+
+.badge-luyen-tap {
+    -fx-background-color: #153C52;
+    -fx-text-fill: #7DD3FC;
+}
+
+/* ---------- Màn đăng nhập ---------- */
+
+.login-bg {
+    -fx-background-color: linear-gradient(to bottom right, #080F1E 0%, #101F3A 55%, #172F52 100%);
+}
+
+.login-card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 16;
+    -fx-padding: 28 30 24 30;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.35), 40, 0, 0, 12);
+}
+
+.brand-mark {
+    -fx-background-color: -lc-primary;
+    -fx-background-radius: 8;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-alignment: center;
+    -fx-min-width: 30;
+    -fx-min-height: 30;
+    -fx-max-width: 30;
+    -fx-max-height: 30;
+}
+
+.brand-mark.large {
+    -fx-background-radius: 12;
+    -fx-font-size: 18px;
+    -fx-min-width: 44;
+    -fx-min-height: 44;
+    -fx-max-width: 44;
+    -fx-max-height: 44;
+}
+
+.login-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.server-list {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+    -fx-padding: 4;
+}
+
+.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 8 10;
+}
+
+.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background-color: #334155;
+    -fx-background-radius: 8;
+}
+
+.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 8;
+    -fx-border-color: -lc-primary;
+    -fx-border-radius: 8;
+}
+
+.server-name {
+    -fx-font-weight: bold;
+}
+
+.server-meta {
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 12px;
+}
+
+.server-dot {
+    -fx-fill: #22c55e;
+}
+
+.placeholder {
+    -fx-text-fill: -lc-muted;
+    -fx-text-alignment: center;
+}
+
+.divider-text {
+    -fx-text-fill: -lc-faint;
+    -fx-font-size: 11px;
+}
+
+.divider-line {
+    -fx-background-color: -lc-border;
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+    -fx-pref-height: 1;
+}
+
+.form-status {
+    -fx-text-fill: -lc-muted;
+}
+
+.form-status.error {
+    -fx-text-fill: -lc-danger;
+}
+
+/* ---------- Thanh trên cùng ---------- */
+
+.topbar {
+    -fx-background-color: -lc-nav;
+    -fx-padding: 9 16;
+}
+
+.topbar .brand {
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.class-chip {
+    -fx-background-color: -lc-nav-2;
+    -fx-background-radius: 999;
+    -fx-padding: 3 12;
+    -fx-text-fill: #c7d2fe;
+    -fx-font-size: 12px;
+}
+
+.avatar {
+    -fx-background-color: #818cf8;
+    -fx-background-radius: 999;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-min-width: 30;
+    -fx-min-height: 30;
+    -fx-max-width: 30;
+    -fx-max-height: 30;
+}
+
+.user-name {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.user-role {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 11px;
+}
+
+.status-pill {
+    -fx-background-radius: 999;
+    -fx-padding: 3 10;
+    -fx-font-size: 12px;
+    -fx-background-color: -lc-nav-2;
+    -fx-text-fill: #cbd5e1;
+}
+
+/* Báo mức phóng khi bấm Ctrl +/−, nằm ngoài phần được phóng nên luôn cùng cỡ */
+.zoom-toast {
+    -fx-background-color: rgba(20, 26, 46, 0.92);
+    -fx-background-radius: 999;
+    -fx-padding: 6 14;
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.status-pill.ok {
+    -fx-background-color: #14532d;
+    -fx-text-fill: #bbf7d0;
+}
+
+.status-pill.warn {
+    -fx-background-color: #78350f;
+    -fx-text-fill: #fde68a;
+}
+
+.status-pill.error {
+    -fx-background-color: #7f1d1d;
+    -fx-text-fill: #fecaca;
+}
+
+/* ---------- Danh sách bài bên trái ---------- */
+
+.sidebar {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: transparent -lc-border transparent transparent;
+    -fx-padding: 14 0 8 0;
+}
+
+.sidebar-header {
+    -fx-padding: 0 16 8 16;
+}
+
+.sidebar-tools {
+    -fx-padding: 0 16 10 16;
+}
+
+.lesson-list {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0 8;
+}
+
+.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 9 10;
+}
+
+.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 8;
+}
+
+.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 8;
+}
+
+.lesson-title {
+    -fx-font-weight: bold;
+}
+
+.lesson-list .list-cell:filled:selected .lesson-title {
+    -fx-text-fill: -lc-primary-text;
+}
+
+.lesson-meta {
+    -fx-text-fill: -lc-faint;
+    -fx-font-size: 11px;
+}
+
+.empty-state {
+    -fx-padding: 40;
+}
+
+.empty-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Màn bài học ---------- */
+
+.lesson-header {
+    -fx-padding: 14 20 10 20;
+}
+
+.lesson-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0 14 14 14;
+    -fx-box-border: transparent;
+}
+
+.lesson-split > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 0 5;
+}
+
+.lesson-tabs {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.20), 14, 0, 0, 2);
+    -fx-tab-min-height: 30;
+}
+
+.lesson-tabs > .tab-header-area {
+    -fx-padding: 6 12 0 12;
+}
+
+.lesson-tabs > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-border-color: -lc-primary;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-text-fill: -lc-muted;
+    -fx-font-weight: bold;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-text-fill: -lc-primary-text;
+}
+
+.lesson-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .focus-indicator {
+    -fx-border-color: transparent;
+}
+
+.lesson-tabs > .tab-content-area {
+    -fx-background-color: transparent;
+}
+
+.editor-card {
+    -fx-padding: 0 0 6 0;
+}
+
+.notice {
+    -fx-text-fill: -lc-warning;
+    -fx-font-weight: bold;
+}
+
+.card-header {
+    -fx-padding: 10 14;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+
+/* ---------- Đề bài (markdown) ---------- */
+
+.markdown {
+    -fx-padding: 16 20 20 20;
+}
+
+.md-text {
+    -fx-fill: -lc-text;
+    -fx-font-size: 15px;
+}
+
+.md-strong {
+    -fx-font-weight: bold;
+}
+
+.md-em {
+    -fx-font-style: italic;
+}
+
+.md-link {
+    -fx-fill: -lc-primary;
+    -fx-underline: true;
+}
+
+.md-h1 {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.md-h2 {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.md-h3 {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.md-heading {
+    -fx-padding: 6 0 0 0;
+}
+
+.md-code {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 13px;
+    -fx-background-color: #334155;
+    -fx-background-radius: 4;
+    -fx-padding: 0 4;
+    -fx-text-fill: #F9A8D4;
+}
+
+.md-pre {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 13px;
+    -fx-background-color: #334155;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+    -fx-text-fill: -lc-text;
+}
+
+.md-quote {
+    -fx-border-color: transparent transparent transparent -lc-border-strong;
+    -fx-border-width: 0 0 0 3;
+    -fx-padding: 2 0 2 12;
+}
+
+.md-table {
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.md-th {
+    -fx-background-color: -lc-surface-2;
+    -fx-padding: 7 14;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+
+.md-td {
+    -fx-padding: 7 14;
+}
+
+.md-th .md-text {
+    -fx-font-weight: bold;
+}
+
+/* ---------- Trình phát animation ---------- */
+
+.player-bar {
+    -fx-padding: 10 14 4 14;
+}
+
+.source-chip {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 999;
+    -fx-padding: 3 10;
+    -fx-text-fill: -lc-primary-text;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.source-chip.mine {
+    -fx-background-color: -lc-success-soft;
+    -fx-text-fill: -lc-success;
+}
+
+.source-chip.none {
+    -fx-background-color: #334155;
+    -fx-text-fill: -lc-muted;
+}
+
+/* Chiếu cho cả lớp (ĐG1) */
+.source-chip.casting {
+    -fx-background-color: -lc-danger-soft;
+    -fx-text-fill: -lc-danger;
+}
+
+.button.cast {
+    -fx-background-color: -lc-danger;
+    -fx-border-color: -lc-danger;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button.cast:hover {
+    -fx-background-color: #BE123C;
+    -fx-border-color: #BE123C;
+}
+
+.button.cast-chip {
+    -fx-background-color: -lc-danger;
+    -fx-border-color: -lc-danger;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 3 12;
+}
+
+.cast-header {
+    -fx-padding: 14 20 10 20;
+    -fx-spacing: 10;
+}
+
+.cast-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.follow-chip {
+    -fx-background-radius: 999;
+    -fx-padding: 3 10;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-color: -lc-success-soft;
+    -fx-text-fill: -lc-success;
+}
+
+.follow-chip.detached {
+    -fx-background-color: -lc-warning-soft;
+    -fx-text-fill: -lc-warning;
+}
+
+.follow-chip.ended {
+    -fx-background-color: #334155;
+    -fx-text-fill: -lc-muted;
+}
+
+.cast-body {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+}
+
+.legend {
+    -fx-padding: 4 14 0 14;
+}
+
+.legend-item {
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 11px;
+}
+
+.viz-stage {
+    -fx-padding: 14 18;
+}
+
+.viz-title {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: -lc-muted;
+}
+
+.viz-value {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-fill: #334155;
+}
+
+.viz-index {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 11px;
+    -fx-fill: -lc-faint;
+}
+
+.viz-pointer {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-fill: -lc-primary;
+}
+
+.narration {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12;
+    -fx-text-fill: -lc-primary-text;
+    -fx-font-size: 14px;
+}
+
+.narration.warn {
+    -fx-background-color: -lc-warning-soft;
+    -fx-text-fill: -lc-warning;
+}
+
+.player-controls {
+    -fx-padding: 8 14 12 14;
+}
+
+.player-bottom {
+    -fx-padding: 0 14 0 14;
+}
+
+.button.play {
+    -fx-min-width: 86;
+}
+
+.position {
+    -fx-font-family: "JetBrains Mono";
+    -fx-text-fill: -lc-muted;
+    -fx-min-width: 76; /* đủ cho "999 / 999" */
+    -fx-alignment: center-right;
+}
+
+.slider > .track {
+    -fx-background-color: #475569;
+    -fx-background-radius: 4;
+    -fx-padding: 2;
+}
+
+.slider > .thumb {
+    -fx-background-color: -lc-primary;
+    -fx-background-radius: 999;
+    -fx-padding: 7;
+    -fx-effect: dropshadow(gaussian, rgba(59, 130, 246, 0.4), 4, 0, 0, 1);
+}
+
+/* ---------- Chạy thử ---------- */
+
+.run-panel {
+    -fx-padding: 12 14;
+}
+
+.verdict {
+    -fx-background-radius: 999;
+    -fx-padding: 3 12;
+    -fx-font-weight: bold;
+}
+
+.verdict.pending {
+    -fx-background-color: #334155;
+    -fx-text-fill: -lc-muted;
+}
+
+.verdict.ok {
+    -fx-background-color: -lc-success-soft;
+    -fx-text-fill: -lc-success;
+}
+
+.verdict.fail {
+    -fx-background-color: -lc-danger-soft;
+    -fx-text-fill: -lc-danger;
+}
+
+.console,
+.console:focused {
+    -fx-background-color: -lc-console;
+    -fx-background-radius: 8;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-effect: null;
+    -fx-text-fill: #475569;
+    -fx-prompt-text-fill: #64748b;
+    -fx-highlight-fill: #334155;
+    -fx-highlight-text-fill: white;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 13px;
+    -fx-padding: 4;
+}
+
+.console > .scroll-pane > .viewport,
+.console > .scroll-pane > .viewport > .content,
+.console .content {
+    -fx-background-color: transparent;
+}
+
+
+/* ============================================================
+   DARK THEME: bo sung cho cac control mac dinh cua JavaFX
+   (giup khong con vung nen trang trong list/scroll/tab/console).
+   ============================================================ */
+.lc-root .text-area,
+.lc-root .text-area:focused {
+    -fx-background-color: -lc-surface;
+    -fx-text-fill: -lc-text;
+    -fx-prompt-text-fill: -lc-faint;
+    -fx-highlight-fill: -lc-primary;
+    -fx-highlight-text-fill: white;
+}
+.lc-root .text-area .content,
+.lc-root .text-area:focused .content {
+    -fx-background-color: -lc-surface;
+}
+.lc-root .list-view,
+.lc-root .table-view,
+.lc-root .tree-view {
+    -fx-background-color: -lc-surface;
+    -fx-control-inner-background: -lc-surface;
+    -fx-border-color: -lc-border;
+}
+.lc-root .list-cell,
+.lc-root .table-cell,
+.lc-root .tree-cell {
+    -fx-text-fill: -lc-text;
+}
+.lc-root .list-cell:filled:selected,
+.lc-root .table-row-cell:filled:selected,
+.lc-root .tree-cell:filled:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+}
+.lc-root .list-cell:filled:hover,
+.lc-root .tree-cell:filled:hover {
+    -fx-background-color: -lc-surface-2;
+}
+.lc-root .table-view .column-header-background,
+.lc-root .table-view .column-header {
+    -fx-background-color: -lc-surface-2;
+}
+.lc-root .table-view .column-header .label {
+    -fx-text-fill: -lc-text;
+}
+.lc-root .tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: -lc-surface;
+}
+.lc-root .tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: -lc-surface;
+}
+.lc-root .tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: -lc-surface-2;
+}
+.lc-root .scroll-pane,
+.lc-root .scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+.lc-root .split-pane,
+.lc-root .split-pane > .split-pane-divider {
+    -fx-background-color: transparent;
+}
+.lc-root .tooltip {
+    -fx-background-color: -lc-surface-2;
+    -fx-text-fill: -lc-text;
+    -fx-border-color: -lc-border-strong;
+    -fx-background-radius: 6;
+}
+.lc-root .progress-bar > .track {
+    -fx-background-color: -lc-border;
+}
+.lc-root .progress-bar > .bar {
+    -fx-background-color: -lc-primary;
+}
+/* Trong LabCast, console can giu nen toi hon text area thong thuong. */
+.lc-root .console,
+.lc-root .console:focused,
+.lc-root .console .content {
+    -fx-background-color: -lc-console;
+    -fx-text-fill: #E2E8F0;
+}
+/* Markdown code va slider: tranh nhung vung sang con sot lai. */
+.lc-root .md-code,
+.lc-root .md-pre {
+    -fx-background-color: #111E32;
+}
+.lc-root .md-code {
+    -fx-text-fill: #F9A8D4;
+}
+.lc-root .slider > .track {
+    -fx-background-color: -lc-border-strong;
+}
+.lc-root .viz-value {
+    -fx-fill: -lc-text;
+}
+/* Nut thu gon sidebar: de nhan biet tren topbar. */
+#sidebar-toggle {
+    -fx-background-color: #22334C;
+    -fx-border-color: #405270;
+    -fx-text-fill: #DBEAFE;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+#sidebar-toggle:hover {
+    -fx-background-color: #304666;
+    -fx-border-color: #60A5FA;
+}
+
+/* Mau nen do dam de chu trang tren nut chieu cho lop ro rang. */
+.lc-root .button.cast,
+.lc-root .button.cast-chip {
+    -fx-background-color: #BE123C;
+    -fx-border-color: #BE123C;
+    -fx-text-fill: white;
+}

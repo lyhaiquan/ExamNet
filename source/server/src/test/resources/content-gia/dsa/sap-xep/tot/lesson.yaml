@@ -1,0 +1,11 @@
+id: dsa.sap-xep.tot
+mon: dsa
+chuong: sap-xep
+ten: Bài tốt
+loai: bai-tap
+bac: [code]
+khung_nhin:
+  - bien: a
+    kieu: mang
+test_xem: [nho-1]
+gioi_han: { thoi_gian_ms: 1500 }

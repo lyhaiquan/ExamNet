@@ -1,0 +1,19 @@
+id: dsa.sap-xep.nhanh
+mon: dsa
+chuong: sap-xep
+ten: Sắp xếp nhanh, phân hoạch Lomuto
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: a
+    kieu: mang
+  - bien: nhanh           # cây lời gọi: bien là tên HÀM
+    kieu: cay-goi
+cam_dung: [sorted, sort]
+cam_import: [heapq]
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: [dsa.sap-xep.vun-dong]

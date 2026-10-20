@@ -16,12 +16,28 @@
       không chứa đáp án, test ẩn hay code chấm điểm — "không tin máy học viên"
       (spec §1 R3) thể hiện ngay ở cấu trúc module.
 
-      Giai đoạn 0 thêm javafx-controls và richtextfx (không kèm version, lấy từ
-      pom cha) cùng lớp Launcher — xem docs/specs/labcast-ke-hoach.md.
+      JavaFX và RichTextFX không kèm version, lấy từ pom cha. Lớp chính của jar là
+      Launcher (không kế thừa Application) — xem docs/plans/giai-doan-0.md task 0.4.
     -->
     <dependency>
       <groupId>labcast</groupId>
       <artifactId>labcast-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.fxmisc.richtext</groupId>
+      <artifactId>richtextfx</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark-ext-gfm-tables</artifactId>
     </dependency>
     <!-- Chỉ để test đầu-cuối: dựng server thật trong cùng tiến trình -->
     <dependency>
@@ -30,4 +46,45 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <finalName>labcast-client</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>labcast.client.app.Launcher</mainClass>
+                  <manifestEntries>
+                    <Implementation-Version>${project.version}</Implementation-Version>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

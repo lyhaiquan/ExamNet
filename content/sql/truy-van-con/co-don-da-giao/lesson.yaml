@@ -1,0 +1,13 @@
+id: sql.truy-van-con.co-don-da-giao
+mon: sql
+chuong: truy-van-con
+ten: Khách hàng có ít nhất một đơn đã giao
+loai: giang-giai            # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: select                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: [sql.truy-van-con.khach-chua-dat]

@@ -1,0 +1,21 @@
+id: dsa.sap-xep.dem
+mon: dsa
+chuong: sap-xep
+ten: Sắp xếp đếm
+loai: giang-giai          # giang-giai | bai-tap | luyen-tap
+bac: [xem, code]
+khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
+  - bien: a
+    kieu: mang
+  - bien: dem
+    kieu: mang
+  - bien: kq
+    kieu: mang
+cam_dung: [sorted, sort]
+cam_import: [heapq, collections]
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 1000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]  # học viên thấy input, xem được animation
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: [dsa.sap-xep.dem-luot-doi-cho]

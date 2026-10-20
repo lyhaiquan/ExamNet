@@ -194,7 +194,7 @@ public enum MessageType {
 
 public enum ErrorCode {
     BAD_FRAME(1), AUTH_REQUIRED(2), FORBIDDEN(3), LOCKED(4), COOLDOWN(5), RATE_LIMITED(6),
-    NONCE_INVALID(7), SQL_NOT_ALLOWED(8), SANDBOX_DOWN(9), INTERNAL(99);
+    NONCE_INVALID(7), SQL_NOT_ALLOWED(8), SANDBOX_DOWN(9), NOT_FOUND(10), INTERNAL(99);
     public int code();
     public static ErrorCode fromCode(int code);   // mã lạ → INTERNAL
 }
@@ -510,12 +510,13 @@ SQLite: mỗi `Database` giữ **một** `java.sql.Connection`, mọi thao tác 
 | Thông điệp | Payload |
 | --- | --- |
 | `HELLO` | `str clientVersion, str device` |
-| `HELLO_ACK` | `i64 serverTime, str className` |
+| `HELLO_ACK` | `i64 serverTime, str className, i32 castId` (castId: để app bỏ gói chiếu của lớp khác cùng mạng LAN; 0 nếu server không chiếu) |
 | `AUTH` | `str username, str password` |
 | `AUTH_OK` | `str token, str role, i64 userId, str fullName, i64 classId` |
 | `AUTH_FAIL` | `str reason` |
 | `RESUME_REQ` | `str token, str lessonId` (rỗng nếu chưa mở bài), `i64 lastAckedSeq` |
-| `RESUME_STATE` | `bool ok, i64 serverLastSeq` (−1 nếu không có) |
+| `RESUME_STATE` | `bool ok, i64 serverLastSeq` (0 nếu bài chưa có delta nào, −1 nếu không gửi `lessonId`) |
+| `APP_FOCUS` | `bool inApp, i64 clientTs, str lessonId` — học viên rời app (`false`) hoặc quay lại (`true`). Chỉ học viên đã đăng nhập; server lấy mốc giờ theo đồng hồ của server, `clientTs` chỉ để đối chiếu |
 | `ERROR` | `u16 code, str message, i32 retryAfterMs` |
 | `BYE` | `str reason` |
 | `ADMIN_ROSTER_IMPORT` | `str csv` (mỗi dòng `username,họ tên,mật khẩu`) |
@@ -610,11 +611,13 @@ public final class Presence {
 public record NicInfo(String name, String displayName, List<InetAddress> ipv4, boolean up, boolean loopback) {}
 
 public final class LanInterface {
-    /** Chọn card LAN: đang bật, không phải loopback, có IPv4 riêng (10.x, 172.16–31.x, 192.168.x),
-     *  tên không chứa vEthernet, WSL, docker, VirtualBox, VMware, Hyper-V, vboxnet, br-.
-     *  override (tên card hoặc IP) từ --lan được ưu tiên. */
+    /** Chọn card LAN: đang bật, không phải loopback, tên không chứa vEthernet, WSL, docker, VirtualBox,
+     *  VMware, Hyper-V, vboxnet, br-, ZeroTier, Tailscale, VPN… Ưu tiên card có IPv4 riêng (10.x,
+     *  172.16–31.x, 192.168.x); không có thì nhận card thật có IPv4 thường — mạng trường có thể cấp dải
+     *  công cộng (máy leader nhận 192.99.3.115 ngày 12/10). override (tên card hoặc IP) từ --lan được ưu tiên. */
     static Optional<NicInfo> pick(List<NicInfo> all, String override);
     public static NicInfo pickOrThrow(String override) throws SocketException;   // đọc NetworkInterface thật
+    public static Optional<InetAddress> usableAddress(NicInfo n);   // IP để quảng bá: riêng trước, bỏ 169.254.x
 }
 
 public final class DiscoveryResponder implements AutoCloseable {
@@ -653,13 +656,18 @@ public final class DiscoveryClient {
 | `--db` | `labcast.db` (biến môi trường `LABCAST_DB` được ưu tiên) |
 | `--content` | `content` |
 | `--lop` | `Lớp thực hành` |
+| `--mon dsa\|sql` | không ghi thì nạp cả hai môn. Mỗi lớp một môn, mỗi môn một server |
+| `--port-dashboard` | 8080 (`/version` và dashboard) |
 | `--lan` | tự chọn (task 2.8) |
 | `--tao-giao-vien user:mật khẩu:họ tên` | không |
 | `--khong-sandbox` | tắt (chỉ để phát triển, spec §8.1) |
+| `--cau-hinh <file>` | không — file UTF-8, mỗi dòng `khoá = giá trị` (khoá = tên tham số bỏ `--`) |
+
+Biến môi trường `LABCAST_DB`, `LABCAST_CONTENT`, `LABCAST_LOP`, `LABCAST_MON`, `LABCAST_LAN`, `LABCAST_TAO_GIAO_VIEN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. **Vì sao cần file và biến môi trường:** Windows chuyển tham số dòng lệnh sang Cp1252 trước khi tới Java, chữ ớ, ư, ạ… thành `?` và mất hẳn (đã đo 12/10/2026 với Git Bash, PowerShell, cmd kể cả `chcp 65001`); file UTF-8 và biến môi trường thì giữ nguyên. Tham số dòng lệnh có `?` trên máy như vậy → server dừng và chỉ cách sửa, không chạy với tên lớp sai hay tạo giáo viên có mật khẩu không gõ lại được.
 
 `main` vẫn **giữ** `StatusEndpoint.start(...)` cho bước deploy. In ra địa chỉ card LAN đã chọn để giáo viên kiểm.
 
-**Test:** `ServerConfig.parse(...)` đọc đúng từng tham số; tham số lạ → `IllegalArgumentException` có thông báo dễ hiểu.
+**Test:** `ServerConfig.parse(...)` đọc đúng từng tham số; tham số lạ → `IllegalArgumentException` có thông báo dễ hiểu; file cấu hình giữ đúng tiếng Việt (kể cả BOM); thứ tự thắng; `--lop "L?p"` trên máy đọc tham số bằng Cp1252 → dừng, thông báo chỉ `--cau-hinh` và `LABCAST_LOP`.
 
 **Commit:** `feat(server): ServerMain mở cổng 7000, tìm server và các module`
 
@@ -1028,7 +1036,7 @@ public final class LessonRepository {
 }
 ```
 
-**Payload:** `LESSON_LIST` trống. `LESSON_FETCH` `str lessonId`. `LESSON_DATA` `JSON{kind: "list", lessons:[{id, mon, chuong, ten, loai}]}` hoặc `JSON{kind: "lesson", id, ten, de, khung, khungNhin, trace}`, trong đó `trace` là trace giảng giải (chạy `loi_giai.py` với `demo.in` qua sandbox lần đầu được hỏi, rồi giữ trong bộ nhớ).
+**Payload:** `LESSON_LIST` trống. `LESSON_FETCH` `str lessonId`. `LESSON_DATA` `JSON{kind: "list", lessons:[{id, mon, chuong, ten, loai}]}` hoặc `JSON{kind: "lesson", id, ten, loai, de, khung, khungNhin, testXem:[{id, input}], trace, code, codeSeq}`. `code`/`codeSeq` là code học viên đang có trên server (mở lại bài thì làm tiếp đúng chỗ). `trace` là trace giảng giải (chạy `loi_giai.py` với `demo.in` qua sandbox lần đầu được hỏi, rồi giữ trong bộ nhớ).
 
 **`khung.py` của bài nổi bọt:**
 
@@ -1203,11 +1211,19 @@ Nhận `CODE_ACK(lastSeq)` → xoá mọi delta có `seq ≤ lastSeq`.
 Hai máy cắm dây chung switch; máy A chạy server (có Docker), máy B chạy app.
 
 ```bash
-# máy A — đứng ở thư mục gốc repo
+# máy A — đứng ở thư mục gốc repo, Docker Desktop đã bật
 docker build -t labcast-runner:py3.12 runner
 cd source && ./mvnw -q package -DskipTests
-java -jar server/target/labcast-server.jar --tao-giao-vien gv:matkhau:Giáo viên --content ../content
+java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien "gv:matkhau:Giáo viên"
+
+# máy B
+java -jar client/target/labcast-client.jar
 ```
+
+- Họ tên có dấu cách nên `--tao-giao-vien` phải nằm trong ngoặc kép. Họ tên có chữ ngoài Cp1252 (ớ, ư, ạ, ễ…) thì ghi vào file cấu hình và chạy `--cau-hinh lop.conf` (README §12.1).
+- Chữ tiếng Việt server in ra: `ConsoleUtf8.install()` (dòng đầu `main`) đổi stdout, stderr, log sang UTF-8 và, khi chạy trong cửa sổ lệnh Windows, tự `chcp 65001` rồi trả bảng mã cũ lúc tắt. `chcp` phải kế thừa stdin của cửa sổ, chạy với stdin là ống thì nó thoát mã 0 mà không đổi gì (đo 12/10/2026).
+- Server tự kiểm Docker lúc khởi động và in lệnh cần chạy nếu thiếu image. Máy không có Docker (chỉ khi phát triển): thêm `--khong-sandbox`, code học viên chạy bằng Python cục bộ, KHÔNG cách ly.
+- Thử giao diện không cần hai máy: `LABCAST_UI_SMOKE=1 ./mvnw -pl client test -Dtest=UiSmokeTest` đi trọn luồng dưới đây và chụp màn hình vào `client/target/ui-smoke/`.
 
 - [ ] Máy B mở app: danh sách lớp tự hiện tên lớp của máy A (không gõ IP).
 - [ ] Đăng nhập học viên (nhập bằng `ADMIN_ROSTER_IMPORT` từ app giáo viên hoặc test) thành công; sai mật khẩu bị từ chối.

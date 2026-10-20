@@ -135,7 +135,7 @@ Mục tiêu đo được, kiểm chứng ở §14:
 
 ### In scope
 
-- Server Java chạy trên máy giáo viên. Một server phục vụ một lớp, tối đa 50 máy học viên.
+- Server Java chạy trên máy giáo viên. Một server phục vụ một lớp, tối đa 50 máy học viên. Mỗi lớp học một môn: lớp DSA và lớp SQL là hai lớp, hai server (khoá cấu hình `mon`), mỗi server chỉ nạp bài của môn mình. Hai lớp có thể học cùng lúc trong một mạng LAN, kể cả hai server trên cùng một máy.
 - Một app desktop JavaFX, hai chế độ theo vai trò: **giáo viên** và **học viên**.
 - Protocol nhị phân tự thiết kế LCP/1.0 trên TCP. UDP multicast có lớp tin cậy tự xây, tự lùi về TCP. UDP broadcast để tìm server. TLS tuỳ chọn.
 - Hai môn: **DSA** và **SQL**, mỗi môn khoảng 100 bài. Animation giảng giải cho khoảng 40 thuật toán DSA và 13 khái niệm SQL (§7.7).
@@ -277,7 +277,8 @@ bac: [xem, du-doan, mo-phong, code]
 khung_nhin:               # biến nào vẽ bằng bộ vẽ nào
   - bien: a
     kieu: mang
-cay_goi: []               # tên hàm cần dựng cây lời gọi, ví dụ [dat_hau]
+# cây lời gọi khai báo ngay ở đây, bien là tên HÀM: - bien: dat_hau / kieu: cay-goi
+# chạy từng dòng (chỉ bài giang-giai): - bien: code / kieu: code-bien
 cam_dung: [sorted, sort]  # hàm cấm gọi
 cam_import: []
 cam_cu_phap: []           # kiểu nút ast cấm, ví dụ [Pow] cấm toán tử **
@@ -321,14 +322,15 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | Nhóm | Sự kiện |
 | --- | --- |
 | Chung | `hdr`, `line`, `vars` (biến cục bộ đổi giá trị), `out` (dòng in ra), `say`, `key`, `snap`, `end` |
-| Mảng, chuỗi, bit | `read`, `set`, `ptr` (con trỏ i, j…) |
-| Ngăn xếp, hàng đợi, DSLK, băm | `push`, `pop`, `enq`, `deq`, `link`, `unlink`, `bucket` |
-| Cây, đồ thị | `node`, `edge`, `mark` (đổi màu), `rotate` |
-| Lời gọi | `call` (hàm, tham số, id, id cha), `ret` (id, giá trị) |
-| Bảng 2 chiều | `cell_r`, `cell_w` |
-| SQL | `sql.table`, `sql.pairs`, `sql.keep`, `sql.group`, `sql.agg`, `sql.having`, `sql.project`, `sql.distinct`, `sql.order`, `sql.limit`, `sql.sub`, `sql.diff` |
+| Mảng, chuỗi, bit | `read`, `set`, `ptr` (con trỏ i, j…); `push`/`pop`/`ins` (thêm cuối, lấy ở ô `i`, chèn vào ô `i`), `all` (`ds`: cả mảng sau `sort`, `reverse`, `extend`, `del`, gán lát cắt…) |
+| Ngăn xếp, hàng đợi, DSLK, băm | `push`, `pop`, `enq`, `deq` (kèm `x` là giá trị vào/ra), `read` (`i`: xem đỉnh / đầu hàng), `link`, `unlink`, `bucket`. DSLK: `node` (`id`, giá trị `x`), `link` (`id` → `w`; `id` rỗng là con trỏ đầu, `w` rỗng là cắt — thay cho `unlink`), `read`/`set` (`id`), `mark`, `ptr` (`p`: mọi biến cục bộ đang trỏ vào nút, `[[tên, id]…]`, ghi mỗi khi đổi). Băm dây chuyền: `bucket` (ô `i`, `op`: `add` thêm `x` vào cuối, `del` bỏ phần tử `k`, `read` so phần tử `k`, `set`); địa chỉ mở: `read`/`set` ô `i` như mảng, ô đã xoá ghi `XOA` |
+| Cây, đồ thị | `node`, `edge`, `mark` (đổi màu), `rotate`. Cây nhị phân: `node` (`id`, khoá `x`), `edge` (`u` → `w`, `c` là `L`/`R`; `u` rỗng là đổi gốc; `w` rỗng là cắt nhánh), `read`/`set` (`id`: đọc/đổi khoá), `mark` (`id`, `m`: `dang-xet` \| `xong` \| `loai` \| `bo` \| rỗng). Xoay AVL là vài `edge` liên tiếp. Đồ thị: `edge` (`a`, `b`, trọng số `x`), `read` đỉnh (`id`, khi gọi `g.ke(u)`) hay cạnh (`a`, `b`, khi duyệt tới), `mark` đỉnh (`id`) hay cạnh (`a`, `b`), `set` (`id`, `x`: chữ dưới đỉnh), `pos` (`id`, `x`, `y` trong 0..1) |
+| Lời gọi | `call` (`v` là tên hàm, `id`, cha `p`, nhãn `a` như "fib(4)"), `ret` (`id`, kết quả `x` dạng chữ), `mark` (`id`, `m`: `bo` nhánh bị cắt, `loai` quay lui) |
+| Chạy từng dòng | `line` (`n`: số dòng sắp chạy), `vars` (`f`: hàm đang chạy, `d`: `[[tên, giá trị]…]` cả bảng biến mỗi khi đổi) |
+| Bảng 2 chiều | `cell_r`, `cell_w`, `mark` (ô `i`, `j` tô xanh lá và giữ màu, ví dụ đường truy vết) |
+| SQL | `sql.table` (bảng gốc; `side` = bảng bên phải khi ghép), `sql.rename`, `sql.pair` (nối một cặp dòng), `sql.join`, `sql.mark` (✓/✗ từng dòng hoặc nhóm), `sql.keep`, `sql.group`, `sql.agg`, `sql.project`, `sql.distinct`, `sql.order`, `sql.limit`, `sql.setop`, `sql.diff`, `sql.result`. Chỉ số dòng luôn là chỉ số trong bảng đang làm việc lúc đó (HAVING dùng `sql.mark` + `sql.keep` trên dòng nhóm) |
 
-- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
+- **`snap` (keyframe)**: trạng thái đầy đủ của mọi bộ vẽ, sinh mỗi 200 sự kiện. Mảng chụp thành một mảng JSON; các cấu trúc khác tự mô tả: ngăn xếp/hàng đợi `{"kieu": "ngan-xep" | "hang-doi", "ds": [...]}`, bảng 2 chiều `{"kieu": "luoi", "o": [[...]], "hang": [...], "cot": [...], "ghi": [[i, j]…], "dau": [[i, j]…]}` (nhãn hai trục, ô đã ghi, ô đã đánh dấu đều tuỳ chọn), cây nhị phân `{"kieu": "cay", "goc": id, "nut": [[id, khoá, trái, phải, màu, đã gắn]…]}` ("đã gắn": nút từng nằm trong cây; rời cây mà đứng một mình là đã bị xoá, không vẽ nữa), cây lời gọi `{"kieu": "cay-goi", "nut": [[id, cha, nhãn, kết quả, trạng thái]…], "ngan": [id…]}` (trạng thái `dang`, `xong`, `bo` hay `loai`; `ngan` là các lời gọi chưa trả về), chạy từng dòng `{"kieu": "code-bien", "src": code, "dong": n, "ham": tên, "bien": [[tên, giá trị]…]}`, bảng băm `{"kieu": "bam", "mo": …, "o": [...]}` (dây chuyền: mỗi ô một mảng; địa chỉ mở: giá trị hoặc rỗng), danh sách liên kết `{"kieu": "dslk", "dau": id, "nut": [[id, giá trị, tiếp, màu]…], "tro": [[tên, id]…]}`, đồ thị `{"kieu": "do-thi", "co_huong": …, "dinh": [...], "canh": [[a, b, w]…], "mau": [[u, m]…], "mau_canh": [[a, b, m]…], "nhan": [[u, chữ]…], "vt": [[u, x, y]…]}` — tua tới giữa trace vẫn tô đúng màu. Muốn tua tới bước k, trình phát lấy keyframe gần nhất trước k rồi áp tiếp tối đa 199 sự kiện.
 - **Trần**: 10 000 sự kiện và 2 MB mỗi trace. Vượt trần thì dừng ghi và đặt `truncated: true`. App báo "code có thể lặp vô hạn hoặc chậm hơn mức cần thiết".
 - **Chủ của định dạng:** Người 3 sinh trace (Python và `sqlviz`), Người 4 đọc trace (`common.trace`, `player`). Đổi định dạng phải có cả hai duyệt.
 
@@ -340,12 +342,12 @@ Trace là chuỗi sự kiện mô tả một lần chạy. Cùng một định d
 | `ngan-xep` | Ngăn xếp đứng, hàng đợi nằm ngang | Người 4 |
 | `dslk` | Danh sách liên kết | Người 4 |
 | `bam` | Bảng băm: dây chuyền, địa chỉ mở | Người 4 |
-| `cay` | Cây nhị phân, AVL, heap (`heap` = list vẽ thành cây) | Người 1 |
+| `cay` | Cây nhị phân, AVL. `heap`: một `viz.Mang` vẽ thành cây nhị phân đầy đủ, dưới là mảng | Người 1 |
 | `cay-goi` | Cây lời gọi đệ quy, nhánh quay lui, nhánh bị cắt | Người 1 |
 | `do-thi` | Đỉnh, cạnh, trọng số, nhãn | Người 1 |
 | `luoi` | Bảng 2 chiều có mũi tên phụ thuộc: quy hoạch động, Floyd, bàn cờ | Người 3 |
 | `bang-sql` | Bảng dữ liệu cho animation SQL | Người 3 |
-| `code-bien` | Code với dòng đang chạy được tô sáng, bảng biến | Người 4 |
+| `code-bien` | Code với dòng đang chạy được tô sáng, bảng biến. Trace lời giải mẫu chứa nguyên code lời giải nên server chỉ nhận bộ vẽ này ở bài `giang-giai` | Người 4 |
 
 Giao diện chung do Người 4 định nghĩa trong `client.player`:
 
@@ -366,9 +368,9 @@ Thư viện `viz` (trong `runner/`) cho ba cách ghi, mức chi tiết giảm d�
 
 1. **Cấu trúc "gắn camera"** — `viz.Mang`, `viz.Bang`. Ghi cả lần đọc lẫn lần ghi, nên thấy được phép so sánh và mũi tên phụ thuộc. Hai lệnh `set` liên tiếp đổi giá trị cho nhau thì trình phát vẽ thành một lần đổi chỗ. Dùng cho bài cơ bản và quy hoạch động; `khung.py` đã khai báo sẵn.
 2. **Chụp biến theo khai báo** — học viên dùng `list`, `dict`, `deque` bình thường. Sau mỗi dòng, tracer chụp các biến khai báo trong `khung_nhin`, so với lần chụp trước rồi sinh `set`, `push`, `pop`… Chỉ thấy được lần ghi. Dùng cho bài khó (ví dụ Dijkstra: `adj` → `do-thi`, `dist` → `mang`, `pq` → `heap`).
-3. **`sys.settrace`** — sinh `line` và `vars` cho chế độ chạy từng dòng; sinh `call` và `ret` cho các hàm khai báo trong `cay_goi`. Không cần sửa code học viên.
+3. **`sys.settrace`** (`viz/theo_doi.py`, chỉ bật khi đang ghi trace) — sinh `line` và `vars` cho chế độ chạy từng dòng; sinh `call` và `ret` cho các hàm khai báo `kieu: cay-goi` trong `khung_nhin` (tối đa 200 lời gọi; code gọi `viz.cat(...)`/`viz.loai(...)` để tô nhánh bị cắt/quay lui); sau mỗi dòng, xem biến cục bộ nào đang trỏ vào nút của danh sách liên kết để sinh `ptr`. Không cần sửa code học viên. Lúc chụp keyframe thì tạm ngừng, để không sự kiện nào chen vào giữa ảnh chụp.
 
-Lời giải mẫu gọi thêm `viz.say(...)` (thuyết minh) và `viz.key(...)` (bước quan trọng; trình phát có nút "tới bước quan trọng tiếp theo").
+Lời giải mẫu gọi thêm `viz.say(...)` (thuyết minh) và `viz.key(...)` (bước quan trọng; trình phát có nút "tới bước quan trọng tiếp theo", lời kèm theo cũng hiện ở dòng thuyết minh).
 
 **Animation chỉ chạy với test nhỏ và trung bình:** 5–10 phần tử (đồ thị 5–8 đỉnh) cho xem kỹ; 20–50 phần tử (đồ thị 10–20 đỉnh) cho xem nhanh. Test lớn chạy **không bật tracer**, chỉ để chấm.
 
@@ -495,7 +497,10 @@ SUBMIT_REQ(codeSeq) ─► hàng đợi ưu tiên cao ─► chạy toàn bộ t
 | Điểm của bài | 100, trừ 20 mỗi lần nộp sai, thấp nhất 40 |
 | Thành thạo | Dự đoán đúng 3 đề liên tiếp; tự mô phỏng trọn 1 đề; code qua mọi test chấm |
 | Mở bài sau | Khi bài hiện tại đạt thành thạo |
-| Dán khối lớn | Một thay đổi chèn > 200 ký tự → đánh dấu trên sơ đồ lớp để giáo viên xem; không tự phạt |
+| Toàn màn hình khi làm bài | Học viên mở bài là app chiếm toàn màn hình, Esc không thoát; nút "Đóng bài" trả về màn chọn bài. Giáo viên mở bài để giảng thì không khoá |
+| Chặn dán từ ngoài | Khi học viên làm bài, copy/cắt/dán trong ô code chỉ đi qua bộ nhớ tạm riêng của ô code: dán chữ lấy từ trình duyệt, ChatGPT… không vào được, copy code hay đề bài ra ngoài cũng không được. Kéo thả chữ từ app khác vào cũng bị bỏ |
+| Rời app | App không chặn được Alt+Tab hay phím Windows; chỉ phát hiện được. Mỗi lần rời và quay lại, app gửi `APP_FOCUS`, server ghi giờ theo đồng hồ của server và báo giáo viên (§9) |
+| Dán khối lớn | Chữ mới hiện ra nhiều hơn người gõ được — một thay đổi chèn > 200 ký tự, hoặc cộng dồn > 200 ký tự trong 2 s (phần mềm gõ phím tự động) — → đánh dấu trên sơ đồ lớp để giáo viên xem; không tự phạt. Không tính đoạn đã có trong code hoặc vừa bị xoá (chép lại code của chính mình, cắt rồi dán, chọn cả khối xoá rồi Ctrl+Z). Giữ Backspace xoá dần một khối dài rồi Ctrl+Z thì vẫn bị đánh dấu |
 
 Thời gian chờ và trạng thái khoá lưu trong bảng `progress`, nên khởi động lại app hay đổi máy cũng không thoát được.
 
@@ -519,7 +524,7 @@ Trả lời `Topics.md` §4.7.5 và §5.4.
 
 - **Thiết lập kết nối:** app gửi `DISCOVER` tới địa chỉ broadcast của từng card mạng; server trả tên lớp, cổng TCP, chế độ TLS và vân tay chứng chỉ. Không tìm được thì cho nhập IP.
 - **Chọn card mạng cho multicast phía app:** sau khi kết nối TCP, app lấy `socket.getLocalAddress()`, tìm `NetworkInterface` chứa địa chỉ đó và tham gia nhóm multicast **trên đúng card đó**. Cách này tránh lỗi nghe nhầm card mạng ảo (VirtualBox, VMware, Hyper-V).
-- **Chọn card mạng phía server:** máy server có Docker Desktop nên có thêm card ảo (vEthernet của WSL2). Server chọn **card LAN** theo cấu hình; mặc định là card có IPv4 riêng và không phải card ảo, hiện trên màn giáo viên để kiểm. Server phát multicast bằng `setNetworkInterface(card LAN)` và `DISCOVER_REPLY` quảng bá **địa chỉ của card LAN**, không phải địa chỉ card ảo.
+- **Chọn card mạng phía server:** máy server có Docker Desktop nên có thêm card ảo (vEthernet của WSL2). Server chọn **card LAN** theo cấu hình; mặc định là card không phải card ảo hay VPN, ưu tiên card có IPv4 riêng; mạng trường cấp IP ngoài dải riêng thì vẫn nhận card thật đó. Card được chọn hiện trên màn giáo viên để kiểm, sai thì chỉ định bằng `--lan`. Server phát multicast bằng `setNetworkInterface(card LAN)` và `DISCOVER_REPLY` quảng bá **địa chỉ của card LAN**, không phải địa chỉ card ảo.
 - **Một kết nối TCP suốt buổi** cho mỗi app. Rớt thì tự kết nối lại và khôi phục (§10.4e).
 
 ---
@@ -549,8 +554,8 @@ Frame UDP dùng đúng định dạng này, mỗi datagram một frame, đọc b
 ### 10.2. Data format
 
 - **Thông điệp nhỏ, tần suất cao** (`HEARTBEAT`, `TIME_SYNC_*`, `CODE_DELTA`, `CODE_ACK`, `CAST_CONTROL`, `CAST_KEYFRAME`, `CAST_NACK`, `MIRROR_DELTA`, `QUIZ_ANSWER`, `VIEW_CONTROL`): payload **nhị phân** qua `PayloadWriter`/`PayloadReader`; chuỗi mã hoá `[len:2][utf8]`, số nguyên big-endian.
-- **Dữ liệu cấu trúc lớn, tần suất thấp** (`LESSON_DATA`, `TRACE_CHUNK`, `CAST_DATA`, `RUN_RESULT`, `SUBMIT_RESULT`, `CLASS_STATE`): payload **JSON UTF-8** (`FLAGS.JSON`), nén Deflate khi > 1 KB.
-- **Datagram multicast** không vượt 1400 byte (13 byte header + tối đa 1387 byte payload), để không bị phân mảnh IP. Trace lớn hơn được chia khúc trong `CAST_DATA`.
+- **Dữ liệu cấu trúc lớn, tần suất thấp** (`LESSON_DATA`, `TRACE_CHUNK`, `RUN_RESULT`, `SUBMIT_RESULT`, `CLASS_STATE`): payload **JSON UTF-8** (`FLAGS.JSON`), nén Deflate khi > 1 KB.
+- **Datagram multicast** không vượt 1400 byte (13 byte header + tối đa 1387 byte payload), để không bị phân mảnh IP. Trace (các dòng JSON) được nén Deflate **cả khối** rồi chia khúc: `CAST_DATA` nhị phân `i32 castId, str traceId, i32 chunkIndex, i32 totalChunks, blob bytes`. Khung `CAST_DATA` không đặt cờ `COMPRESSED` vì một khúc riêng lẻ không giải nén được.
 
 ### 10.3. Message types
 
@@ -561,6 +566,7 @@ Frame UDP dùng đúng định dạng này, mỗi datagram một frame, đọc b
 | Xác thực | `AUTH`, `AUTH_OK`, `AUTH_FAIL` | 2 |
 | Đồng bộ giờ | `TIME_SYNC_REQ`, `TIME_SYNC_RESP` | 3 |
 | Liveness | `HEARTBEAT`, `HEARTBEAT_ACK` | 2 |
+| Rời app | `APP_FOCUS` (học viên → server, không trả lời; nối lại thì gửi lại trạng thái hiện tại) | 2 |
 | Khôi phục | `RESUME_REQ`, `RESUME_STATE` | 2 (phiên), 1 (code) |
 | Lớp học | `CLASS_JOIN`, `CLASS_STATE`, `LESSON_PUSH` | 2 |
 | Bài học | `LESSON_LIST`, `LESSON_FETCH`, `LESSON_DATA` | 3 |
@@ -577,7 +583,7 @@ Frame UDP dùng đúng định dạng này, mỗi datagram một frame, đọc b
 
 | Mã | Giá trị |
 | --- | --- |
-| `ErrorCode` | `BAD_FRAME`, `AUTH_REQUIRED`, `FORBIDDEN` (sai vai trò), `LOCKED` (bài chưa mở), `COOLDOWN`, `RATE_LIMITED`, `NONCE_INVALID`, `SQL_NOT_ALLOWED`, `SANDBOX_DOWN`, `INTERNAL` |
+| `ErrorCode` | `BAD_FRAME`, `AUTH_REQUIRED`, `FORBIDDEN` (sai vai trò), `LOCKED` (bài chưa mở), `COOLDOWN`, `RATE_LIMITED`, `NONCE_INVALID`, `SQL_NOT_ALLOWED`, `SANDBOX_DOWN`, `NOT_FOUND` (không có bài, mốc lưu… được hỏi), `INTERNAL` |
 | Kết quả chấm | `OK`, `WRONG`, `TIME_LIMIT`, `MEMORY_LIMIT`, `RUNTIME_ERROR`, `FORBIDDEN_CALL`, `TRACE_RULE` |
 | Lý do `BYE` | `LOGGED_IN_ELSEWHERE`, `SERVER_SHUTDOWN`, `CLIENT_EXIT`, `TOO_MANY_MESSAGES` |
 
@@ -592,7 +598,7 @@ App học viên                                  Server
   |== DISCOVER (UDP broadcast :7002) ========>|
   |<= DISCOVER_REPLY(lớp, cổng, TLS, vân tay) |
   |---- HELLO(ver) -------------------------->|
-  |<--- HELLO_ACK(serverTime) ----------------|
+  |<--- HELLO_ACK(serverTime, lớp, castId) ---|
   |---- AUTH(user, pwd) --------------------->|  PBKDF2; đăng nhập nơi khác → BYE cho phiên cũ
   |<--- AUTH_OK(token, role, classId) --------|
   |---- TIME_SYNC_REQ(t1) × 5 --------------->|  giữ mẫu RTT nhỏ nhất
@@ -755,6 +761,8 @@ Mỗi đóng góp có một chủ (§17) và ít nhất một thí nghiệm (§1
 - **Phát sự kiện, không phát hình.** Server phát lệnh điều khiển và dữ liệu trace; mỗi máy tự vẽ. Băng thông độc lập với độ phân giải màn hình, chữ luôn nét, học viên tách ra tự tua được.
 - **Phát hẹn giờ.** `CAST_CONTROL` mang thời điểm `at` theo **đồng hồ server** (thường là `now + 300 ms`). Mỗi máy đổi `at` sang giờ máy mình bằng `Clock` của ĐG3. Mọi máy bắt đầu cùng lúc bất kể gói đến sớm hay muộn.
 - **Tin cậy trên UDP.** Số thứ tự liên tục; thiếu thì NACK qua TCP; nhiều máy cùng thiếu thì phát lại qua multicast; `CAST_KEYFRAME` mỗi 2 s cho máy vào muộn; máy không nhận được multicast tự chuyển sang TCP.
+- **Hai lớp cùng mạng.** Lớp DSA và lớp SQL phát lên cùng nhóm `239.255.70.1:7001`. App biết `castId` của server mình từ `HELLO_ACK` (nối lại thì nhận `castId` mới) và bỏ hẳn gói mang `castId` khác. Gói lạ không được coi là "server vừa khởi động lại": coi như vậy thì máy lớp này nhảy sang bài lớp kia đang chiếu.
+- **Không chặn đầu hàng.** Mỗi `CAST_CONTROL` và `CAST_KEYFRAME` mang đủ trạng thái phát (bước, giờ hẹn, tốc độ, đang chạy hay dừng), khúc dữ liệu mang chỉ số khúc. App áp ngay gói vừa tới, bỏ gói điều khiển cũ hơn gói đã áp, không giữ gói lại chờ gói thiếu. Server và app tính vị trí bằng cùng một công thức số nguyên, nên cùng giờ server mọi máy ra cùng một bước.
 - **Đo:** TN1, TN3. Độ lệch giữa các màn hình (TN2) đo chung với ĐG3.
 
 ### ĐG2 — Dòng code tin cậy theo thời gian thực (Người 1)
@@ -948,7 +956,7 @@ Riêng 6 bài mẫu do **chủ bộ vẽ** làm ngay trong giai đoạn 1–3 đ
 3. Độ lệch giữa các màn hình không nhỏ hơn một khung hình JavaFX (~16,7 ms ở 60 fps).
 4. Tracer làm code chậm đi nhiều lần; vì vậy chỉ bật cho test nhỏ và trung bình.
 5. Kiểm hàm cấm bằng `ast` có thể bị lách (ví dụ `getattr`); luật soi trace là lớp kiểm thứ hai.
-6. Dấu hiệu "dán khối lớn" chỉ là gợi ý cho giáo viên, không phải bằng chứng gian lận.
+6. Dấu hiệu "dán khối lớn" và "rời app" chỉ là gợi ý cho giáo viên, không phải bằng chứng gian lận. Chặn dán và toàn màn hình không ngăn được học viên gõ lại code nhìn từ điện thoại hay máy khác; Alt+Tab và phím Windows vẫn dùng được, app chỉ ghi lại.
 7. `QUIZ_OPEN` tới máy trước `opensAt` khoảng 0,5 s; một app bị sửa có thể đọc câu hỏi sớm chừng đó.
 8. Animation SQL chi tiết chỉ áp dụng cho phạm vi ở §7.6.
 9. Sandbox phụ thuộc Docker trên máy server.

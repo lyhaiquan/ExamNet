@@ -189,13 +189,60 @@ Lược đồ ở [`source/server/src/main/resources/schema.sql`](source/server/
 
 ## 12.1. Start Server
 
-Giai đoạn 0 mới có server mẫu, chỉ mở cổng trạng thái:
+Đứng ở thư mục gốc repo, Docker Desktop đã bật:
 
 ```bash
+docker build -t labcast-runner:py3.12 runner
 cd source && ./mvnw -q package -DskipTests
-java -jar server/target/labcast-server.jar
-# mở http://localhost:8080/version
+java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien "gv:matkhau:Giáo viên"
+# trạng thái: http://localhost:8080/version
 ```
+
+**Mỗi lần thư mục `runner/` đổi thì build lại image runner** (lệnh `docker build` ở trên): image chứa các script chạy và chấm bài. Ví dụ nộp bài SQL cần `runner/sinh_csdl.py` để sinh database ẩn; image build trước khi có file này thì mọi lượt nộp bài SQL báo "Server chưa chấm được bài" (không tính lượt).
+
+Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard; đổi bằng `port-dashboard`), và phát chiếu lên nhóm multicast `239.255.70.1:7001` (UDP, TTL 1) trên card LAN.
+
+**Tên có dấu tiếng Việt:** trên Windows, chữ như ớ, ư, ạ không đi qua được dòng lệnh (Java nhận thành `?`), nên `--lop "Lớp D22CQCN01"` bị server từ chối kèm hướng dẫn. Ghi tên lớp, họ tên giáo viên, đường dẫn có dấu vào một file UTF-8 (Notepad lưu UTF-8 mặc định).
+
+**Mỗi lớp một môn, mỗi lớp một server.** DSA và SQL là hai lớp riêng: mỗi lớp một file cấu hình, khoá `mon` chọn môn (server chỉ nạp bài môn đó). Hai server chạy cùng một máy thì server thứ hai đổi `port`, `port-dashboard` và `db`:
+
+```text
+# lop-dsa.conf
+lop = Lớp D22CQCN01 — Cấu trúc dữ liệu và giải thuật
+mon = dsa
+tao-giao-vien = gv:matkhau:Nguyễn Thị Lan
+content = ../content
+db = lop-dsa.db
+```
+
+```text
+# lop-sql.conf
+lop = Lớp D22CQCN01 — Cơ sở dữ liệu
+mon = sql
+tao-giao-vien = gv:matkhau:Nguyễn Thị Lan
+content = ../content
+db = lop-sql.db
+port = 7010
+port-dashboard = 8081
+```
+
+```bash
+java -jar server/target/labcast-server.jar --cau-hinh lop-dsa.conf
+```
+
+```bash
+java -jar server/target/labcast-server.jar --cau-hinh lop-sql.conf
+```
+
+App tìm thấy cả hai lớp trong danh sách lúc đăng nhập. Mỗi lớp có tài khoản, danh sách học viên và tiến độ riêng (database riêng): nhập danh sách lớp trên từng server. Hai lớp chiếu cùng lúc vẫn không lẫn: app chỉ nhận gói chiếu của server mình đăng nhập. Không ghi `mon` thì server nạp bài cả hai môn (chỉ nên dùng khi phát triển).
+
+Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_MON`, `LABCAST_TAO_GIAO_VIEN`, `LABCAST_CONTENT`, `LABCAST_DB`, `LABCAST_LAN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. Không cần `chcp 65001`: server tự chuyển cửa sổ cmd sang UTF-8 lúc chạy và trả lại bảng mã cũ khi tắt.
+
+**Dashboard:** mở `http://localhost:8080/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, ai bị đánh dấu "dán khối lớn" (rê chuột lên cờ để xem bài nào, bao nhiêu ký tự; cờ mất khi học viên nộp đúng bài đó), lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
+
+ Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.
+
+App: `java -jar client/target/labcast-client.jar`, chọn lớp tự tìm thấy, đăng nhập.
 
 Chạy bằng Docker, đứng ở thư mục gốc repo, giống hệt bản trên VPS:
 
@@ -206,7 +253,11 @@ docker run --rm -p 8080:8080 labcast-server
 
 ## 12.2. Start Client
 
-*(giai đoạn 1)*
+`java -jar client/target/labcast-client.jar`, chọn lớp tự tìm thấy (hoặc nhập IP server), đăng nhập.
+
+**Chiếu animation cho cả lớp:** giáo viên mở một bài giảng giải, bấm **📡 Chiếu cho lớp** trên thanh tiêu đề bài. Từ đó các nút Phát, Dừng, tua, tốc độ, ⏭ của giáo viên điều khiển cả lớp: mọi máy ở cùng một bước, cùng lúc. Máy học viên đang không làm bài thì tự mở màn chiếu; đang làm bài thì có nút **📡 Giáo viên đang chiếu** trên thanh trên cùng. Học viên bấm bất kỳ nút nào của trình phát là tách ra tự xem; **⟲ Theo giáo viên** về lại đúng bước đang chiếu.
+
+**Tường lửa:** app nhận chiếu qua UDP 7001. Lần đầu chạy, Windows có thể hiện hộp thoại tường lửa hỏi có cho Java nhận kết nối: chọn cho phép trên mạng **Private**. Không cho phép (hoặc switch chặn multicast) thì sau khoảng 6 giây server tự chuyển máy đó sang nhận chiếu qua TCP, chậm hơn một chút nhưng vẫn đúng bước. Dashboard (ô "Chiếu cho lớp") cho biết bao nhiêu máy đang phải nhận qua TCP.
 
 ## 12.3. Run Test
 

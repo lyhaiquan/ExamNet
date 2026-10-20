@@ -26,6 +26,20 @@ jobs:
           java-version: "17"
           cache: maven
 
+      # runner/ — Python chạy bài làm của học viên (spec §8.1). Chạy TRƯỚC Maven: test Java
+      # của sandbox cần Python (chế độ không sandbox) và image runner (Docker sandbox).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test runner (pytest)
+        run: |
+          python -m pip install --quiet -r runner/requirements-dev.txt
+          python -m pytest runner -q
+
+      - name: Đóng Docker image của runner
+        run: docker build -t labcast-runner:py3.12 runner
+
       # verify = biên dịch + test + kiểm định dạng (spotless gắn vào phase verify)
       - name: Build, test, kiểm định dạng
         working-directory: source
@@ -36,16 +50,3 @@ jobs:
       - name: Thử đóng Docker image của server
         run: docker build -f deploy/Dockerfile --build-arg GIT_SHA=${{ github.sha }} -t labcast-server:pr .
 
-      # runner/ — Python chạy bài làm của học viên (spec §8.1)
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Test runner (pytest)
-        run: |
-          python -m pip install --quiet -r runner/requirements-dev.txt
-          # Mã 5 = chưa có test nào; chấp nhận cho tới khi runner có test đầu tiên
-          python -m pytest runner -q || [ $? -eq 5 ]
-
-      - name: Thử đóng Docker image của runner
-        run: docker build -t labcast-runner:pr runner

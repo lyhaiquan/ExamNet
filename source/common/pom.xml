@@ -10,4 +10,12 @@
   </parent>
   <artifactId>labcast-common</artifactId>
   <description>Dùng chung cho server và app: protocol LCP/1.0, định dạng trace, kênh truyền</description>
+
+  <dependencies>
+    <!-- Payload JSON (FLAG_JSON) và trace JSON từng dòng -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+  </dependencies>
 </project>
