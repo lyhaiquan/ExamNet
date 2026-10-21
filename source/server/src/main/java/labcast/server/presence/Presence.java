@@ -34,6 +34,8 @@ public final class Presence {
         int missed;
         boolean awaiting;
         PresenceState state = PresenceState.ALIVE;
+        /** Kết nối đang đếm. Nối lại (kết nối mới) thì đếm lại từ đầu. */
+        Connection connection;
     }
 
     private final Supplier<Collection<Session>> sessions;
@@ -62,6 +64,13 @@ public final class Presence {
             State st = states.computeIfAbsent(s.userId(), k -> new State());
             PresenceState next;
             synchronized (st) {
+                if (st.connection != c) {
+                    // Kết nối mới (RESUME, đăng nhập lại): số lần lỡ của kết nối cũ không tính. Nếu giữ, học
+                    // viên từng bị ngắt vì mất mạng sẽ bị đóng ngay ở chu kỳ đầu, không bao giờ vào lại được.
+                    st.connection = c;
+                    st.missed = 0;
+                    st.awaiting = false;
+                }
                 if (st.awaiting) {
                     st.missed++;
                 }
