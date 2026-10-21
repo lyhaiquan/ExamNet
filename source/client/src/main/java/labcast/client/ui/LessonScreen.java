@@ -58,6 +58,9 @@ public final class LessonScreen extends BorderPane {
     private final String lessonId;
     private final JsonNode lesson;
     private final PlayerPane player = new PlayerPane();
+    /** Bài SQL: animation vẽ các bước của câu lệnh, không có Trace Table. */
+    private final boolean sql;
+
     private final CodeEditor editor = new CodeEditor();
     private final Label traceSource = new Label();
     private final TabPane tabs = new TabPane();
@@ -116,7 +119,7 @@ public final class LessonScreen extends BorderPane {
 
         // Breadcrumb: dung ten chuong tu server; neu payload LESSON_DATA thieu "chuong",
         // doc tu lessonId (vi du dsa.bam.day-chuyen -> "Băm").
-        boolean sql = lesson.path("mon").asText().equals("sql") || lessonId.startsWith("sql.");
+        sql = lesson.path("mon").asText().equals("sql") || lessonId.startsWith("sql.");
         String monLabel = sql ? "SQL" : "DSA";
         String chapterKey = lesson.path("chuong").asText("").trim();
         if (chapterKey.isBlank()) {
@@ -552,7 +555,11 @@ public final class LessonScreen extends BorderPane {
             return;
         }
         if (t.size() == 0) {
-            setSource("Lượt chạy không có trace (code chưa dùng cấu trúc viz?)", "none");
+            // Bỏ trace đang hiện (thường là lời giải mẫu): để lại thì bấm Phát lại chạy lời giải, như thể là code
+            // của học viên
+            player.load(TraceReader.empty(), views());
+            traceTable.clear();
+            setSource(sql ? "Câu SQL lỗi: chưa có animation" : "Lượt chạy không có animation", "none");
             return;
         }
         Player currentPlayer = player.load(t, views());
