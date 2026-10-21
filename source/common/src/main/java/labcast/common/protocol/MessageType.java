@@ -96,7 +96,7 @@ public enum MessageType {
     CAST_NACK(0x73),
     CAST_REPAIR(0x74),
 
-    // 0x80–0x8F: nhiều lớp, quản trị — A (đợt 2, docs/PHAN-CONG-DOT-2.md). Payload JSON.
+    // 0x80–0x8B: nhiều lớp, quản trị — A (đợt 2, docs/PHAN-CONG-DOT-2.md). Payload JSON.
     /** Hỏi: rỗng. Trả: {@code {"lop":[{"id","ten","siSo"}]}} — các lớp người đang đăng nhập dạy hoặc học. */
     CLASS_LIST(0x80),
     /** Hỏi: {@code {"id"}}. Trả: {@code {"id","ten","siSo","giaoVien":[…],"hocVien":[{"id","ten","online"}]}}. */
@@ -111,10 +111,11 @@ public enum MessageType {
     ADMIN_CLASS_SAVE(0x88),
     /** {@code {"lop":id,"them":[userId…],"bot":[userId…]}}. Trả {@code ADMIN_OK}. */
     ADMIN_CLASS_ENROLL(0x89),
+    // 0x8C–0x8F: upload bài, bật/tắt bài — D (Vũ Viết Anh)
     /** {@code {"ten":"bai.zip","zip":"<base64>"}}. Trả {@code {"ok",bool,"baiMoi":[id…],"loi":[…]}}. */
     ADMIN_LESSON_UPLOAD(0x8C),
 
-    // 0x90–0x9F: bài giao, thời gian làm bài, ca học — B (đợt 2). Payload JSON.
+    // 0x90–0x9F: thực hành, kiểm tra, ca học — B (Danh Hải, đợt 2). Payload JSON.
     /** Hỏi: {@code {"lop":id}}. Trả: {@code {"giao":[{"id","lessonId","loai","moLuc","dongLuc","phut","bat"}]}}. */
     ASSIGN_LIST(0x90),
     /** Giáo viên giao bài: {@code {"classId","lessonIds":[…],"loai":"thuc-hanh|kiem-tra","moLuc","dongLuc","phut"}}. */

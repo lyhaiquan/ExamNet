@@ -1,6 +1,6 @@
 # Phân công đợt 2 — quản trị, lớp, bài giao, giao diện mới
 
-Đợt này **4 người**, chia theo **ranh giới file** chứ không theo tính năng: mỗi file chỉ một chủ, nên hai người không bao giờ sửa cùng một file cùng lúc. Bản phân công gốc ở [`PHAN-CONG.md`](PHAN-CONG.md) vẫn giữ cho phần cũ.
+Đợt này **4 người** — A: leader, B: Danh Hải, C: Đinh Hoàng Vũ, D: Vũ Viết Anh — chia theo **ranh giới file** chứ không theo tính năng: mỗi file chỉ một chủ, nên hai người không bao giờ sửa cùng một file cùng lúc. Bản phân công gốc ở [`PHAN-CONG.md`](PHAN-CONG.md) vẫn giữ cho phần cũ.
 
 Bản demo giao diện (3 màn: học viên làm bài kiểm tra, giáo viên giao bài, trang quản trị): xem link trong PR của file này.
 
@@ -9,55 +9,57 @@ Bản demo giao diện (3 màn: học viên làm bài kiểm tra, giáo viên gi
 | # | Việc | Ai |
 | --- | --- | --- |
 | 1 | Một server nhiều lớp: DSA1, DSA2, SQL1… mỗi lớp danh sách học viên riêng, giáo viên phụ trách riêng | A |
-| 2 | Trang quản trị web: ai đang online theo lớp, quản lý học viên/giáo viên/lớp, upload bài học | A làm API, D làm trang |
-| 3 | Bài giao: giáo viên chọn bài cho lớp làm **thực hành** hoặc **kiểm tra**, bật/tắt, giới hạn thời gian (ví dụ 60 phút), khung giờ mở (từ … đến …), ca học của lớp | B làm logic, D làm màn giáo viên |
-| 4 | Sidebar chia 4 nhóm: **Bài mẫu** · **Luyện tập** · **Thực hành** · **Kiểm tra** (2 nhóm sau chỉ hiện bài đang được giao cho lớp) | B làm dữ liệu, C vẽ |
-| 5 | Output của chương trình hiện trong Trace Table | B |
-| 6 | Thiết kế lại app học viên, bộ màu và chữ dùng chung | C |
-| 7 | Thiết kế lại màn giáo viên và trang quản trị theo bộ màu của C | D |
+| 2 | Trang quản trị web: ai đang online theo lớp, quản lý lớp, học viên, giáo viên | A (**đã xong**, `/admin`) |
+| 3 | Output của chương trình hiện trong Trace Table | A |
+| 4 | Thực hành / kiểm tra theo lớp, đặt lịch như dbptit: **đến giờ tự bắt đầu, hết giờ tự nộp** | B — Danh Hải |
+| 5 | Sidebar 4 nhóm: **Bài mẫu** · **Luyện tập** · **Thực hành** · **Kiểm tra** | B làm dữ liệu, C vẽ |
+| 6 | Thiết kế lại giao diện app **cả học viên lẫn giáo viên**, bộ màu và chữ dùng chung | C — Đinh Hoàng Vũ |
+| 7 | Upload bài học **ngay trong giao diện giáo viên**; bật/tắt (active/inactive) từng bài cho lớp | D — Vũ Viết Anh |
 
 ## Bốn người, bốn vùng
 
-### A — Lớp và quản trị phía server (leader)
+Ai làm tính năng nào thì viết **cả logic lẫn màn hình** của tính năng đó trong package riêng; C giữ khung app (màn chính, bộ màu, CSS) và cắm màn của B, D vào qua `TeacherPanel`. Màn của B, D chỉ dùng class CSS và biến màu của C, không tự đặt màu.
+
+### A — Lớp, quản trị, Trace Table (leader)
 
 | | |
 | --- | --- |
-| Package / file | `server.classroom`, `server.account`, `server.admin` (mới, API JSON), `server.ops`, `server.store`, `common.protocol` (`MessageType`, `ErrorCode`), `schema.sql`, `ServerConfig` |
-| Thông điệp mới | dải `0x80–0x8F`: `CLASS_LIST`, `CLASS_INFO`, `ADMIN_USER_*`, `ADMIN_CLASS_*`, `ADMIN_LESSON_UPLOAD` |
-| API web mới | `/api/admin/overview`, `/api/admin/classes`, `/api/admin/users`, `/api/admin/lessons/upload` (chỉ máy server hoặc tài khoản quản trị) |
-| Bảng DB | `classes`, `enrollments` (đã có, dùng thật), `class_teachers` (mới), `lesson_uploads` (mới) |
-| Cung cấp cho người khác | `ClassDirectory.classesOf(userId)`, `ClassDirectory.studentsOf(classId)`, `Session.classId()` |
+| Package / file | `server.classroom`, `server.account`, `server.admin`, `server.ops`, `server.store`, `server.session`, `server.presence`, `common.protocol` (`MessageType`, `ErrorCode`), `schema.sql`, `ServerConfig`, `TraceTablePane.java`, trang `server/src/main/resources/labcast/server/admin/*` |
+| Thông điệp | dải `0x80–0x8B` (`CLASS_LIST`, `CLASS_INFO`, `ADMIN_USER_*`, `ADMIN_CLASS_*`) |
+| Bảng DB | `classes`, `enrollments`, `class_teachers` |
+| Cung cấp | `ClassDirectory` (đăng ký trong `ServerContext`): `all()`, `classesOf(userId)`, `studentsOf(classId)`, `teachersOf(classId)`; `Session.classId()` |
 
-Upload bài học: nhận file `.zip`, giải nén vào thư mục tạm, kiểm bằng `LessonRepository.load` (không sửa class này), hợp lệ mới chép vào `content/` và nạp lại danh sách bài; lỗi thì trả nguyên danh sách lỗi.
+Trang quản trị đã có: `http://localhost:8080/admin`, chỉ mở được trên máy server.
 
-### B — Bài giao, thời gian, Trace Table
-
-| | |
-| --- | --- |
-| Package / file | `server.assign` (mới), `server.practice`, `server.run`, `client.assign` (mới, **chỉ logic, không có Node JavaFX**), `TraceTablePane.java` |
-| Thông điệp mới | dải `0x90–0x9F`: `ASSIGN_LIST`, `ASSIGN_SET`, `ASSIGN_OPEN`, `ASSIGN_CLOSE`, `ASSIGN_STATE` |
-| Bảng DB | `assignments` (mới), `class_schedule` (mới) |
-| Cung cấp cho người khác | `AssignmentService.visible(classId, now)` → bài theo 4 nhóm; `AssignmentService.canSubmit(userId, lessonId, now)`; `client.assign.SidebarModel`, `client.assign.Countdown`, `client.assign.AssignController` (giáo viên giao bài) |
-
-Luật thời gian **chỉ kiểm ở server** bằng giờ server; `Clock.serverNow()` phía app chỉ để hiện đồng hồ đếm ngược. Hết giờ hoặc ngoài khung giờ thì server từ chối `SUBMIT_REQ` bằng `ErrorCode` riêng — không tin giờ máy học viên.
-
-### C — App học viên và bộ màu chung
+### B — Danh Hải: thực hành, kiểm tra, lịch theo lớp
 
 | | |
 | --- | --- |
-| Package / file | `client.ui` (màn đăng nhập, `HomeScreen`, `LessonScreen`, `PlaygroundScreen`, `Theme`), `client.views` (phần màu, chữ), `client/src/main/resources/labcast/client/ui/*` (CSS, icon, font), **`design/tokens.css`** (bộ màu, chữ, khoảng cách dùng chung) |
+| Package / file | `server.assign` (mới), `server.practice`, `server.run`, `client.assign` (logic + màn giao bài, lịch ca của giáo viên) |
+| Thông điệp | dải `0x90–0x9F`: `ASSIGN_LIST`, `ASSIGN_SET`, `ASSIGN_OPEN`, `ASSIGN_CLOSE`, `ASSIGN_STATE`, `SCHEDULE_LIST`, `SCHEDULE_SET` |
+| Bảng DB | `assignments`, `assignment_starts`, `class_schedule` |
+| Cung cấp | `AssignmentService.visible(classId, now)`, `AssignmentService.canSubmit(userId, lessonId, now)`; `SidebarModel`, `Countdown`, `AssignController` |
+
+Giống dbptit: giáo viên đặt bài cho một lớp với giờ mở, giờ đóng, số phút. **Đến giờ mở** server tự đẩy `ASSIGN_STATE` cho cả lớp, app tự mở bài và bắt đầu đếm giờ. **Hết giờ** server tự lấy code mới nhất đã lưu (checkpoint) nộp thay học viên, rồi khoá bài. Mọi mốc giờ **chỉ tính bằng giờ server**; `Clock.serverNow()` phía app chỉ để hiện đồng hồ. Nộp ngoài giờ thì server từ chối `SUBMIT_REQ` bằng `NOT_OPEN` hoặc `TIME_UP`.
+
+### C — Đinh Hoàng Vũ: giao diện app học viên và giáo viên
+
+| | |
+| --- | --- |
+| Package / file | `client.ui` (đăng nhập, `HomeScreen`, `LessonScreen`, `PlaygroundScreen`, `Theme`, trừ `TraceTablePane`), `client.views` (phần màu, chữ), `client/src/main/resources/labcast/client/**/*.css`, icon, font, **`design/tokens.css`** |
 | Không có | thông điệp, bảng DB |
-| Nhận từ người khác | `SidebarModel`, `Countdown` (B); `Session.classId()` và tên lớp (A) |
+| Nhận từ người khác | `SidebarModel`, `Countdown` (B); màn của B và D qua `TeacherPanel`; `Session.classId()` và tên lớp (A) |
 
-### D — Màn giáo viên và trang quản trị
+### D — Vũ Viết Anh: upload bài, bật/tắt bài
 
 | | |
 | --- | --- |
-| Package / file | `client.teacher` (mới: màn giao bài, chọn lớp, lịch ca, theo dõi lớp), `client/src/main/resources/labcast/client/teacher/*.css`, `server/src/main/resources/labcast/server/admin/*` (HTML, JS, CSS của trang quản trị) |
-| Không có | thông điệp, bảng DB, code server Java |
-| Nhận từ người khác | `AssignController` (B), API `/api/admin/*` (A), `design/tokens.css` (C) |
+| Package / file | `server.upload` (mới), `client.teacher` (màn upload, danh sách bài có công tắc bật/tắt) |
+| Thông điệp | dải `0x8C–0x8F`: `ADMIN_LESSON_UPLOAD` (đã có), thêm `LESSON_ACTIVE_LIST`, `LESSON_ACTIVE_SET` |
+| Bảng DB | `lesson_uploads` (đã có); thêm `lesson_active (class_id, lesson_id, active)` bằng PR nhỏ |
+| Cung cấp | `LessonActivation.isActive(classId, lessonId)`: B và màn danh sách bài gọi để ẩn bài đang tắt |
 
-`HomeScreen` của C chỉ chừa **một chỗ gắn** cho giáo viên (`TeacherPanel`, interface do D định nghĩa trong PR hợp đồng); D cắm màn của mình vào đó, không sửa file của C.
+Upload: giáo viên chọn file `.zip` trong app, giải nén vào thư mục tạm, kiểm bằng `LessonRepository.load` (không sửa class này), hợp lệ mới chép vào `content/` và nạp lại danh sách bài; lỗi thì hiện nguyên danh sách lỗi. Bật/tắt áp cho **bài mẫu và luyện tập** của từng lớp; bài thực hành, kiểm tra do lịch của B quyết định, không dùng công tắc này.
 
 ## Hợp đồng chốt trong 2 ngày đầu (A mở một PR, cả 4 duyệt)
 
@@ -89,18 +91,18 @@ Sau PR này **mỗi người chỉ sửa vùng của mình**. Cần đổi hợp
 
 1. **CODEOWNERS bắt buộc duyệt**: gán chủ cho từng đường dẫn ở trên; bật "Require review from Code Owners" ở nhánh `main`. PR đụng file của người khác phải chờ người đó duyệt.
 2. Một task một nhánh, PR nhỏ (dưới ~400 dòng), merge trong ngày. Mỗi sáng `git pull --rebase origin main`.
-3. File nóng chỉ một chủ: `LessonScreen`, `HomeScreen`, `tokens.css` (C); `schema.sql`, `MessageType`, `ServerConfig` (A); `TraceTablePane` (B); trang quản trị (D). Cần thêm gì thì nhờ chủ, hoặc đưa logic vào class riêng của mình để chủ gọi.
-4. **C và D làm bằng dữ liệu giả** (`mock/*.json`) đúng định dạng đã chốt, không chờ A và B.
+3. File nóng chỉ một chủ: `LessonScreen`, `HomeScreen`, `tokens.css`, CSS (C); `schema.sql`, `MessageType`, `ServerConfig`, `TraceTablePane`, trang quản trị (A). Cần thêm gì thì nhờ chủ, hoặc đưa logic vào class riêng của mình để chủ gọi.
+4. **C làm bằng dữ liệu giả** (`mock/*.json`) đúng định dạng đã chốt, không chờ B và D.
 5. **Không chạy `spotless:apply` cho cả repo**: chỉ chạy cho module mình sửa và trả lại file ngoài vùng trước khi commit.
 6. Không thêm khoá mới vào file `.conf` ngoài A. Lớp, ca học, bài giao lưu trong database.
 7. Màu, cỡ chữ, khoảng cách lấy từ biến của `tokens.css`; không ai viết màu cứng trong Java hay HTML. Thêm biến mới thì nhờ C.
 
 ## Thứ tự
 
-| Ngày | A | B | C | D |
+| Ngày | A | B — Danh Hải | C — Đinh Hoàng Vũ | D — Vũ Viết Anh |
 | --- | --- | --- | --- | --- |
-| 1–2 | PR hợp đồng | Duyệt; sửa output trong Trace Table | `tokens.css` từ bản demo | Duyệt; khung trang quản trị bằng dữ liệu giả |
-| 3–6 | Nhiều lớp, `ClassDirectory`, đăng nhập vào đúng lớp | `assignments`, `class_schedule`, `AssignmentService`, chặn nộp ngoài giờ | Sidebar 4 nhóm, màn làm bài (dữ liệu giả) | Màn giao bài, chọn lớp, lịch ca (dữ liệu giả) |
-| 7–10 | API quản trị: online, học viên, giáo viên, lớp | `AssignController`, đồng hồ đếm ngược | Ghép với `SidebarModel`, `Countdown` thật | Ghép màn giáo viên với B, trang quản trị với A |
-| 11–12 | Upload bài học | Kiểm tra: khoá bài khi hết giờ, nộp tự động | Màn đăng nhập, sửa chi tiết | Upload bài trên trang quản trị, sửa chi tiết |
-| 13 | Cả 4: chạy thử một buổi với 2 lớp, 1 bài thực hành, 1 bài kiểm tra 15 phút | | | |
+| 1–2 | PR hợp đồng; trang quản trị (đã xong) | Duyệt hợp đồng; bảng `assignments`, `AssignmentService` | `tokens.css` từ bản demo, bộ CSS chung | Duyệt hợp đồng; bảng `lesson_active`, `LessonActivation` |
+| 3–6 | Đăng nhập vào đúng lớp, `CLASS_LIST` | `ASSIGN_*`, chặn nộp ngoài giờ | Sidebar 4 nhóm, màn làm bài (dữ liệu giả) | Upload phía server: giải nén, kiểm, nạp lại |
+| 7–10 | Output trong Trace Table | Tự bắt đầu khi tới giờ, tự nộp khi hết giờ; màn đặt lịch của giáo viên | Ghép `SidebarModel`, `Countdown` thật; màn giáo viên | Màn upload và công tắc bật/tắt trong app giáo viên |
+| 11–12 | Sửa lỗi ghép nối | Kiểm tra: khoá bài sau khi nộp tự động | Màn đăng nhập, sửa chi tiết | Sửa chi tiết |
+| 13 | Cả 4: chạy thử một buổi với 2 lớp, 1 bài thực hành, 1 bài kiểm tra 15 phút tự nộp | | | |

@@ -1,6 +1,7 @@
 # Chủ từng vùng (docs/PHAN-CONG-DOT-2.md). PR đụng file của ai thì người đó phải duyệt.
 # Bật "Require review from Code Owners" ở nhánh main để luật này có hiệu lực.
 #
+# B: Danh Hải · C: Đinh Hoàng Vũ · D: Vũ Viết Anh.
 # TODO trước khi merge: thay @B, @C, @D bằng tên GitHub thật rồi bỏ dấu # ở đầu các dòng đó.
 # Dòng sau ghi đè dòng trước, nên quy tắc chung để trên cùng.
 
@@ -15,24 +16,27 @@
 /source/server/src/main/java/labcast/server/admin/        @lyhaiquan
 /source/server/src/main/java/labcast/server/ops/          @lyhaiquan
 /source/server/src/main/java/labcast/server/store/        @lyhaiquan
+/source/server/src/main/java/labcast/server/session/     @lyhaiquan
+/source/server/src/main/java/labcast/server/presence/    @lyhaiquan
+/source/server/src/main/resources/labcast/server/admin/  @lyhaiquan
 /.github/                                                 @lyhaiquan
 
-# --- B: bài giao, thời gian, Trace Table
+# --- B (Danh Hải): thực hành, kiểm tra, lịch
 # /source/server/src/main/java/labcast/server/assign/     @B
 # /source/server/src/main/java/labcast/server/practice/   @B
 # /source/server/src/main/java/labcast/server/run/        @B
 # /source/client/src/main/java/labcast/client/assign/     @B
-# /source/client/src/main/java/labcast/client/ui/TraceTablePane.java  @B
 
-# --- C: app học viên, bộ màu chung
+# --- C (Đinh Hoàng Vũ): giao diện app học viên và giáo viên, bộ màu chung
 # /design/                                                @C
 # /source/client/src/main/java/labcast/client/ui/         @C
 # /source/client/src/main/java/labcast/client/views/      @C
-# /source/client/src/main/resources/labcast/client/ui/    @C
-# Dòng TraceTablePane của B phải đứng SAU dòng client/ui/ của C: chép lại ở đây khi bỏ dấu #
-# /source/client/src/main/java/labcast/client/ui/TraceTablePane.java  @B
+# /source/client/src/main/resources/labcast/client/       @C
+# TraceTablePane của A phải đứng SAU dòng client/ui/ của C
+/source/client/src/main/java/labcast/client/ui/TraceTablePane.java  @lyhaiquan
 
-# --- D: màn giáo viên, trang quản trị
+# --- D (Vũ Viết Anh): upload bài, bật/tắt bài
+# /source/server/src/main/java/labcast/server/upload/     @D
 # /source/client/src/main/java/labcast/client/teacher/    @D
-# /source/client/src/main/resources/labcast/client/teacher/  @D
-# /source/server/src/main/resources/labcast/server/admin/ @D
+# TeacherPanel là của C, đứng SAU dòng client/teacher/ của D
+# /source/client/src/main/java/labcast/client/teacher/TeacherPanel.java  @C
