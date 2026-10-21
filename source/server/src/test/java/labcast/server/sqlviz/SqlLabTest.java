@@ -106,13 +106,14 @@ class SqlLabTest {
     }
 
     /**
-     * Mọi bài SQL giảng giải: animation đáp án tách được từng bước (không rơi về "chỉ hiện kết quả cuối"), và
-     * đáp án đạt trên dữ liệu mẫu cùng 3 database ẩn.
+     * Mọi bài SQL (bài nào cũng có animation, kể cả luyện tập): animation đáp án tách được từng bước (không rơi về
+     * "chỉ hiện kết quả cuối"), đáp án đạt trên dữ liệu mẫu cùng 3 database ẩn, và mỗi câu trong {@code sai.sql}
+     * (câu sai hay gặp, nếu bài có) bị chấm sai.
      */
     @TestFactory
-    Stream<DynamicTest> moiBaiSqlGiangGiai_coAnimationTungBuoc_vaDapAnDat() {
+    Stream<DynamicTest> moiBaiSql_coAnimationTungBuoc_dapAnDat_cauSaiBiBat() {
         return repo.all().stream()
-                .filter(l -> l.mon().equals("sql") && l.loai().equals("giang-giai"))
+                .filter(l -> l.mon().equals("sql"))
                 .map(l -> DynamicTest.dynamicTest(l.id(), () -> {
                     var lab = new SqlLab(repo, tmp);
                     String trace = String.join("\n", lab.demoTrace(l));
@@ -120,8 +121,17 @@ class SqlLabTest {
                     assertFalse(trace.contains("Chỉ hiện kết quả cuối"), l.id() + ": " + trace);
                     String dapAn =
                             java.nio.file.Files.readString(l.dir().resolve("dap_an.sql"), StandardCharsets.UTF_8);
-                    Grader.Result r = lab.grade(l, dapAn, duLieuAn(l));
+                    List<String> an = duLieuAn(l);
+                    Grader.Result r = lab.grade(l, dapAn, an);
                     assertEquals(Verdict.OK, r.verdict(), l.id() + ": " + r.message());
+                    Path sai = l.dir().resolve("sai.sql");
+                    if (java.nio.file.Files.exists(sai)) {
+                        for (String cau :
+                                SqlSplitter.split(java.nio.file.Files.readString(sai, StandardCharsets.UTF_8))) {
+                            Grader.Result s = lab.grade(l, cau, an);
+                            assertEquals(Verdict.WRONG, s.verdict(), l.id() + " câu sai vẫn đạt: " + cau);
+                        }
+                    }
                 }));
     }
 

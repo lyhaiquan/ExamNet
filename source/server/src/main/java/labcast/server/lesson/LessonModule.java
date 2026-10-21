@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.JsonPayload;
+import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.ProtocolException;
 import labcast.server.ServerContext;
@@ -107,8 +108,9 @@ public final class LessonModule implements ServerModule {
 
     /**
      * {@code LESSON_FETCH(str lessonId)} → {@code LESSON_DATA JSON{kind: "lesson", id, ten, loai, de, khung,
-     * khungNhin, testXem, trace, code, codeSeq}}. {@code code}/{@code codeSeq} là code học viên đang
-     * có trên server, để mở lại bài thì làm tiếp đúng chỗ.
+     * khungNhin, testXem, trace, code, codeSeq, ngonNgu, loiGiai}}. {@code code}/{@code codeSeq} là code Python
+     * học viên đang có trên server, để mở lại bài thì làm tiếp đúng chỗ (ngôn ngữ khác: {@code CODE_FETCH}).
+     * {@code ngonNgu}: mã các ngôn ngữ được chọn; {@code loiGiai}: lời giải C/C++/Java của bài giảng giải.
      */
     private void fetch(Ctx c, labcast.common.protocol.Frame f) throws Exception {
         String id = f.reader().str();
@@ -122,6 +124,10 @@ public final class LessonModule implements ServerModule {
         m.put("de", repo.de(id));
         m.put("khung", repo.khung(id));
         m.put("khungNhin", l.khungNhin());
+        m.put("ngonNgu", l.ngonNgu().stream().map(Language::code).toList());
+        if (l.loai().equals("giang-giai")) {
+            m.put("loiGiai", repo.loiGiaiKhac(id));
+        }
         List<Map<String, String>> tests = new ArrayList<>();
         for (String t : l.testXem()) {
             tests.add(Map.of("id", t, "input", repo.testInput(id, t).orElse("")));
@@ -203,7 +209,11 @@ public final class LessonModule implements ServerModule {
         return out;
     }
 
-    /** Ghi danh sách bài vào bảng {@code lessons}. UPSERT, không xoá dòng cũ vì code_deltas trỏ tới nó. */
+    /**
+     * Ghi danh sách bài vào bảng {@code lessons}. UPSERT, không xoá dòng cũ vì code_deltas trỏ tới nó. Mỗi ngôn ngữ
+     * khác Python có thêm một dòng mang khoá tài liệu ({@code dsa.x#cpp}): code_deltas và checkpoints lưu code
+     * theo khoá này, khoá ngoại sang {@code lessons(id)} vẫn đúng mà không phải đổi schema.
+     */
     private static void syncToDb(Database db, LessonRepository repo) throws SQLException {
         db.tx(c -> {
             try (PreparedStatement ps = c.prepareStatement(
@@ -212,14 +222,16 @@ public final class LessonModule implements ServerModule {
                             + " ten = excluded.ten, loai = excluded.loai, path = excluded.path,"
                             + " content_hash = excluded.content_hash")) {
                 for (Lesson l : repo.all()) {
-                    ps.setString(1, l.id());
-                    ps.setString(2, l.mon());
-                    ps.setString(3, l.chuong());
-                    ps.setString(4, l.ten());
-                    ps.setString(5, l.loai());
-                    ps.setString(6, l.dir().toString());
-                    ps.setString(7, l.contentHash());
-                    ps.addBatch();
+                    for (Language lang : l.isSql() ? List.of(Language.PYTHON) : l.ngonNgu()) {
+                        ps.setString(1, Language.docKey(l.id(), lang));
+                        ps.setString(2, l.mon());
+                        ps.setString(3, l.chuong());
+                        ps.setString(4, l.ten());
+                        ps.setString(5, l.loai());
+                        ps.setString(6, l.dir().toString());
+                        ps.setString(7, l.contentHash());
+                        ps.addBatch();
+                    }
                 }
                 ps.executeBatch();
             }

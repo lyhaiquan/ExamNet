@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -590,8 +591,8 @@ public final class HomeScreen extends BorderPane {
     }
 
     private static String chapterName(String text) {
-        String pretty = text == null ? "" : text.replace('-', ' ').replace('_', ' ');
-        if (pretty.isEmpty()) return "Khác";
+        if (text == null || text.isBlank()) return "Khác";
+        String pretty = LessonScreen.chapterLabel(text);
         return Character.toUpperCase(pretty.charAt(0)) + pretty.substring(1);
     }
 
@@ -604,7 +605,13 @@ public final class HomeScreen extends BorderPane {
             String selection = lessonStatusFilter.getValue();
             Map<String, Map<String, List<JsonNode>>> groups = new LinkedHashMap<>();
             int done = 0;
-            for (JsonNode lesson : allLessons) {
+            List<JsonNode> ordered = new ArrayList<>(allLessons);
+            ordered.sort(Comparator.comparingInt((JsonNode l) -> {
+                        int i = LessonScreen.CHAPTERS.indexOf(l.path("chuong").asText());
+                        return i < 0 ? Integer.MAX_VALUE : i;
+                    })
+                    .thenComparingInt(l -> LessonScreen.loaiRank(l.path("loai").asText())));
+            for (JsonNode lesson : ordered) {
                 if ("MASTERED".equals(lesson.path("status").asText())) done++;
                 String statusValue = lesson.path("status").asText("NOT_STARTED");
                 if ("Đã hoàn thành".equals(selection) && !"MASTERED".equals(statusValue)) continue;

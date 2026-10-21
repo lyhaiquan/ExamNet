@@ -10,6 +10,9 @@ In ra stdout, mỗi dòng một JSON: các sự kiện trace (nếu "trace"), r�
 
     {"t": "result", "ok": true, "stdout": "1 2 4 5\\n", "error": null, "truncated": false, "time_ms": 3}
 
+`"ngon_ngu"` khác `"python"` (c, cpp, java) thì chuyển cho ngon_ngu.py: biên dịch, chạy, chạy từng dòng dưới
+debugger; cùng định dạng dòng kết quả.
+
 Thời gian bị giới hạn hai lớp: RLIMIT_CPU ở đây (Linux, trong Docker) và tiến trình Java giết container
 khi quá hạn.
 """
@@ -21,6 +24,7 @@ import sys
 import time
 
 import goi_y
+import ngon_ngu
 from viz import cay_goi, code_bien, recorder, theo_doi, tung_buoc
 
 MAX_STDOUT = 1_000_000  # ký tự; in nhiều hơn thì cắt, tránh tràn bộ nhớ
@@ -164,6 +168,10 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stdin.reconfigure(encoding="utf-8")
     job = json.loads(sys.stdin.read())
+    if job.get("ngon_ngu", "python") != "python":
+        # C/C++/Java: giới hạn CPU đặt riêng cho tiến trình chương trình, không cho trình biên dịch hay debugger
+        ngon_ngu.chay_job(job, sys.stdout)
+        return
     gioi_han_cpu(int(job.get("time_limit_ms", 1000)))
     chay(job, sys.stdout)
 

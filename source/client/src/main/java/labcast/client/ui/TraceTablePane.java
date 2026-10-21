@@ -7,6 +7,7 @@ import java.util.function.IntConsumer;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -20,7 +21,10 @@ import labcast.client.player.Player;
 import labcast.common.trace.Trace;
 import labcast.common.trace.TraceEvent;
 
-/** Bảng chạy từng dòng: tái phát các sự kiện line/vars từ Python Runner, đồng bộ với Animation. */
+/**
+ * Bảng chạy từng dòng: tái phát các sự kiện line/vars từ runner (Python, hay debugger của C/C++/Java), đồng bộ với Animation. Bảng chỉ hiện
+ * các bước đã chạy tới vị trí của trình phát: Phát/Sau thêm dòng mới ở cuối, Trước/tua lùi bớt dòng.
+ */
 public final class TraceTablePane extends BorderPane {
     private record Step(int number, int eventIndex, int line, String code, String function, String vars) {}
 
@@ -29,8 +33,15 @@ public final class TraceTablePane extends BorderPane {
     private final Button next = new Button("Sau ▶");
     private final Button play = new Button("▶ Phát");
     private final Label position = new Label("Chưa có trace");
-    private final Label hint = new Label("Bấm 'Trace từng dòng' để ghi lại các bước chạy Python.");
+    private final Label hint = new Label("Bấm 'Trace từng dòng' để ghi lại các bước chạy.");
     private final List<Step> steps = new ArrayList<>();
+    /** Phần đầu của {@code steps} đã chạy tới; là dữ liệu của bảng. */
+    private final ObservableList<Step> shown = FXCollections.observableArrayList();
+
+    private final Label placeholder = new Label("Chưa có dữ liệu chạy từng dòng.");
+    /** Chỉ số bước đang đứng trong {@code steps}, -1 khi chưa chạy bước nào. */
+    private int current = -1;
+
     private Player player;
     private IntConsumer onLine = line -> {};
     private boolean changingSelection;
@@ -41,19 +52,22 @@ public final class TraceTablePane extends BorderPane {
         number.setCellValueFactory(
                 v -> new ReadOnlyObjectWrapper<Number>(v.getValue().number()));
         number.setPrefWidth(56);
+        number.setMinWidth(56);
+        number.setMaxWidth(64);
         TableColumn<Step, Number> line = new TableColumn<>("Dòng");
         line.setCellValueFactory(
                 v -> new ReadOnlyObjectWrapper<Number>(v.getValue().line()));
-        line.setPrefWidth(55);
-        TableColumn<Step, String> source = new TableColumn<>("Lệnh Python");
-        source.setCellValueFactory(v -> new ReadOnlyStringWrapper(v.getValue().code()));
-        source.setPrefWidth(190);
+        line.setPrefWidth(56);
+        line.setMinWidth(56);
+        line.setMaxWidth(64);
+        // Không có cột lệnh: dòng đang chạy đã tô sáng trong editor, để chỗ cho cột biến
         TableColumn<Step, String> vars = new TableColumn<>("Biến tại bước này");
         vars.setCellValueFactory(v -> new ReadOnlyStringWrapper(v.getValue().vars()));
-        vars.setPrefWidth(215);
-        table.getColumns().addAll(number, line, source, vars);
+        vars.setPrefWidth(405);
+        table.getColumns().addAll(number, line, vars);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setPlaceholder(new Label("Chưa có dữ liệu chạy từng dòng."));
+        table.setItems(shown);
+        table.setPlaceholder(placeholder);
         table.getStyleClass().add("trace-table");
         table.setFixedCellSize(31);
 
@@ -82,7 +96,7 @@ public final class TraceTablePane extends BorderPane {
         table.getSelectionModel().selectedIndexProperty().addListener((obs, old, value) -> {
             if (changingSelection || player == null) return;
             int i = value.intValue();
-            if (i >= 0 && i < steps.size()) {
+            if (i >= 0 && i < shown.size()) {
                 player.pause();
                 play.setText("▶ Phát");
                 player.seek(steps.get(i).eventIndex());
@@ -99,11 +113,13 @@ public final class TraceTablePane extends BorderPane {
         // Player trước đó có thể còn callback position nhưng đã không còn thuộc bảng.
         player = null;
         steps.clear();
+        current = -1;
         changingSelection = true;
-        table.getItems().clear();
+        shown.clear();
         table.getSelectionModel().clearSelection();
         changingSelection = false;
-        hint.setText("Bấm 'Trace từng dòng' để ghi lại các bước chạy Python.");
+        placeholder.setText("Chưa có dữ liệu chạy từng dòng.");
+        hint.setText("Bấm 'Trace từng dòng' để ghi lại các bước chạy.");
         refreshControls();
     }
 
@@ -131,11 +147,12 @@ public final class TraceTablePane extends BorderPane {
                 }
             }
         }
-        table.setItems(FXCollections.observableArrayList(steps));
+        placeholder.setText(
+                steps.isEmpty() ? "Chưa có dữ liệu chạy từng dòng." : "Bấm ▶ Phát hoặc Sau ▶ để chạy từng dòng.");
         hint.setText(
                 steps.isEmpty()
                         ? "Lượt chạy này chưa có sự kiện line/vars. Hãy dùng Trace từng dòng."
-                        : "Mỗi dòng là trạng thái TRƯỚC khi Python thực thi lệnh. Nhấp một dòng hoặc dùng Trước/Sau để tua Animation.");
+                        : "Mỗi dòng là trạng thái TRƯỚC khi chạy lệnh ở dòng đó; dòng mới hiện ra khi chạy tới. Nhấp một dòng để tua lại.");
         nextPlayer.onPosition(p -> {
             if (player == nextPlayer) syncWithPlayer(p);
         });
@@ -158,8 +175,7 @@ public final class TraceTablePane extends BorderPane {
 
     private void move(int direction) {
         if (steps.isEmpty() || player == null) return;
-        int selected = table.getSelectionModel().getSelectedIndex();
-        int target = selected < 0 ? 0 : Math.max(0, Math.min(steps.size() - 1, selected + direction));
+        int target = current < 0 ? 0 : Math.max(0, Math.min(steps.size() - 1, current + direction));
         player.pause();
         play.setText("▶ Phát");
         player.seek(steps.get(target).eventIndex());
@@ -177,7 +193,11 @@ public final class TraceTablePane extends BorderPane {
                 hi = mid - 1;
             }
         }
+        current = found;
         changingSelection = true;
+        // bảng giữ đúng các bước 0..found: tua tới thì nối thêm, tua lùi thì cắt bớt ở cuối
+        if (shown.size() > found + 1) shown.remove(found + 1, shown.size());
+        else if (shown.size() < found + 1) shown.addAll(steps.subList(shown.size(), found + 1));
         if (found < 0) table.getSelectionModel().clearSelection();
         else if (table.getSelectionModel().getSelectedIndex() != found) {
             table.getSelectionModel().select(found);
@@ -190,7 +210,7 @@ public final class TraceTablePane extends BorderPane {
     }
 
     private void refreshControls() {
-        int idx = table.getSelectionModel().getSelectedIndex();
+        int idx = current;
         position.setText(steps.isEmpty() ? "0 / 0" : (Math.max(0, idx + 1) + " / " + steps.size()));
         previous.setDisable(steps.isEmpty() || idx <= 0);
         next.setDisable(steps.isEmpty() || idx >= steps.size() - 1);

@@ -1,0 +1,13 @@
+id: sql.tong-hop.thi-lai-dat
+mon: sql
+chuong: tong-hop
+ten: Trượt lần 1, đạt lần 2
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: select                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: []

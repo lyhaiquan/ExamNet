@@ -8,6 +8,8 @@ public enum Verdict {
     RUNTIME_ERROR,
     /** Dùng hàm, import hay cú pháp bị cấm ({@code cam_dung}, {@code cam_import}, {@code cam_cu_phap}). */
     FORBIDDEN_CALL,
+    /** C/C++/Java không biên dịch được: chưa chạy test nào. */
+    COMPILE_ERROR,
     /** Qua mọi test nhưng trace vi phạm luật của bài ({@code luat.py}), ví dụ đổi chỗ hai phần tử không kề nhau. */
     TRACE_RULE
 }

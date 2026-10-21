@@ -319,7 +319,7 @@ public final class CodeEditor {
         pattern = switch (language) {
             case "sql" -> SQL_PATTERN;
             case "java" -> JAVA_PATTERN;
-            case "cpp" -> CPP_PATTERN;
+            case "cpp", "c" -> CPP_PATTERN;
             case "javascript" -> JS_PATTERN;
             default -> PATTERN;};
         area.setStyleSpans(0, highlight(area.getText(), pattern));

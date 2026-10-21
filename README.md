@@ -90,12 +90,12 @@ Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành trên VPS: b�
 
 | Thành phần | Công nghệ |
 | --- | --- |
-| Ngôn ngữ | Java 17 — `java.net`, `javax.net.ssl`, `java.util.concurrent`; Python 3.12 cho bài làm của học viên |
+| Ngôn ngữ | Java 17 — `java.net`, `javax.net.ssl`, `java.util.concurrent`. Bài làm của học viên: Python 3.12 (có animation), C, C++, Java ([spec đa ngôn ngữ](docs/specs/labcast-da-ngon-ngu.md)) |
 | Build | Maven (multi-module, Maven Wrapper `./mvnw`) |
 | Giao diện | JavaFX 21, RichTextFX (ô soạn code) |
 | Lưu trữ | SQLite qua `sqlite-jdbc` |
 | SQL cho bài tập | SQLite sau giao diện `SqlEngine`, JSqlParser |
-| Chạy code an toàn | Docker (`--network none`, giới hạn RAM/CPU/tiến trình) |
+| Chạy code an toàn | Docker (`--network none`, giới hạn RAM/CPU/tiến trình); image runner Ubuntu 24.04 có Python 3.12, gcc/g++, gdb, JDK 17 |
 | Test | JUnit 5, pytest |
 | Định dạng code | Spotless + palantir-java-format |
 | CI/CD | GitHub Actions → Docker image trên GHCR → VPS |
@@ -128,7 +128,7 @@ LabCast/
 ├── statics/         sơ đồ PNG, dataset/, results/ (CSV thí nghiệm)
 ├── deploy/          Dockerfile, compose.yaml (server trên VPS cho nhóm thử)
 ├── packaging/       bộ cài jpackage cho phòng máy
-├── runner/          Python: chạy bài làm và ghi trace, đóng thành image Docker
+├── runner/          Python: chạy và chấm bài làm (Python, C, C++, Java), ghi trace, đóng thành image Docker
 ├── content/         bài học và bài tập (dsa/, sql/) — dữ liệu, không phải code
 ├── .github/         CI/CD, mẫu Pull Request
 ├── .husky/          hook kiểm commit
@@ -198,6 +198,8 @@ java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien 
 # trạng thái: http://localhost:8080/version
 ```
 
+Image runner nặng khoảng 1,2 GB (có gcc/g++, gdb, JDK 17 cho bài làm C, C++, Java): lần build đầu mất vài phút.
+
 **Mỗi lần thư mục `runner/` đổi thì build lại image runner** (lệnh `docker build` ở trên): image chứa các script chạy và chấm bài. Ví dụ nộp bài SQL cần `runner/sinh_csdl.py` để sinh database ẩn; image build trước khi có file này thì mọi lượt nộp bài SQL báo "Server chưa chấm được bài" (không tính lượt).
 
 Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard; đổi bằng `port-dashboard`), và phát chiếu lên nhóm multicast `239.255.70.1:7001` (UDP, TTL 1) trên card LAN.
@@ -240,7 +242,7 @@ Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_MON`, `LABCAST_TAO_GI
 
 **Dashboard:** mở `http://localhost:8080/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, ai bị đánh dấu "dán khối lớn" (rê chuột lên cờ để xem bài nào, bao nhiêu ký tự; cờ mất khi học viên nộp đúng bài đó), lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
 
- Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.
+ Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Bài viết bằng C/C++/Java ở chế độ này cần `gcc`/`g++`, `javac` có trên máy (Trace từng dòng C/C++ cần thêm `gdb`, Windows không có sẵn: dùng Docker). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.
 
 App: `java -jar client/target/labcast-client.jar`, chọn lớp tự tìm thấy, đăng nhập.
 

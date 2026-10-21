@@ -610,35 +610,58 @@ public final class StepPlanner {
 
     // ------------------------------------------------------------------ UNION, INTERSECT, EXCEPT
 
+    /**
+     * Các phép tập hợp trong SQLite cùng độ ưu tiên, tính từ trái sang phải: {@code A EXCEPT B UNION C} là
+     * {@code (A EXCEPT B) UNION C}. Mỗi phép một bước: kết quả tạm của các vế bên trái (SQLite tính lại phần đầu
+     * của câu) gặp vế tiếp theo.
+     */
     private void setOperation(SetOperationList so, QueryResult real) throws Unsupported, SqlRejected {
         List<Select> sides = so.getSelects();
-        if (sides.size() != 2) {
-            throw new Unsupported("Phép tập hợp có hơn hai vế.");
+        List<String> ops = new ArrayList<>();
+        for (Object o : so.getOperations()) {
+            ops.add(o.toString().trim().toUpperCase(Locale.ROOT));
         }
-        String op = so.getOperations().get(0).toString().trim().toUpperCase(Locale.ROOT);
         for (int i = 0; i < 2; i++) {
-            QueryResult r = q(sides.get(i).toString());
-            if (r.rows().size() > MAX_ANIM_ROWS) {
-                throw new Unsupported("Vế " + (i + 1) + " có quá nhiều dòng để làm animation.");
-            }
-            key("Vế " + (i + 1));
-            say("Vế " + (i + 1) + ": " + sides.get(i) + " → " + r.rows().size() + " dòng.");
-            ObjectNode t = ev("sql.table")
-                    .put("name", "Vế " + (i + 1))
-                    .put("alias", "")
-                    .put("side", i == 1);
-            putTable(t, r.columns(), r.rows());
+            side(sides.get(i), i);
         }
-        key(op);
-        say(switch (op) {
-                    case "UNION" -> "UNION: gộp hai vế, bỏ dòng trùng.";
-                    case "UNION ALL" -> "UNION ALL: gộp hai vế, giữ cả dòng trùng.";
-                    case "INTERSECT" -> "INTERSECT: chỉ giữ dòng có ở cả hai vế.";
-                    case "EXCEPT" -> "EXCEPT: dòng của vế 1 mà vế 2 không có.";
-                    default -> op + ".";
-                } + " Kết quả " + real.rows().size() + " dòng.");
-        ObjectNode e = ev("sql.setop").put("op", op);
-        putTable(e, real.columns(), real.rows());
+        StringBuilder prefix = new StringBuilder(sides.get(0).toString());
+        for (int k = 0; k < ops.size(); k++) {
+            if (k > 0) {
+                side(sides.get(k + 1), k + 1);
+            }
+            String op = ops.get(k);
+            prefix.append(' ').append(op).append(' ').append(sides.get(k + 1));
+            boolean last = k == ops.size() - 1;
+            QueryResult r = last ? real : q(prefix.toString());
+            if (r.rows().size() > MAX_ANIM_ROWS) {
+                throw new Unsupported("Kết quả tạm có quá nhiều dòng để làm animation.");
+            }
+            String left = k == 0 ? "vế 1" : "kết quả tạm";
+            String right = "vế " + (k + 2);
+            key(op);
+            say(switch (op) {
+                        case "UNION" -> "UNION: gộp " + left + " với " + right + ", bỏ dòng trùng.";
+                        case "UNION ALL" -> "UNION ALL: gộp " + left + " với " + right + ", giữ cả dòng trùng.";
+                        case "INTERSECT" -> "INTERSECT: chỉ giữ dòng có ở cả " + left + " và " + right + ".";
+                        case "EXCEPT" -> "EXCEPT: dòng của " + left + " mà " + right + " không có.";
+                        default -> op + ".";
+                    } + (last ? " Kết quả " : " Kết quả tạm ") + r.rows().size() + " dòng.");
+            ObjectNode e = ev("sql.setop").put("op", op);
+            putTable(e, r.columns(), r.rows());
+        }
+    }
+
+    /** Vế thứ {@code i} (đếm từ 0) của phép tập hợp: vế đầu là bảng chính, các vế sau đứng cạnh. */
+    private void side(Select s, int i) throws Unsupported, SqlRejected {
+        QueryResult r = q(s.toString());
+        if (r.rows().size() > MAX_ANIM_ROWS) {
+            throw new Unsupported("Vế " + (i + 1) + " có quá nhiều dòng để làm animation.");
+        }
+        key("Vế " + (i + 1));
+        say("Vế " + (i + 1) + ": " + s + " → " + r.rows().size() + " dòng.");
+        ObjectNode t =
+                ev("sql.table").put("name", "Vế " + (i + 1)).put("alias", "").put("side", i > 0);
+        putTable(t, r.columns(), r.rows());
     }
 
     // ------------------------------------------------------------------ DML
@@ -881,13 +904,47 @@ public final class StepPlanner {
         throw new Unsupported("Không tìm được đoạn LIMIT trong bảng đã sắp.");
     }
 
+    /** Có hàm gộp của chính câu này (hàm gộp nằm trong câu con như {@code (SELECT AVG(…) …)} không tính). */
     private static boolean hasAggregate(List<SelectItem<?>> items) {
         for (SelectItem<?> it : items) {
-            if (AGG.matcher(String.valueOf(it.getExpression())).find()) {
+            if (AGG.matcher(withoutSubqueries(String.valueOf(it.getExpression())))
+                    .find()) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** Bỏ các câu con {@code (SELECT …)} (cặp ngoặc cân bằng, không xét ngoặc trong chuỗi). */
+    static String withoutSubqueries(String sql) {
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while (i < sql.length()) {
+            char c = sql.charAt(i);
+            if (c == '\'') {
+                int j = sql.indexOf('\'', i + 1);
+                j = j < 0 ? sql.length() : j + 1;
+                sb.append(sql, i, j);
+                i = j;
+            } else if (c == '(' && sql.substring(i + 1).stripLeading().regionMatches(true, 0, "select", 0, 6)) {
+                int depth = 0;
+                int j = i;
+                for (; j < sql.length(); j++) {
+                    char d = sql.charAt(j);
+                    if (d == '(') {
+                        depth++;
+                    } else if (d == ')' && --depth == 0) {
+                        break;
+                    }
+                }
+                sb.append("(?)");
+                i = j + 1;
+            } else {
+                sb.append(c);
+                i++;
+            }
+        }
+        return sb.toString();
     }
 
     private static String selectList(List<SelectItem<?>> items) {

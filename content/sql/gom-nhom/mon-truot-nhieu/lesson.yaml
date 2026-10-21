@@ -1,0 +1,13 @@
+id: sql.gom-nhom.mon-truot-nhieu
+mon: sql
+chuong: gom-nhom
+ten: Môn có nhiều lần thi dưới 4 điểm nhất
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: select                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: []

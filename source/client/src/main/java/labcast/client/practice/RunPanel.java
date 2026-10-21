@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.LongSupplier;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
@@ -26,6 +27,7 @@ import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.ErrorMessage;
 import labcast.common.protocol.Frame;
 import labcast.common.protocol.JsonPayload;
+import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.PayloadWriter;
@@ -62,7 +64,11 @@ public final class RunPanel extends VBox {
     /** Mốc được chạy thử lại sau khi server báo chạy nhanh quá (6 lượt/phút); 0 = chạy được. */
     private long runCooldownUntil;
 
-    private final PauseTransition timeout = new PauseTransition(javafx.util.Duration.seconds(30));
+    /** Chạy từng dòng Java dưới debugger có thể mất cỡ 20 s (hai JVM, mỗi dòng một lần dừng). */
+    private final PauseTransition timeout = new PauseTransition(javafx.util.Duration.seconds(45));
+
+    private Language language = Language.PYTHON;
+    private IntConsumer onErrorLine = line -> {};
     /** Chấm chạy cả test ẩn, lần đầu còn phải sinh test ẩn: chờ lâu hơn chạy thử. */
     private final PauseTransition submitTimeout = new PauseTransition(javafx.util.Duration.seconds(120));
 
@@ -104,8 +110,7 @@ public final class RunPanel extends VBox {
         runBtn.getStyleClass().add("success");
         runBtn.setOnAction(e -> run(false));
         traceBtn.getStyleClass().add("trace-run-button");
-        traceBtn.setTooltip(
-                new javafx.scene.control.Tooltip("Ghi lại từng dòng Python để xem Trace Table sau khi chạy"));
+        traceBtn.setTooltip(new javafx.scene.control.Tooltip("Ghi lại từng dòng để xem Trace Table sau khi chạy"));
         traceBtn.setOnAction(e -> run(true));
         submitBtn.setId("submit");
         submitBtn.getStyleClass().add("primary");
@@ -130,7 +135,7 @@ public final class RunPanel extends VBox {
         client.on(MessageType.RUN_RESULT, onResult);
         client.on(MessageType.ERROR, onError);
         client.on(MessageType.SUBMIT_RESULT, onSubmitResult);
-        timeout.setOnFinished(e -> fail("Server không trả kết quả sau 30 giây"));
+        timeout.setOnFinished(e -> fail("Server không trả kết quả sau 45 giây"));
         submitTimeout.setOnFinished(e -> fail("Server chưa chấm xong sau 2 phút, thử nộp lại"));
         cooldownTicker.setCycleCount(Timeline.INDEFINITE);
     }
@@ -151,6 +156,20 @@ public final class RunPanel extends VBox {
     public void enableLineTrace(boolean enabled) {
         traceBtn.setVisible(enabled);
         traceBtn.setManaged(enabled);
+    }
+
+    /** Ngôn ngữ của code đang soạn: gửi kèm Chạy thử, Trace từng dòng và Nộp bài. */
+    public void setLanguage(Language l) {
+        language = l;
+    }
+
+    public Language language() {
+        return language;
+    }
+
+    /** Nhận số dòng lỗi (1-based) khi lượt chạy báo được dòng, kể cả lỗi biên dịch. */
+    public void setOnErrorLine(IntConsumer l) {
+        onErrorLine = l;
     }
 
     public boolean lastRunLineTrace() {
@@ -176,6 +195,7 @@ public final class RunPanel extends VBox {
                         .i64(seq)
                         .str(testId == null ? "" : testId)
                         .bool(traceLines)
+                        .str(language.code())
                         .toBytes());
     }
 
@@ -232,20 +252,26 @@ public final class RunPanel extends VBox {
             timeout.stop();
             setBusy(false);
             String v = r.path("tests").path(0).path("verdict").asText("?");
+            boolean bienDich = r.path("errorKind").asText("").equals("bien-dich");
             showVerdict(
-                    switch (v) {
-                        case "OK" -> "✔ Đúng";
-                        case "WRONG" -> "✘ Sai kết quả";
-                        case "TIME_LIMIT" -> "⏱ Quá thời gian";
-                        case "RUNTIME_ERROR" -> "✘ Lỗi khi chạy";
-                        case "NO_EXPECTED" -> "✔ Chạy xong (bài chưa có đáp án để so)";
-                        case "REPLACED" -> "Lượt này bị lượt chạy thử mới hơn thay";
-                        default -> v;
-                    },
+                    bienDich
+                            ? "✘ Lỗi biên dịch"
+                            : switch (v) {
+                                case "OK" -> "✔ Đúng";
+                                case "WRONG" -> "✘ Sai kết quả";
+                                case "TIME_LIMIT" -> "⏱ Quá thời gian";
+                                case "RUNTIME_ERROR" -> "✘ Lỗi khi chạy";
+                                case "NO_EXPECTED" -> "✔ Chạy xong (bài chưa có đáp án để so)";
+                                case "REPLACED" -> "Lượt này bị lượt chạy thử mới hơn thay";
+                                default -> v;
+                            },
                     v.equals("OK") ? "ok" : "fail");
             String err = r.path("error").isNull() ? "" : r.path("error").asText("");
             output.setText(r.path("stdout").asText("") + (err.isEmpty() ? "" : "\n" + err));
             onTrace.accept(trace);
+            if (r.path("errorLine").asInt(0) > 0) {
+                onErrorLine.accept(r.path("errorLine").asInt());
+            }
         });
     }
 
@@ -295,7 +321,7 @@ public final class RunPanel extends VBox {
         output.setText("");
         client.send(
                 MessageType.SUBMIT_REQ,
-                new PayloadWriter().str(lessonId).i64(seq).toBytes());
+                new PayloadWriter().str(lessonId).i64(seq).str(language.code()).toBytes());
     }
 
     /**
@@ -325,6 +351,7 @@ public final class RunPanel extends VBox {
                         case "TIME_LIMIT" -> "⏱ Quá thời gian ở " + failed;
                         case "RUNTIME_ERROR" -> "✘ Lỗi khi chạy " + failed;
                         case "FORBIDDEN_CALL" -> "⛔ Dùng hàm cấm";
+                        case "COMPILE_ERROR" -> "✘ Lỗi biên dịch";
                         case "TRACE_RULE" -> "✘ Sai yêu cầu của đề";
                         default -> v;
                     },

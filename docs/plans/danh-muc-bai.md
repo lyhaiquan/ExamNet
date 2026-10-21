@@ -323,7 +323,9 @@ Học viên làm nhiều bài trên cùng vài bộ bảng thì quen dữ liệu
 
 ## SQL
 
-Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz` (spec §7.6), trừ loại LT. Câu ngoài phạm vi animation (CTE, hàm cửa sổ) vẫn chấm được.
+Mọi bài SQL đều có bậc chạy câu lệnh thành animation qua `sqlviz` (spec §7.6), **kể cả loại LT** (đổi 21/10/2026: với SQL, xem từng bước chính là cách tự gỡ lỗi). Câu ngoài phạm vi animation (CTE, hàm cửa sổ) vẫn chấm được.
+
+> **Đã soạn đủ 113 bài** (21/10/2026). Bài mới sinh bằng `tools/sql/tao_bai.py` từ danh sách `tools/sql/bai/<chương>.py` (đề, đáp án, câu sai hay gặp → `sai.sql`); `SqlLabTest` kiểm mọi bài: đáp án đạt trên dữ liệu mẫu và 3 database ẩn, animation tách từng bước, câu sai bị chấm sai. Chỉnh so với bảng dưới cho khớp dữ liệu: năm 2026 → 2024 (dữ liệu `ban-hang` chỉ có năm 2024; `don-thang-3` thành `don-thang-9`), ngưỡng theo cỡ dữ liệu (`lop-dong`: từ 3 sinh viên), môn CTDL → môn 1 và 2 có trong dữ liệu, nhiều bài thêm vài dòng vào dữ liệu mẫu cho có bẫy. Chi tiết từng bài ở đề (`de.md`).
 
 Đáp án viết theo SQLite (spec §7.6). Bài ghi **A2** dùng cú pháp khác nhau giữa các hệ quản trị (hàm ngày); chốt xong giả định A2 mà môn dùng hệ khác thì sửa đáp án các bài đó. Bài dùng `LIMIT` cũng phải sửa nếu hệ đó là SQL Server hay Oracle. Câu hỏi có `LIMIT` hay "nhiều nhất", "cao nhất" đều ghi rõ cách xử lý khi bằng nhau, vì database ẩn cố ý có giá trị trùng.
 

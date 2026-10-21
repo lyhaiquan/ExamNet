@@ -1,0 +1,13 @@
+id: sql.dml.giam-gia
+mon: sql
+chuong: dml
+ten: Giảm 5% giá sản phẩm danh mục Điện thoại
+loai: bai-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: dml                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: []

@@ -1,0 +1,13 @@
+id: sql.dml.them-tu-truy-van
+mon: sql
+chuong: dml
+ten: Chép sinh viên đạt học bổng sang bảng hoc_bong
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: dml                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: []

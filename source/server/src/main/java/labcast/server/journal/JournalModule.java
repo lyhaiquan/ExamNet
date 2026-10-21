@@ -4,8 +4,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import labcast.common.protocol.CodeDelta;
+import labcast.common.protocol.ErrorCode;
+import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadWriter;
+import labcast.common.protocol.ProtocolException;
 import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
@@ -38,7 +41,9 @@ public final class JournalModule implements ServerModule {
                             ? li.chars() + " ký tự hiện ra trong " + CodeStore.BURST_MS / 1000
                                     + " s (nhanh hơn người gõ)"
                             : "chèn một khối " + li.chars() + " ký tự";
-                    events.flagPaste(li.userId(), li.lessonId(), li.chars(), detail);
+                    // khoá tài liệu theo ngôn ngữ (dsa.x#cpp): cờ vẫn gắn với bài, nộp đúng bài là xoá
+                    String lessonId = Language.lessonOf(li.lessonId());
+                    events.flagPaste(li.userId(), lessonId, li.chars(), detail);
                     long now = System.currentTimeMillis();
                     Long last = lastAudit.get(li.userId());
                     if (last == null || now - last >= AUDIT_MIN_GAP_MS) {
@@ -48,14 +53,31 @@ public final class JournalModule implements ServerModule {
                     }
                 }));
 
-        // CODE_DELTA(str lessonId, i64 seq, i32 pos, i32 delLen, str insText, i64 clientTs)
-        //   → CODE_ACK(str lessonId, i64 lastSeq)
+        // CODE_DELTA(str docKey, i64 seq, i32 pos, i32 delLen, str insText, i64 clientTs)
+        //   → CODE_ACK(str docKey, i64 lastSeq). docKey: mã bài (Python) hay mã bài#ngôn ngữ (spec đa ngôn ngữ §3)
         ctx.router().on(MessageType.CODE_DELTA, (c, f) -> {
             CodeDelta d = CodeDelta.from(f);
             long last = store.accept(c.session().userId(), d);
             c.reply(
                     MessageType.CODE_ACK,
                     new PayloadWriter().str(d.lessonId()).i64(last).toBytes());
+        });
+
+        // CODE_FETCH(str docKey) → CODE_DATA(str docKey, i64 seq, str code): đổi ngôn ngữ trong ô code thì app
+        // hỏi bản đang lưu của ngôn ngữ đó (chưa có thì là khung)
+        ctx.router().on(MessageType.CODE_FETCH, (c, f) -> {
+            String key = f.reader().str();
+            if (Language.ofDocKey(key) == null) {
+                throw new ProtocolException(ErrorCode.BAD_FRAME, "Khoá tài liệu lạ: " + key);
+            }
+            CodeStore.Snapshot snap = store.current(c.session().userId(), key);
+            c.reply(
+                    MessageType.CODE_DATA,
+                    new PayloadWriter()
+                            .str(key)
+                            .i64(snap.seq())
+                            .str(snap.code())
+                            .toBytes());
         });
     }
 }
