@@ -29,7 +29,7 @@ Ai làm tính năng nào thì viết **cả logic lẫn màn hình** của tính
 | Bảng DB | `classes`, `enrollments`, `class_teachers` |
 | Cung cấp | `ClassDirectory` (đăng ký trong `ServerContext`): `all()`, `classesOf(userId)`, `studentsOf(classId)`, `teachersOf(classId)`; `Session.classId()` |
 
-Trang quản trị đã có: `http://localhost:8080/admin`, chỉ mở được trên máy server.
+Trang quản trị đã có: `http://localhost:9000/admin`, chỉ mở được trên máy server.
 
 ### B — Danh Hải: thực hành, kiểm tra, lịch theo lớp
 

@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import labcast.server.ops.StatusEndpoint;
 
 /** Cấu hình server, đọc từ dòng lệnh, file cấu hình và biến môi trường bằng {@link #parse}. */
 public record ServerConfig(
@@ -36,7 +37,7 @@ public record ServerConfig(
               --mon <dsa|sql>               môn của lớp: chỉ nạp bài môn này (mặc định nạp cả hai môn)
               --lan <tên card hoặc IP>      card mạng quảng bá cho app (mặc định tự chọn card LAN)
               --tao-giao-vien <user:mật khẩu:họ tên>   tạo tài khoản giáo viên nếu chưa có
-              --port-dashboard <số>         cổng HTTP của /version và dashboard (mặc định 8080)
+              --port-dashboard <số>         cổng HTTP của /version, dashboard, quản trị (mặc định 9000)
               --khong-sandbox               chạy code học viên bằng Python cục bộ, KHÔNG cách ly (chỉ để phát triển)
               --cau-hinh <file>             đọc các tham số trên từ file UTF-8, mỗi dòng "khoá = giá trị"
 
@@ -246,7 +247,7 @@ public record ServerConfig(
                 null,
                 false,
                 DEFAULT_DISCOVERY_PORT,
-                8080);
+                StatusEndpoint.DEFAULT_PORT);
     }
 
     /** Cho test: cổng 0 (hệ điều hành chọn), database trong bộ nhớ. */

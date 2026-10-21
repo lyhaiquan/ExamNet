@@ -43,7 +43,7 @@ Cần mở **TCP 7000, 8080** từ Internet (22 cho SSH thường đã mở sẵ
 | Cổng | Dùng cho |
 | --- | --- |
 | 7000 | LCP/1.0 — app giáo viên và học viên kết nối vào (có từ giai đoạn 1) |
-| 8080 | `/version` — bước deploy kiểm tra đúng commit. Dashboard `/` cùng cổng chỉ mở cho chính máy server; trong Docker nó trả 403, xem log bằng `docker compose logs` |
+| 8080 | `/version` — bước deploy kiểm tra đúng commit (compose chuyển vào cổng 9000 của server trong container). Dashboard `/` cùng cổng chỉ mở cho chính máy server; trong Docker nó trả 403, xem log bằng `docker compose logs` |
 
 **Firewall của nhà cung cấp — bắt buộc:**
 

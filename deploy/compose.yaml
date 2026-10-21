@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
     ports:
       - "7000:7000" # LCP/1.0 cho app giáo viên và học viên (có từ giai đoạn 1)
-      - "8080:8080" # /version — bước deploy dùng để xác nhận đúng commit
+      - "8080:9000" # /version — bước deploy gọi :8080 trên VPS; trong container server nghe 9000
     # UDP multicast 7001 và tìm server 7002 chỉ chạy trong LAN, không mở ở đây.
     # Trên VPS mọi gói chiếu đi bằng TCP — đúng nhánh tự chuyển sang TCP của ĐG1
     # (spec §12). Phần multicast phải thử trong mạng LAN thật.

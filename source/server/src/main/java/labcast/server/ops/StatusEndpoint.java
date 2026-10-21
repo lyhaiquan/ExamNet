@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 import labcast.server.admin.AdminApi;
 
 /**
- * Cổng trạng thái HTTP {@code :8080/version} — trả về bản build đang chạy.
+ * Cổng trạng thái HTTP {@code :9000/version} — trả về bản build đang chạy.
  *
  * <p>Đây là hạ tầng vận hành, KHÔNG phải một phần của phòng học: bước deploy trong
  * {@code .github/workflows/deploy.yml} gọi vào đây để xác nhận VPS đang chạy đúng commit vừa
@@ -26,12 +26,12 @@ import labcast.server.admin.AdminApi;
  *
  * <p>Cùng cổng này có trang dashboard {@code /} và số liệu {@code /api/dashboard} ({@link Dashboard}).
  * Hai đường này CHỈ trả lời yêu cầu từ chính máy server (loopback): trang có tên học viên, kết quả
- * chạy code và nhật ký, mà học viên cùng mạng LAN gõ được địa chỉ cổng 8080. {@code /version} thì
+ * chạy code và nhật ký, mà học viên cùng mạng LAN gõ được địa chỉ cổng này. {@code /version} thì
  * mở cho mọi nơi vì bước deploy gọi từ ngoài vào.
  */
 public final class StatusEndpoint implements AutoCloseable {
 
-    public static final int DEFAULT_PORT = 8080;
+    public static final int DEFAULT_PORT = 9000;
 
     private final HttpServer http;
 
@@ -193,7 +193,7 @@ public final class StatusEndpoint implements AutoCloseable {
                 exchange,
                 403,
                 "text/plain; charset=utf-8",
-                "Dashboard chỉ mở được trên chính máy chạy server: http://localhost:8080/"
+                "Dashboard chỉ mở được trên chính máy chạy server: http://localhost:9000/"
                         .getBytes(StandardCharsets.UTF_8));
     }
 

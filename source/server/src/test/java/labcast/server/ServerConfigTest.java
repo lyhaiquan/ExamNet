@@ -189,7 +189,7 @@ class ServerConfigTest {
     /** Hai lớp trên cùng một máy: mỗi server một cổng app, một cổng dashboard, một database. */
     @Test
     void portDashboard_doiDuoc() {
-        assertEquals(8080, ServerConfig.parse(new String[0], Map.of()).statusPort());
+        assertEquals(9000, ServerConfig.parse(new String[0], Map.of()).statusPort());
         assertEquals(
                 8081,
                 ServerConfig.parse(new String[] {"--port-dashboard", "8081"}, Map.of())

@@ -657,7 +657,7 @@ public final class DiscoveryClient {
 | `--content` | `content` |
 | `--lop` | `Lớp thực hành` |
 | `--mon dsa\|sql` | không ghi thì nạp cả hai môn. Mỗi lớp một môn, mỗi môn một server |
-| `--port-dashboard` | 8080 (`/version` và dashboard) |
+| `--port-dashboard` | 9000 (`/version`, dashboard, `/admin`) |
 | `--lan` | tự chọn (task 2.8) |
 | `--tao-giao-vien user:mật khẩu:họ tên` | không |
 | `--khong-sandbox` | tắt (chỉ để phát triển, spec §8.1) |

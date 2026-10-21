@@ -10,7 +10,7 @@
 
 FROM eclipse-temurin:17-jre
 
-# Mã commit được gài vào biến môi trường để cổng :8080/version trả về đúng bản đang chạy
+# Mã commit được gài vào biến môi trường để cổng /version trả về đúng bản đang chạy
 ARG GIT_SHA=dev
 ENV LABCAST_COMMIT=${GIT_SHA}
 
@@ -22,6 +22,6 @@ ENV LABCAST_DB=/data/labcast.db
 VOLUME /data
 
 #      LCP/1.0  trạng thái
-EXPOSE 7000     8080
+EXPOSE 7000     9000
 
 ENTRYPOINT ["java", "-jar", "/app/labcast-server.jar"]

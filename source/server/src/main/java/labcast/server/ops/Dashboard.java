@@ -17,7 +17,7 @@ import labcast.server.presence.AppFocus;
 import labcast.server.session.Session;
 
 /**
- * Số liệu cho trang dashboard ({@code http://localhost:8080/}): học viên nào đang vào, mạng tốt hay chập
+ * Số liệu cho trang dashboard ({@code http://localhost:9000/}): học viên nào đang vào, mạng tốt hay chập
  * chờn, ai đang rời app, lượt chạy code gần đây, nhật ký sự kiện và log server. Chỉ đọc, không đổi gì.
  *
  * <p>KHÔNG đưa token phiên hay mật khẩu băm vào JSON. Mỗi bảng lấy tối đa vài chục dòng mới nhất để

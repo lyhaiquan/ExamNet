@@ -76,7 +76,7 @@ Server chạy trên máy giáo viên, kèm Docker để chạy code học viên 
 | UDP broadcast | 7002 | App tự tìm server trong phòng máy |
 | TLS (tùy chọn) | bọc 7000 | Mã hoá phiên làm việc |
 
-Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành trên VPS: bước deploy gọi vào để xác nhận đúng commit.
+Ngoài ra cổng **8080** trên VPS (`/version`, bên trong container là 9000) chỉ dùng cho vận hành: bước deploy gọi vào để xác nhận đúng commit.
 
 ---
 
@@ -195,14 +195,14 @@ Lược đồ ở [`source/server/src/main/resources/schema.sql`](source/server/
 docker build -t labcast-runner:py3.12 runner
 cd source && ./mvnw -q package -DskipTests
 java -jar server/target/labcast-server.jar --content ../content --tao-giao-vien "gv:matkhau:Giáo viên"
-# trạng thái: http://localhost:8080/version
+# trạng thái: http://localhost:9000/version · quản trị: http://localhost:9000/admin
 ```
 
 Image runner nặng khoảng 1,2 GB (có gcc/g++, gdb, JDK 17 cho bài làm C, C++, Java): lần build đầu mất vài phút.
 
 **Mỗi lần thư mục `runner/` đổi thì build lại image runner** (lệnh `docker build` ở trên): image chứa các script chạy và chấm bài. Ví dụ nộp bài SQL cần `runner/sinh_csdl.py` để sinh database ẩn; image build trước khi có file này thì mọi lượt nộp bài SQL báo "Server chưa chấm được bài" (không tính lượt).
 
-Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 8080 (`/version` và dashboard; đổi bằng `port-dashboard`), và phát chiếu lên nhóm multicast `239.255.70.1:7001` (UDP, TTL 1) trên card LAN.
+Server nghe TCP 7000 (app), UDP 7002 (tìm server), HTTP 9000 (`/version`, dashboard, trang quản trị `/admin`; đổi bằng `port-dashboard`), và phát chiếu lên nhóm multicast `239.255.70.1:7001` (UDP, TTL 1) trên card LAN.
 
 **Tên có dấu tiếng Việt:** trên Windows, chữ như ớ, ư, ạ không đi qua được dòng lệnh (Java nhận thành `?`), nên `--lop "Lớp D22CQCN01"` bị server từ chối kèm hướng dẫn. Ghi tên lớp, họ tên giáo viên, đường dẫn có dấu vào một file UTF-8 (Notepad lưu UTF-8 mặc định).
 
@@ -240,7 +240,7 @@ App tìm thấy cả hai lớp trong danh sách lúc đăng nhập. Mỗi lớp 
 
 Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_MON`, `LABCAST_TAO_GIAO_VIEN`, `LABCAST_CONTENT`, `LABCAST_DB`, `LABCAST_LAN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. Không cần `chcp 65001`: server tự chuyển cửa sổ cmd sang UTF-8 lúc chạy và trả lại bảng mã cũ khi tắt.
 
-**Dashboard:** mở `http://localhost:8080/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, ai bị đánh dấu "dán khối lớn" (rê chuột lên cờ để xem bài nào, bao nhiêu ký tự; cờ mất khi học viên nộp đúng bài đó), lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
+**Dashboard:** mở `http://localhost:9000/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, ai bị đánh dấu "dán khối lớn" (rê chuột lên cờ để xem bài nào, bao nhiêu ký tự; cờ mất khi học viên nộp đúng bài đó), lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
 
  Máy phát triển không có Docker: thêm `--khong-sandbox` (code học viên chạy bằng Python cục bộ, không cách ly). Bài viết bằng C/C++/Java ở chế độ này cần `gcc`/`g++`, `javac` có trên máy (Trace từng dòng C/C++ cần thêm `gdb`, Windows không có sẵn: dùng Docker). Mọi tham số: `java -jar server/target/labcast-server.jar --help`.
 
@@ -250,7 +250,7 @@ Chạy bằng Docker, đứng ở thư mục gốc repo, giống hệt bản tr�
 
 ```bash
 docker build -f deploy/Dockerfile -t labcast-server .
-docker run --rm -p 8080:8080 labcast-server
+docker run --rm -p 8080:9000 labcast-server
 ```
 
 ## 12.2. Start Client

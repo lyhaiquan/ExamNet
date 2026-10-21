@@ -30,7 +30,7 @@ import labcast.server.presence.PresenceState;
 import labcast.server.session.Session;
 
 /**
- * API JSON của trang quản trị ({@code http://localhost:8080/admin}): ai đang online theo lớp, quản lý lớp,
+ * API JSON của trang quản trị ({@code http://localhost:9000/admin}): ai đang online theo lớp, quản lý lớp,
  * học viên, giáo viên. Chủ: A.
  *
  * <p>Không biết gì về HTTP: {@link labcast.server.ops.StatusEndpoint} lo cổng, chỉ cho máy server vào,
