@@ -34,6 +34,22 @@ class SqlGuardTest {
     }
 
     @Test
+    void isGiuaHaiBieuThuc_vietLaiThanhIsDistinctFrom() throws Exception {
+        assertEquals(
+                "SELECT 1 FROM t WHERE a.x IS DISTINCT FROM b.y",
+                SqlGuard.check("SELECT 1 FROM t WHERE a.x IS NOT b.y", false).sql());
+        assertEquals(
+                "SELECT 1 FROM t WHERE a IS NOT DISTINCT FROM b + 1",
+                SqlGuard.check("SELECT 1 FROM t WHERE a is b + 1", false).sql());
+        // câu phân tích được thì giữ nguyên; IS NULL, chữ trong chuỗi không đụng tới
+        String giu = "SELECT 'x IS NOT y' FROM t WHERE a IS NOT NULL AND b IS NULL";
+        assertEquals(giu, SqlGuard.check(giu, false).sql());
+        assertEquals(
+                "SELECT 'a IS b' FROM t WHERE c IS DISTINCT FROM d",
+                SqlGuard.isDistinct("SELECT 'a IS b' FROM t WHERE c IS NOT d"));
+    }
+
+    @Test
     void dmlChiChoBaiDml() throws Exception {
         assertTrue(loi("UPDATE nhan_vien SET luong = 0", false).contains("SELECT"));
         assertEquals(

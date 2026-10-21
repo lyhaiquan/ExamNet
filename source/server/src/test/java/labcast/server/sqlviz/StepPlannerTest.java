@@ -189,6 +189,31 @@ class StepPlannerTest {
     }
 
     @Test
+    void baVeTapHop_tinhTuTraiSangPhai_moiPhepMotBuoc() throws Exception {
+        // (quê của sinh viên EXCEPT 'Hà Nội') UNION khoa: Nam Định, Hải Phòng, CNTT, ATTT
+        var ev = explain(
+                "SELECT que_quan FROM sinh_vien EXCEPT SELECT 'Hà Nội' FROM lop" + " UNION SELECT khoa FROM lop");
+        stepped(ev);
+        assertEquals(3, of(ev, "sql.table").size());
+        List<JsonNode> ops = of(ev, "sql.setop");
+        assertEquals(2, ops.size());
+        assertEquals("EXCEPT", ops.get(0).path("op").asText());
+        assertEquals(2, ops.get(0).path("rows").size(), "kết quả tạm: Nam Định, Hải Phòng");
+        assertEquals("UNION", ops.get(1).path("op").asText());
+        assertEquals(4, ops.get(1).path("rows").size());
+        assertTrue(of(ev, "sql.table").get(2).path("side").asBoolean(), "vế 3 đứng cạnh kết quả tạm");
+    }
+
+    @Test
+    void truyVanConTuongQuanTrongSelect_khongBiCoiLaHamGop() throws Exception {
+        var ev = explain("SELECT s.ho_ten, (SELECT MAX(k.diem) FROM ket_qua k WHERE k.sinh_vien_id = s.id) AS cao"
+                + " FROM sinh_vien s WHERE s.lop_id = 1");
+        stepped(ev);
+        assertEquals(1, of(ev, "sql.project").size(), "chọn cột từng dòng, không gom thành một nhóm");
+        assertEquals(2, of(ev, "sql.result").get(0).path("rows").size());
+    }
+
+    @Test
     void truyVanConTrongWhere_inVaExistsTuongQuan_vanTachBuoc() throws Exception {
         var in = explain("SELECT ho_ten FROM sinh_vien WHERE id IN (SELECT sinh_vien_id FROM ket_qua WHERE diem >= 8)");
         stepped(in);
