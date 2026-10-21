@@ -1,6 +1,7 @@
 package labcast.server.presence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.Socket;
@@ -71,6 +72,23 @@ class PresenceTest {
         assertEquals(PresenceState.DISCONNECTED, p.state(7));
         assertTrue(c.isClosed());
         assertEquals(List.of(PresenceState.SUSPECT, PresenceState.DISCONNECTED), doi);
+    }
+
+    @Test
+    void biNgatRoiNoiLai_ketNoiMoiKhongBiDongNgay() throws Exception {
+        for (int i = 0; i < 6; i++) {
+            p.tick();
+        }
+        assertEquals(PresenceState.DISCONNECTED, p.state(7));
+        assertTrue(c.isClosed());
+
+        Connection moi = new Connection(new Socket(), new Router(), Runnable::run, Connection.Events.NONE, now::get);
+        s.attach(moi);
+        p.tick();
+        assertFalse(moi.isClosed(), "kết nối mới phải được chờ heartbeat như bình thường");
+        assertEquals(PresenceState.ALIVE, p.state(7));
+        assertEquals(
+                MessageType.HEARTBEAT, moi.queue().poll(1, TimeUnit.SECONDS).type());
     }
 
     @Test
