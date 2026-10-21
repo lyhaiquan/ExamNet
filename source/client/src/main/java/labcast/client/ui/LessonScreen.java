@@ -125,28 +125,7 @@ public final class LessonScreen extends BorderPane {
         }
         chapterKey =
                 chapterKey.toLowerCase(java.util.Locale.ROOT).replace('_', '-').replace(' ', '-');
-        String chapter =
-                switch (chapterKey) {
-                    case "bam" -> "Băm";
-                    case "cay" -> "Cây";
-                    case "de-quy" -> "Đệ quy";
-                    case "do-thi" -> "Đồ thị";
-                    case "dslk" -> "Danh sách liên kết";
-                    case "hang-doi" -> "Hàng đợi";
-                    case "ngan-xep" -> "Ngăn xếp";
-                    case "sap-xep" -> "Sắp xếp";
-                    case "tim-kiem" -> "Tìm kiếm";
-                    case "quay-lui" -> "Quay lui";
-                    case "quy-hoach-dong" -> "Quy hoạch động";
-                    case "co-ban" -> "Cơ bản";
-                    case "dml" -> "Thao tác dữ liệu";
-                    case "ket-noi" -> "Kết nối";
-                    case "gom-nhom" -> "Gom nhóm";
-                    case "truy-van-con" -> "Truy vấn con";
-                    case "tap-hop" -> "Tập hợp";
-                    case "null-case" -> "NULL và CASE";
-                    default -> chapterKey.isBlank() ? "Bài học" : chapterKey.replace('-', ' ');
-                };
+        String chapter = chapterLabel(chapterKey);
         Label breadcrumb = new Label(monLabel + "   ›   " + chapter);
         breadcrumb.getStyleClass().add("lesson-breadcrumb");
 
@@ -458,6 +437,64 @@ public final class LessonScreen extends BorderPane {
             l.getStyleClass().add(variant);
         }
         return l;
+    }
+
+    /** Thứ tự chương trong danh sách bài: theo thứ tự học, không theo bảng chữ cái của mã chương. */
+    static final List<String> CHAPTERS = List.of(
+            "sap-xep",
+            "tim-kiem",
+            "dslk",
+            "bam",
+            "ngan-xep",
+            "hang-doi",
+            "de-quy",
+            "quay-lui",
+            "quy-hoach-dong",
+            "cay",
+            "do-thi",
+            "co-ban",
+            "gom-nhom",
+            "null-case",
+            "dml",
+            "ket-noi",
+            "truy-van-con",
+            "tap-hop",
+            "tong-hop");
+
+    /** Tên chương hiện cho học viên, từ mã chương trong {@code lesson.yaml}. */
+    static String chapterLabel(String chapterKey) {
+        return switch (chapterKey) {
+            case "bam" -> "Băm";
+            case "cay" -> "Cây";
+            case "de-quy" -> "Đệ quy";
+            case "do-thi" -> "Đồ thị";
+            case "dslk" -> "Danh sách liên kết";
+            case "hang-doi" -> "Hàng đợi";
+            case "ngan-xep" -> "Ngăn xếp";
+            case "sap-xep" -> "Sắp xếp";
+            case "tim-kiem" -> "Tìm kiếm";
+            case "quay-lui" -> "Quay lui";
+            case "quy-hoach-dong" -> "Quy hoạch động";
+            case "co-ban" -> "Cơ bản";
+            case "dml" -> "Thao tác dữ liệu";
+            case "ket-noi" -> "Kết nối";
+            case "gom-nhom" -> "Gom nhóm";
+            case "truy-van-con" -> "Truy vấn con";
+            case "tap-hop" -> "Tập hợp";
+            case "null-case" -> "NULL và CASE";
+            case "tong-hop" -> "Tổng hợp";
+            default -> chapterKey.isBlank() ? "Bài học" : chapterKey.replace('-', ' ');
+        };
+    }
+
+    /** Giảng giải trước, rồi bài tập, rồi luyện tập. */
+    static int loaiRank(String loai) {
+        return switch (loai) {
+            case "giang-giai" -> 0;
+            case "bai-tap" -> 1;
+            case "luyen-tap" -> 2;
+            default -> 3;
+        };
     }
 
     static String loaiLabel(String loai) {
