@@ -12,6 +12,7 @@ import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
 import labcast.server.cast.CastModule;
+import labcast.server.classroom.ClassDirectory;
 import labcast.server.classroom.ClassRepository;
 import labcast.server.net.Ctx;
 import labcast.server.net.Priority;
@@ -37,6 +38,7 @@ public final class AccountModule implements ServerModule {
         this.importer = new RosterImporter(users, classes);
         ctx.register(UserRepository.class, users);
         ctx.register(ClassRepository.class, classes);
+        ctx.register(ClassDirectory.class, classes);
         ctx.sessions().setClassLookup(userId -> {
             try {
                 return classes.classOf(userId);

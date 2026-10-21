@@ -104,6 +104,28 @@ public final class SessionManager {
         return Optional.ofNullable(byUser.get(userId));
     }
 
+    /**
+     * Đóng phiên của một người (trang quản trị xoá tài khoản, đổi mật khẩu, đổi lớp). Token cũ hết hiệu lực
+     * nên app không {@code RESUME} được mà phải đăng nhập lại, lúc đó nhận lớp mới.
+     */
+    public synchronized boolean kick(long userId) throws SQLException {
+        Session s = byUser.remove(userId);
+        if (s != null) {
+            byToken.remove(s.token());
+        }
+        db.tx(conn -> {
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM sessions WHERE user_id = ?")) {
+                ps.setLong(1, userId);
+                return ps.executeUpdate();
+            }
+        });
+        Connection c = s == null ? null : s.connection();
+        if (c != null) {
+            c.close();
+        }
+        return s != null;
+    }
+
     public Collection<Session> all() {
         return List.copyOf(byUser.values());
     }

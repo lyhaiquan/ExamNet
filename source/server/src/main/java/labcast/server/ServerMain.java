@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import labcast.common.protocol.PayloadWriter;
 import labcast.server.account.User;
 import labcast.server.account.UserRepository;
+import labcast.server.admin.AdminApi;
 import labcast.server.cast.CastModule;
 import labcast.server.discovery.DiscoveryResponder;
 import labcast.server.discovery.LanInterface;
@@ -58,6 +59,7 @@ public final class ServerMain {
         LabCastServer server = new LabCastServer(cfg, db, LabCastServer.modules());
         server.start();
         status.enableDashboard(new Dashboard(server.context(), info, logs, server.port())::json);
+        status.enableAdmin(new AdminApi(server.context()));
         // Sinh trước test ẩn của mọi bài ở luồng nền (lưu đệm theo hash), lượt nộp đầu khỏi phải chờ
         server.context().find(LessonPreparer.class).ifPresent(p -> {
             Thread t = new Thread(
@@ -103,6 +105,7 @@ public final class ServerMain {
         System.out.println("  Trạng thái:     http://0.0.0.0:" + status.port() + "/version");
         System.out.println(
                 "  Dashboard:      http://localhost:" + status.port() + "/  (chỉ mở được trên chính máy này)");
+        System.out.println("  Quản trị:       http://localhost:" + status.port() + "/admin");
         if (!cfg.khongSandbox()) {
             if (!DockerSandbox.available()) {
                 System.out.println(

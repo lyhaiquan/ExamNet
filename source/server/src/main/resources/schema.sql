@@ -182,12 +182,18 @@ CREATE TABLE IF NOT EXISTS comments (
 -- Đợt 2: nhiều lớp, quản trị — chủ: A (docs/PHAN-CONG-DOT-2.md)
 -- ---------------------------------------------------------------------
 -- Mỗi server một môn (ServerConfig), nên lớp không cần cột môn: DSA1, DSA2… cùng một server DSA.
--- classes.teacher_id giữ người tạo lớp; giáo viên phụ trách (có thể nhiều) nằm ở bảng này.
+-- classes.teacher_id chỉ là người tạo lớp; giáo viên phụ trách (có thể nhiều) CHỈ lấy từ bảng này.
 CREATE TABLE IF NOT EXISTS class_teachers (
     class_id      INTEGER NOT NULL REFERENCES classes(id),
     user_id       INTEGER NOT NULL REFERENCES users(id),
     PRIMARY KEY (class_id, user_id)
 );
+
+-- DB tạo trước đợt 2 chỉ có classes.teacher_id: chép sang đây cho lớp chưa có dòng nào. Chạy mỗi lần
+-- khởi động, không đụng lớp đã có giáo viên trong bảng này.
+INSERT INTO class_teachers (class_id, user_id)
+    SELECT c.id, c.teacher_id FROM classes c
+    WHERE NOT EXISTS (SELECT 1 FROM class_teachers t WHERE t.class_id = c.id);
 
 -- Mỗi lần upload .zip bài học trên trang quản trị, hợp lệ hay không đều ghi lại
 CREATE TABLE IF NOT EXISTS lesson_uploads (
