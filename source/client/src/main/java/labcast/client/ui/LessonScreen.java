@@ -3,11 +3,13 @@ package labcast.client.ui;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import javafx.animation.PauseTransition;
+import javafx.application.Platform;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -32,7 +34,10 @@ import labcast.client.player.View;
 import labcast.client.practice.RunPanel;
 import labcast.client.presenter.PresenterController;
 import labcast.client.views.Views;
+import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
+import labcast.common.protocol.PayloadReader;
+import labcast.common.protocol.PayloadWriter;
 import labcast.common.trace.Trace;
 import labcast.common.trace.TraceReader;
 
@@ -60,11 +65,19 @@ public final class LessonScreen extends BorderPane {
     private final TraceTablePane traceTable = new TraceTablePane();
     private final Tab traceTab = new Tab("Trace Table", traceTable);
     private final RunPanel runPanel;
-    private final Map<String, String> temporaryDrafts = new HashMap<>();
-    private String currentLanguage = "python";
-    private String runnableCode;
-    private long runnableSeq;
+    /** Ngôn ngữ đã chọn ở mỗi bài trong phiên làm việc: mở lại bài thì về đúng ngôn ngữ đang viết. */
+    private static final Map<String, Language> LAST_LANGUAGE = new ConcurrentHashMap<>();
+
+    private final LcpClient client;
+    private final JournalClient journal;
+    /** Ngôn ngữ của code trong ô soạn; bài SQL luôn là PYTHON (không dùng). */
+    private Language language = Language.PYTHON;
+    /** Các ngôn ngữ bài cho chọn, cùng thứ tự với các mục của {@code languagePicker}. */
+    private final List<Language> choices = new ArrayList<>();
+
     private final ComboBox<String> languagePicker = new ComboBox<>();
+    private Label saved;
+    private Label fileName;
     /** Chiếu cho cả lớp (chỉ giáo viên, khi app có phần nhận chiếu); null nếu không chiếu được. */
     private final CastSession cast;
 
@@ -94,6 +107,8 @@ public final class LessonScreen extends BorderPane {
             Runnable onClose,
             CastSession cast) {
         this.cast = studentMode ? null : cast;
+        this.client = client;
+        this.journal = journal;
         this.presenter = new PresenterController(r -> client.send(MessageType.CAST_CONTROL, r.encode()));
         this.lesson = lesson;
         this.lessonId = lesson.path("id").asText();
@@ -195,6 +210,9 @@ public final class LessonScreen extends BorderPane {
         animTab = new Tab("Animation", anim);
         Tab deTab = new Tab("Đề bài", de);
         tabs.getTabs().addAll(animTab, deTab, traceTab);
+        if (lesson.path("loiGiai").size() > 0) {
+            tabs.getTabs().add(new Tab("Lời giải", solutionPane(lesson.path("loiGiai"))));
+        }
         traceTab.setDisable(sql);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getStyleClass().add("lesson-tabs");
@@ -204,9 +222,9 @@ public final class LessonScreen extends BorderPane {
         // Code ben trai trong vung hoc, sidebar van nam ben trai cua toan app.
         Label edTitle = new Label(sql ? "Câu SQL của em" : "Code của em");
         edTitle.getStyleClass().add("card-title");
-        Label saved = new Label(SAVED_HINT);
+        saved = new Label(SAVED_HINT);
         saved.getStyleClass().add("muted");
-        Label fileName = new Label(sql ? "query.sql" : "main.py");
+        fileName = new Label(sql ? "query.sql" : Language.PYTHON.fileName());
         fileName.getStyleClass().add("editor-file-name");
         Region gap2 = new Region();
         HBox.setHgrow(gap2, Priority.ALWAYS);
@@ -215,13 +233,24 @@ public final class LessonScreen extends BorderPane {
         languagePicker.setFocusTraversable(false);
         languagePicker.setMinWidth(Region.USE_PREF_SIZE);
         if (sql) {
-            currentLanguage = "sql";
             languagePicker.getItems().add("SQL · SQLite");
             languagePicker.getSelectionModel().selectFirst();
             languagePicker.setDisable(true);
         } else {
-            languagePicker.getItems().addAll("Python 3.12", "Java 17 · nháp", "C++17 · nháp", "JavaScript · nháp");
-            languagePicker.getSelectionModel().selectFirst();
+            for (JsonNode n : lesson.path("ngonNgu")) {
+                Language l = Language.of(n.asText());
+                if (l != null) {
+                    choices.add(l);
+                }
+            }
+            if (!choices.contains(Language.PYTHON)) {
+                choices.add(0, Language.PYTHON); // server cũ không gửi ngonNgu; code mở sẵn là Python
+            }
+            choices.forEach(l -> languagePicker.getItems().add(l.label()));
+            languagePicker.getSelectionModel().select(choices.indexOf(Language.PYTHON));
+            languagePicker.setDisable(choices.size() < 2);
+            languagePicker.setTooltip(new Tooltip(
+                    "Viết bài bằng ngôn ngữ khác: mỗi ngôn ngữ một bản code riêng. Animation chỉ có với Python"));
         }
         Button expandEditor = new Button("⛶");
         expandEditor.getStyleClass().add("editor-expand-button");
@@ -255,6 +284,7 @@ public final class LessonScreen extends BorderPane {
         List<String> testIds = new ArrayList<>();
         lesson.path("testXem").forEach(t -> testIds.add(t.path("id").asText()));
         runPanel = new RunPanel(client, lessonId, testIds, editor::flush, this::showStudentTrace);
+        runPanel.setOnErrorLine(editor::highlightTraceLine);
         runPanel.getStyleClass().add("card");
         runPanel.enableLineTrace(!sql);
 
@@ -274,58 +304,100 @@ public final class LessonScreen extends BorderPane {
             }
         });
 
-        // Chuyen ngon ngu draft: khong gui Java/C++/JS den runner Python.
-        // Code Python da duoc flush tren server truoc khi vao che do nhap.
+        // Đổi ngôn ngữ: nạp bản code đã lưu của ngôn ngữ đó (CODE_FETCH), từ đó gõ là lưu lên server như Python
         if (!sql) {
-            runnableCode = editor.text();
-            runnableSeq = lesson.path("codeSeq").asLong();
-            languagePicker.valueProperty().addListener((obs, previous, next) -> {
-                if (next == null) return;
-                String lang =
-                        switch (next) {
-                            case "Java 17 · nháp" -> "java";
-                            case "C++17 · nháp" -> "cpp";
-                            case "JavaScript · nháp" -> "javascript";
-                            default -> "python";
-                        };
-                if (lang.equals(currentLanguage)) return;
-                if ("python".equals(currentLanguage)) {
-                    runnableCode = editor.text();
-                    runnableSeq = editor.flush();
-                } else {
-                    temporaryDrafts.put(currentLanguage, editor.text());
-                    editor.flush();
-                }
-                currentLanguage = lang;
-                if ("python".equals(lang)) {
-                    editor.setSyntaxLanguage("python");
-                    editor.load(lessonId, runnableCode, runnableSeq, journal::submit);
-                    saved.setText(SAVED_HINT);
-                    fileName.setText("main.py");
-                    runPanel.setDisable(false);
-                } else {
-                    editor.setSyntaxLanguage(lang);
-                    String file =
-                            switch (lang) {
-                                case "java" -> "Main.java";
-                                case "cpp" -> "main.cpp";
-                                default -> "main.js";
-                            };
-                    fileName.setText(file);
-                    String starter =
-                            switch (lang) {
-                                case "java" -> "public class Main {\n    public static void main(String[] args) {\n        // Viết code tại đây\n    }\n}\n";
-                                case "cpp" -> "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Viết code tại đây\n    return 0;\n}\n";
-                                default -> "function solve(input) {\n    // Viết code tại đây\n}\n";
-                            };
-                    editor.load(lessonId, temporaryDrafts.getOrDefault(lang, starter), 0, delta -> {});
-                    saved.setText("Bản nháp tạm · chưa lưu server");
-                    runPanel.setDisable(true);
+            languagePicker.getSelectionModel().selectedIndexProperty().addListener((obs, old, idx) -> {
+                int i = idx.intValue();
+                if (i >= 0 && i < choices.size() && choices.get(i) != language) {
+                    switchLanguage(choices.get(i));
                 }
             });
+            Language last = LAST_LANGUAGE.get(lessonId);
+            if (last != null && last != Language.PYTHON && choices.contains(last)) {
+                languagePicker.getSelectionModel().select(choices.indexOf(last));
+            }
         }
 
         showDemo();
+    }
+
+    /** Ngôn ngữ của code đang soạn. */
+    public Language language() {
+        return language;
+    }
+
+    private void switchLanguage(Language l) {
+        editor.flush();
+        language = l;
+        LAST_LANGUAGE.put(lessonId, l);
+        runPanel.setLanguage(l);
+        fileName.setText(l.fileName());
+        editor.setEditable(false);
+        saved.setText("Đang mở code " + l.label() + "…");
+        String key = Language.docKey(lessonId, l);
+        // CODE_DATA(str docKey, i64 seq, str code)
+        client.expect(MessageType.CODE_DATA).thenAccept(f -> {
+            String k;
+            long seq;
+            String code;
+            try {
+                PayloadReader r = f.reader();
+                k = r.str();
+                seq = r.i64();
+                code = r.str();
+            } catch (IOException e) {
+                return;
+            }
+            Platform.runLater(() -> {
+                if (language != l || !k.equals(key)) {
+                    return; // đã đổi tiếp sang ngôn ngữ khác trong lúc chờ
+                }
+                editor.setSyntaxLanguage(l.code());
+                editor.load(key, code, seq, journal::submit);
+                editor.setEditable(true);
+                saved.setText(SAVED_HINT);
+                if (l != Language.PYTHON) {
+                    setSource(
+                            "Animation chỉ có với Python — code " + l.label() + " xem từng dòng ở Trace Table", "none");
+                }
+            });
+        });
+        client.send(MessageType.CODE_FETCH, new PayloadWriter().str(key).toBytes());
+    }
+
+    /** Tab "Lời giải": lời giải mẫu C/C++/Java của bài giảng giải, chỉ đọc, chọn được ngôn ngữ. */
+    private static Node solutionPane(JsonNode loiGiai) {
+        CodeEditor view = new CodeEditor();
+        view.setEditable(false);
+        List<Language> ds = new ArrayList<>();
+        ComboBox<String> chon = new ComboBox<>();
+        chon.setId("solution-language");
+        loiGiai.fieldNames().forEachRemaining(k -> {
+            Language l = Language.of(k);
+            if (l != null) {
+                ds.add(l);
+                chon.getItems().add(l.label());
+            }
+        });
+        chon.getSelectionModel().selectedIndexProperty().addListener((obs, old, idx) -> {
+            int i = idx.intValue();
+            if (i >= 0) {
+                Language l = ds.get(i);
+                view.setSyntaxLanguage(l.code());
+                view.load("", loiGiai.path(l.code()).asText(), 0, d -> {});
+            }
+        });
+        chon.getSelectionModel().selectFirst();
+        Label note = new Label("Lời giải mẫu để đọc. Animation chạy theo bản Python.");
+        note.getStyleClass().add("muted");
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        HBox bar = new HBox(8, note, gap, chon);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        VBox box = new VBox(8, bar, view.node());
+        VBox.setVgrow(view.node(), Priority.ALWAYS);
+        box.getStyleClass().add("solution-pane");
+        return box;
     }
 
     public String lessonId() {
@@ -426,6 +498,21 @@ public final class LessonScreen extends BorderPane {
         if (presenter.casting()) {
             presenter.stop(); // giáo viên chạy thử code: trình phát chuyển sang trace đó, thôi chiếu
             endCast();
+        }
+        if (language != Language.PYTHON) {
+            // C/C++/Java không có animation: trace (nếu có) chỉ là chạy từng dòng
+            if (t.size() == 0) {
+                setSource(
+                        "Animation chỉ có với Python. Bấm Trace từng dòng để xem code " + language.label()
+                                + " chạy từng dòng",
+                        "none");
+                return;
+            }
+            Player p = player.load(t, Map.of());
+            traceTable.load(t, t.header().path("source").asText(editor.text()), p, editor::highlightTraceLine);
+            tabs.getSelectionModel().select(traceTab);
+            setSource("Animation chỉ có với Python — code " + language.label() + " xem ở Trace Table", "none");
+            return;
         }
         if (t.size() == 0) {
             setSource("Lượt chạy không có trace (code chưa dùng cấu trúc viz?)", "none");

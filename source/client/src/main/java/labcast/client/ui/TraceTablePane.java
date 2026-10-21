@@ -22,7 +22,7 @@ import labcast.common.trace.Trace;
 import labcast.common.trace.TraceEvent;
 
 /**
- * Bảng chạy từng dòng: tái phát các sự kiện line/vars từ Python Runner, đồng bộ với Animation. Bảng chỉ hiện
+ * Bảng chạy từng dòng: tái phát các sự kiện line/vars từ runner (Python, hay debugger của C/C++/Java), đồng bộ với Animation. Bảng chỉ hiện
  * các bước đã chạy tới vị trí của trình phát: Phát/Sau thêm dòng mới ở cuối, Trước/tua lùi bớt dòng.
  */
 public final class TraceTablePane extends BorderPane {
@@ -33,7 +33,7 @@ public final class TraceTablePane extends BorderPane {
     private final Button next = new Button("Sau ▶");
     private final Button play = new Button("▶ Phát");
     private final Label position = new Label("Chưa có trace");
-    private final Label hint = new Label("Bấm 'Trace từng dòng' để ghi lại các bước chạy Python.");
+    private final Label hint = new Label("Bấm 'Trace từng dòng' để ghi lại các bước chạy.");
     private final List<Step> steps = new ArrayList<>();
     /** Phần đầu của {@code steps} đã chạy tới; là dữ liệu của bảng. */
     private final ObservableList<Step> shown = FXCollections.observableArrayList();
@@ -60,7 +60,7 @@ public final class TraceTablePane extends BorderPane {
         line.setPrefWidth(56);
         line.setMinWidth(56);
         line.setMaxWidth(64);
-        // Không có cột lệnh Python: dòng đang chạy đã tô sáng trong editor, để chỗ cho cột biến
+        // Không có cột lệnh: dòng đang chạy đã tô sáng trong editor, để chỗ cho cột biến
         TableColumn<Step, String> vars = new TableColumn<>("Biến tại bước này");
         vars.setCellValueFactory(v -> new ReadOnlyStringWrapper(v.getValue().vars()));
         vars.setPrefWidth(405);
@@ -119,7 +119,7 @@ public final class TraceTablePane extends BorderPane {
         table.getSelectionModel().clearSelection();
         changingSelection = false;
         placeholder.setText("Chưa có dữ liệu chạy từng dòng.");
-        hint.setText("Bấm 'Trace từng dòng' để ghi lại các bước chạy Python.");
+        hint.setText("Bấm 'Trace từng dòng' để ghi lại các bước chạy.");
         refreshControls();
     }
 
@@ -152,7 +152,7 @@ public final class TraceTablePane extends BorderPane {
         hint.setText(
                 steps.isEmpty()
                         ? "Lượt chạy này chưa có sự kiện line/vars. Hãy dùng Trace từng dòng."
-                        : "Mỗi dòng là trạng thái TRƯỚC khi Python thực thi lệnh; dòng mới hiện ra khi chạy tới. Nhấp một dòng để tua lại.");
+                        : "Mỗi dòng là trạng thái TRƯỚC khi chạy lệnh ở dòng đó; dòng mới hiện ra khi chạy tới. Nhấp một dòng để tua lại.");
         nextPlayer.onPosition(p -> {
             if (player == nextPlayer) syncWithPlayer(p);
         });

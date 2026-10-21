@@ -34,28 +34,29 @@ import labcast.client.player.Player;
 import labcast.common.protocol.ErrorMessage;
 import labcast.common.protocol.Frame;
 import labcast.common.protocol.JsonPayload;
+import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.trace.Trace;
 import labcast.common.trace.TraceReader;
 
-/** Không gắn lessonId, không có Nộp bài, không đánh dấu tiến độ. Chạy Python tùy ý với Trace Table. */
+/**
+ * Không gắn lessonId, không có Nộp bài, không đánh dấu tiến độ. Chạy code tùy ý (Python, C, C++, Java) với Trace
+ * Table; mỗi ngôn ngữ một bản nháp lưu trên máy.
+ */
 public final class PlaygroundScreen extends BorderPane {
     private static final String DEFAULT_CODE = ""; // Mở editor trống lần đầu; nháp cũ vẫn được lưu.
     private static final Path WORK_DIR = Path.of(System.getProperty("user.home"), ".labcast");
-    // Mỗi ngôn ngữ có file bản nháp riêng; giữ tên playground.py để tương thích dữ liệu cũ.
-    private static final List<String> LANGUAGES =
-            List.of("Python 3.12", "Java 17 · nháp", "C++17 · nháp", "JavaScript · nháp");
+    // Mỗi ngôn ngữ có file bản nháp riêng (playground.py, playground.cpp…); giữ tên playground.py như cũ.
+    private static final List<Language> LANGUAGES = List.of(Language.values());
     private static final Path INPUT_FILE = WORK_DIR.resolve("playground-stdin.txt");
     private final LcpClient client;
     private final CodeEditor editor = new CodeEditor();
     private final ComboBox<String> languagePicker = new ComboBox<>();
-    private final Label codeTitle = new Label("main.py");
-    private final Label draftNotice =
-            new Label("Ngôn ngữ này mới hỗ trợ soạn thảo và lưu nháp; Run/Trace hiện chỉ hỗ trợ Python.");
-    private final Map<String, String> drafts = new HashMap<>();
-    private final Map<String, String> persistedDrafts = new HashMap<>();
-    private String currentLanguage = "python";
+    private final Label codeTitle = new Label(Language.PYTHON.fileName());
+    private final Map<Language, String> drafts = new HashMap<>();
+    private final Map<Language, String> persistedDrafts = new HashMap<>();
+    private Language currentLanguage = Language.PYTHON;
     private final TextArea input = new TextArea();
     private final TextArea output = new TextArea();
     private final TraceTablePane traceTable = new TraceTablePane();
@@ -91,7 +92,7 @@ public final class PlaygroundScreen extends BorderPane {
         setTop(top);
 
         codeTitle.getStyleClass().add("card-title");
-        languagePicker.getItems().addAll(LANGUAGES);
+        LANGUAGES.forEach(l -> languagePicker.getItems().add(l.label()));
         languagePicker.getSelectionModel().selectFirst();
         languagePicker.getStyleClass().add("language-picker");
         languagePicker.setId("playground-language-picker");
@@ -101,9 +102,6 @@ public final class PlaygroundScreen extends BorderPane {
         languagePicker.valueProperty().addListener((obs, previous, next) -> {
             if (next != null) switchLanguage(languageFor(next));
         });
-        draftNotice.getStyleClass().add("muted");
-        draftNotice.setVisible(false);
-        draftNotice.setManaged(false);
         status.getStyleClass().add("muted");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -118,14 +116,15 @@ public final class PlaygroundScreen extends BorderPane {
         editHeader.getStyleClass().add("card-header");
 
         editor.setPasteGuard(false);
-        for (String language : List.of("python", "java", "cpp", "javascript")) {
+        for (Language language : LANGUAGES) {
             String saved = readDraft(codeFile(language), DEFAULT_CODE);
-            drafts.put(language, saved);
             persistedDrafts.put(language, saved);
+            // nháp còn trống: khung đọc stdin/in stdout của ngôn ngữ (Python để trống như cũ)
+            drafts.put(language, saved.isEmpty() ? language.starter() : saved);
         }
         savedInput = readDraft(INPUT_FILE, "");
-        editor.setSyntaxLanguage("python");
-        editor.load("free-code-local-python", drafts.get("python"), 0, d -> {});
+        editor.setSyntaxLanguage(Language.PYTHON.code());
+        editor.load("free-code-local-python", drafts.get(Language.PYTHON), 0, d -> {});
 
         input.setText(savedInput);
         input.setPromptText("Dữ liệu stdin, ví dụ: 5 10");
@@ -133,7 +132,7 @@ public final class PlaygroundScreen extends BorderPane {
         input.getStyleClass().add("console");
         Label inputLabel = new Label("Input (stdin)");
         inputLabel.getStyleClass().add("card-title");
-        VBox codeCard = new VBox(8, editHeader, draftNotice, editor.node(), inputLabel, input, buttons);
+        VBox codeCard = new VBox(8, editHeader, editor.node(), inputLabel, input, buttons);
         VBox.setVgrow(editor.node(), Priority.ALWAYS);
         codeCard.getStyleClass().addAll("card", "playground-editor-card");
         codeCard.setMinWidth(0);
@@ -176,13 +175,9 @@ public final class PlaygroundScreen extends BorderPane {
 
     private void execute(boolean lineTrace) {
         if (inFlight) return;
-        if (!"python".equals(currentLanguage)) {
-            status.setText("Chưa có Runner cho " + currentLanguage + ". Hãy chuyển sang Python.");
-            return;
-        }
         submittedCode = editor.text();
         if (submittedCode.isBlank()) {
-            status.setText("Hãy nhập code Python trước khi chạy");
+            status.setText("Hãy nhập code trước khi chạy");
             return;
         }
         if (submittedCode.length() > 30_000 || input.getText().length() > 20_000) {
@@ -201,10 +196,18 @@ public final class PlaygroundScreen extends BorderPane {
         output.clear();
         runId = 0;
         setBusy(true);
-        status.setText(lineTrace ? "Đang thu thập Trace..." : "Đang chạy Python...");
+        status.setText(lineTrace ? "Đang thu thập Trace..." : "Đang chạy " + currentLanguage.label() + "...");
         client.send(JsonPayload.frame(
                 MessageType.PLAYGROUND_RUN_REQ,
-                Map.of("code", submittedCode, "input", input.getText(), "trace", lineTrace)));
+                Map.of(
+                        "code",
+                        submittedCode,
+                        "input",
+                        input.getText(),
+                        "trace",
+                        lineTrace,
+                        "lang",
+                        currentLanguage.code())));
     }
 
     private void queued(Frame f) {
@@ -280,54 +283,35 @@ public final class PlaygroundScreen extends BorderPane {
 
     private void setBusy(boolean busy) {
         inFlight = busy;
-        run.setDisable(busy || !"python".equals(currentLanguage));
-        trace.setDisable(busy || !"python".equals(currentLanguage));
+        run.setDisable(busy);
+        trace.setDisable(busy);
         languagePicker.setDisable(busy);
     }
 
-    private static String languageFor(String option) {
-        return switch (option) {
-            case "Java 17 · nháp" -> "java";
-            case "C++17 · nháp" -> "cpp";
-            case "JavaScript · nháp" -> "javascript";
-            default -> "python";
-        };
+    private static Language languageFor(String label) {
+        return LANGUAGES.stream()
+                .filter(l -> l.label().equals(label))
+                .findFirst()
+                .orElse(Language.PYTHON);
     }
 
-    private static Path codeFile(String language) {
-        return switch (language) {
-            case "java" -> WORK_DIR.resolve("playground.java");
-            case "cpp" -> WORK_DIR.resolve("playground.cpp");
-            case "javascript" -> WORK_DIR.resolve("playground.js");
-            default -> WORK_DIR.resolve("playground.py");
-        };
+    private static Path codeFile(Language language) {
+        return WORK_DIR.resolve("playground." + language.extension());
     }
 
-    private static String displayFile(String language) {
-        return switch (language) {
-            case "java" -> "Main.java";
-            case "cpp" -> "main.cpp";
-            case "javascript" -> "main.js";
-            default -> "main.py";
-        };
-    }
-
-    private void switchLanguage(String nextLanguage) {
-        if (inFlight || nextLanguage.equals(currentLanguage)) return;
+    private void switchLanguage(Language nextLanguage) {
+        if (inFlight || nextLanguage == currentLanguage) return;
         saveDraft();
         currentLanguage = nextLanguage;
         // Giữ các phiên bản nháp độc lập; đổi ngôn ngữ không ghi nội dung vào Server.
-        editor.setSyntaxLanguage(nextLanguage);
-        editor.load("free-code-local-" + nextLanguage, drafts.getOrDefault(nextLanguage, ""), 0, d -> {});
-        codeTitle.setText(displayFile(nextLanguage));
-        boolean python = "python".equals(nextLanguage);
-        draftNotice.setManaged(!python);
-        draftNotice.setVisible(!python);
+        editor.setSyntaxLanguage(nextLanguage.code());
+        editor.load("free-code-local-" + nextLanguage.code(), drafts.getOrDefault(nextLanguage, ""), 0, d -> {});
+        codeTitle.setText(nextLanguage.fileName());
         output.clear();
         traceTable.clear();
         player = null;
         rightTabs.getSelectionModel().selectFirst();
-        status.setText(python ? "Sẵn sàng · Python" : "Bản nháp · chưa hỗ trợ chạy");
+        status.setText("Sẵn sàng · " + nextLanguage.label());
         setBusy(false);
     }
 
@@ -335,7 +319,10 @@ public final class PlaygroundScreen extends BorderPane {
         String code = editor.text();
         drafts.put(currentLanguage, code);
         String stdin = input.getText();
-        if (!code.equals(persistedDrafts.get(currentLanguage))) {
+        // khung mặc định chưa sửa gì thì không ghi ra file nháp
+        boolean khungChuaSua = code.equals(currentLanguage.starter())
+                && persistedDrafts.get(currentLanguage).isEmpty();
+        if (!khungChuaSua && !code.equals(persistedDrafts.get(currentLanguage))) {
             if (writeDraft(codeFile(currentLanguage), code)) {
                 persistedDrafts.put(currentLanguage, code);
             }
