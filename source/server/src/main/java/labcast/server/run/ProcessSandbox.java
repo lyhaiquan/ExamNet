@@ -60,7 +60,7 @@ abstract class ProcessSandbox implements Sandbox, ScriptRunner {
                 command(name),
                 name,
                 MAPPER.writeValueAsBytes(jobJson(job)),
-                job.timeLimitMs() + GRACE_MS + startupBudgetMs(),
+                job.effectiveTimeLimitMs() + GRACE_MS + startupBudgetMs() + job.overheadMs(),
                 line -> {
                     if (line.startsWith("{\"t\": \"result\"") || line.startsWith("{\"t\":\"result\"")) {
                         try {
@@ -72,8 +72,8 @@ abstract class ProcessSandbox implements Sandbox, ScriptRunner {
                         onLine.accept(line);
                     }
                 });
-        if (e.killed || (result[0] == null && hetGioCpu(e, job.timeLimitMs()))) {
-            return new Outcome(false, "", "Quá thời gian " + job.timeLimitMs() + " ms", false, e.ms, true);
+        if (e.killed || (result[0] == null && hetGioCpu(e, job.effectiveTimeLimitMs()))) {
+            return new Outcome(false, "", "Quá thời gian " + job.effectiveTimeLimitMs() + " ms", false, e.ms, true);
         }
         if (result[0] == null) {
             String err = e.stderr.strip();
@@ -96,7 +96,9 @@ abstract class ProcessSandbox implements Sandbox, ScriptRunner {
                 r.path("error").isNull() ? null : r.path("error").asText(null),
                 r.path("truncated").asBoolean(false),
                 r.path("time_ms").asLong(e.ms),
-                false);
+                false,
+                r.path("error_line").asInt(0),
+                r.path("error_kind").asText(null));
     }
 
     @Override
@@ -193,6 +195,7 @@ abstract class ProcessSandbox implements Sandbox, ScriptRunner {
         m.put("time_limit_ms", job.timeLimitMs());
         m.put("lesson", job.lessonId());
         m.put("views", job.views());
+        m.put("ngon_ngu", job.language().code());
         return m;
     }
 

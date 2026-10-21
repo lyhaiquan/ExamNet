@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+import labcast.common.protocol.Language;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -84,12 +85,45 @@ public final class LessonRepository {
         return Collections.unmodifiableList(errors);
     }
 
-    /** Nội dung {@code khung.py} (bài SQL: {@code khung.sql}); bài không có khung thì chuỗi rỗng. */
-    public String khung(String id) {
-        return get(id).map(l -> l.isSql()
-                        ? readOr(l.dir().resolve("khung.sql"), "SELECT \n")
-                        : readOr(l.dir().resolve("khung.py"), ""))
+    /**
+     * Code ban đầu của một khoá tài liệu: {@code khung.py} (bài SQL: {@code khung.sql}); khoá theo ngôn ngữ
+     * ({@code dsa.x#cpp}) đọc {@code khung.cpp}, thiếu thì khung mặc định của ngôn ngữ. Bài không có khung, hay
+     * ngôn ngữ lạ, thì chuỗi rỗng.
+     */
+    public String khung(String docKey) {
+        Language lang = Language.ofDocKey(docKey);
+        return get(Language.lessonOf(docKey))
+                .map(l -> {
+                    if (l.isSql()) {
+                        return readOr(l.dir().resolve("khung.sql"), "SELECT \n");
+                    }
+                    if (lang == null) {
+                        return "";
+                    }
+                    if (lang == Language.PYTHON) {
+                        return readOr(l.dir().resolve("khung.py"), "");
+                    }
+                    return readOr(l.dir().resolve("khung." + lang.extension()), lang.starter());
+                })
                 .orElse("");
+    }
+
+    /**
+     * Lời giải mẫu bằng C/C++/Java ({@code loi_giai.c}, {@code loi_giai.cpp}, {@code loi_giai.java}) để học viên
+     * đọc ở bài giảng giải; chỉ các file người soạn bài thêm vào. {@code loi_giai.py} không đưa ra: bài nào cũng
+     * có (để sinh test), đưa ra là lộ đáp án ở bài vừa xem vừa code.
+     */
+    public Map<String, String> loiGiaiKhac(String id) {
+        Map<String, String> out = new LinkedHashMap<>();
+        get(id).ifPresent(l -> {
+            for (Language lang : l.ngonNgu()) {
+                Path f = l.dir().resolve("loi_giai." + lang.extension());
+                if (lang != Language.PYTHON && Files.exists(f)) {
+                    out.put(lang.code(), readOr(f, ""));
+                }
+            }
+        });
+        return out;
     }
 
     /** Một file của bài SQL ({@code schema.sql}, {@code du_lieu_mau.sql}, {@code dap_an.sql}), UTF-8. */
@@ -228,6 +262,34 @@ public final class LessonRepository {
         if (y.get("gioi_han") instanceof Map<?, ?> g && g.get("thoi_gian_ms") instanceof Number n) {
             ms = n.intValue();
         }
+        List<Language> ngonNgu = Lesson.ngonNguMacDinh(mon);
+        if (y.containsKey("ngon_ngu")) {
+            List<Language> ds = new ArrayList<>();
+            for (String m : strings(y, "ngon_ngu")) {
+                Language l = Language.of(m);
+                if (l == null) {
+                    throw new IOException("ngon_ngu chỉ nhận python, c, cpp, java; có " + m);
+                }
+                ds.add(l);
+            }
+            if (mon.equals("sql") && !ds.isEmpty()) {
+                throw new IOException("bài SQL không chọn ngôn ngữ (ngon_ngu)");
+            }
+            ngonNgu = List.copyOf(ds);
+        }
+        Map<String, List<String>> camTheoNgonNgu = new LinkedHashMap<>();
+        if (y.get("cam_theo_ngon_ngu") instanceof Map<?, ?> cam) {
+            for (var e : cam.entrySet()) {
+                String m = String.valueOf(e.getKey());
+                if (Language.of(m) == null || Language.of(m) == Language.PYTHON) {
+                    throw new IOException("cam_theo_ngon_ngu chỉ cho c, cpp, java; có " + m);
+                }
+                List<String> ten = e.getValue() instanceof List<?> l
+                        ? l.stream().map(String::valueOf).toList()
+                        : List.of();
+                camTheoNgonNgu.put(Language.of(m).code(), ten);
+            }
+        }
         return new Lesson(
                 id,
                 mon,
@@ -246,7 +308,9 @@ public final class LessonRepository {
                 strings(y, "cam_cu_phap"),
                 y.get("so_test_an") instanceof Number so ? so.intValue() : 0,
                 loaiCau,
-                "co".equals(String.valueOf(y.get("thu_tu"))));
+                "co".equals(String.valueOf(y.get("thu_tu"))),
+                ngonNgu,
+                Map.copyOf(camTheoNgonNgu));
     }
 
     private static String str(Map<String, Object> y, String k) throws IOException {

@@ -73,6 +73,10 @@ public enum MessageType {
     CHECKPOINT_LIST(0x52),
     CHECKPOINT_FETCH(0x53),
     CHECKPOINT_DATA(0x54),
+    /** {@code str docKey}: hỏi code đang lưu của một khoá tài liệu (đổi ngôn ngữ trong ô code). */
+    CODE_FETCH(0x55),
+    /** {@code str docKey, i64 seq, str code}: code đang lưu trên server, hoặc khung nếu chưa có. */
+    CODE_DATA(0x56),
     HAND_RAISE(0x58),
     HAND_LOWER(0x59),
     MIRROR_SUBSCRIBE(0x5A),

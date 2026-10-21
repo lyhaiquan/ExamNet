@@ -16,6 +16,7 @@ import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.ErrorMessage;
 import labcast.common.protocol.Frame;
 import labcast.common.protocol.JsonPayload;
+import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
@@ -30,6 +31,7 @@ import labcast.server.lesson.LessonPreparer;
 import labcast.server.lesson.LessonRepository;
 import labcast.server.net.Ctx;
 import labcast.server.net.Priority;
+import labcast.server.run.RunModule;
 import labcast.server.run.RunService;
 import labcast.server.run.Sandbox;
 import labcast.server.run.ScriptRunner;
@@ -39,9 +41,10 @@ import labcast.server.sqlviz.SqlLab;
 /**
  * Nộp bài (spec §8.2, task 3.8). Chủ: Người 3.
  *
- * <p>{@code SUBMIT_REQ(str lessonId, i64 codeSeq)} → {@code SUBMIT_RESULT JSON{verdict, message, score,
+ * <p>{@code SUBMIT_REQ(str lessonId, i64 codeSeq, str lang)} → {@code SUBMIT_RESULT JSON{verdict, message, score,
  * cooldownMs, mastered, unlocked, failedTest, tests:[{id, hidden, verdict, timeMs, error?}]}}. Test ẩn chỉ
- * có id, verdict, thời gian.
+ * có id, verdict, thời gian. {@code lang} có thể thiếu (client cũ): Python. Code chấm là bản đang lưu của khoá
+ * tài liệu ở ngôn ngữ đó; tiến độ vẫn ghi theo mã bài.
  *
  * <ul>
  *   <li>Đang phải chờ sau lần nộp sai → {@code ERROR(COOLDOWN, retryAfterMs)}.
@@ -96,10 +99,13 @@ public final class SubmitModule implements ServerModule {
         PayloadReader r = f.reader();
         String lessonId = r.str();
         long codeSeq = r.i64();
+        String langCode = r.hasRemaining() ? r.str() : "";
         Session s = c.session();
         LessonRepository repo = ctx.require(LessonRepository.class);
         Lesson l = repo.get(lessonId)
                 .orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không có bài " + lessonId));
+        Language lang = RunModule.language(l, langCode);
+        String docKey = Language.docKey(lessonId, lang);
 
         // Giữ chỗ TRƯỚC rồi mới đọc thời gian chờ: đọc trước thì một lượt có thể thấy "không phải chờ" trong
         // lúc lượt trước còn đang chấm, rồi lọt vào ngay khi lượt trước vừa nhả chỗ (trước khi kịp ghi chờ).
@@ -117,10 +123,10 @@ public final class SubmitModule implements ServerModule {
             }
             // Chấm đúng phiên bản code học viên đang thấy: delta có thể còn trên đường tới, chờ tối đa 1 s.
             CodeStore store = ctx.require(CodeStore.class);
-            CodeStore.Snapshot snap = store.current(s.userId(), lessonId);
+            CodeStore.Snapshot snap = store.current(s.userId(), docKey);
             for (int i = 0; i < 20 && snap.seq() < codeSeq; i++) {
                 Thread.sleep(50);
-                snap = store.current(s.userId(), lessonId);
+                snap = store.current(s.userId(), docKey);
             }
             String code = snap.code();
             long seq = snap.seq();
@@ -131,7 +137,7 @@ public final class SubmitModule implements ServerModule {
                             return ctx.require(SqlLab.class).grade(l, code, preparer.prepareSql(l));
                         }
                         LessonPreparer.Prepared prep = preparer.prepare(l);
-                        return grader.grade(l, code, tests(repo, l, prep), prep.tb());
+                        return grader.grade(l, code, lang, tests(repo, l, prep), prep.tb());
                     })
                     .whenComplete((res, err) -> {
                         try {

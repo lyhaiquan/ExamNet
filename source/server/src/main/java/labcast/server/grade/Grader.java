@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import labcast.common.protocol.JsonPayload;
+import labcast.common.protocol.Language;
 import labcast.server.lesson.Lesson;
 import labcast.server.lesson.LessonModule;
 import labcast.server.lesson.LessonPreparer;
@@ -64,10 +65,21 @@ public final class Grader {
      */
     public Result grade(Lesson l, String code, List<TestCase> tests, LessonPreparer.HiddenTest tb)
             throws IOException, InterruptedException {
+        return grade(l, code, Language.PYTHON, tests, tb);
+    }
+
+    /**
+     * Chấm bài viết bằng {@code lang}. C/C++/Java: runner biên dịch một lần rồi chạy từng test; giới hạn thời gian
+     * nhân hệ số của ngôn ngữ; không có luật soi trace (trace là của thư viện viz Python).
+     */
+    public Result grade(Lesson l, String code, Language lang, List<TestCase> tests, LessonPreparer.HiddenTest tb)
+            throws IOException, InterruptedException {
         String key = HexFormat.of().formatHex(bytes(16));
+        int limitMs = l.thoiGianMs() * lang.timeFactor();
         ObjectNode job = JsonPayload.MAPPER.createObjectNode();
         job.put("k", key);
         job.put("code", code);
+        job.put("ngon_ngu", lang.code());
         job.put("time_limit_ms", l.thoiGianMs());
         ArrayNode arr = job.putArray("tests");
         for (TestCase t : tests) {
@@ -77,8 +89,9 @@ public final class Grader {
         cam.set("cam_dung", JsonPayload.MAPPER.valueToTree(l.camDung()));
         cam.set("cam_import", JsonPayload.MAPPER.valueToTree(l.camImport()));
         cam.set("cam_cu_phap", JsonPayload.MAPPER.valueToTree(l.camCuPhap()));
+        cam.set("cam_theo_ngon_ngu", JsonPayload.MAPPER.valueToTree(l.camTheoNgonNgu()));
 
-        long deadline = 3_000 + tests.size() * (l.thoiGianMs() + PER_TEST_OVERHEAD_MS);
+        long deadline = 3_000 + lang.compileBudgetMs() + tests.size() * (limitMs + PER_TEST_OVERHEAD_MS);
         ScriptRunner.Result r = scripts.runScript("cham", null, job.toString(), deadline);
 
         Map<String, JsonNode> byId = new HashMap<>();
@@ -98,6 +111,9 @@ public final class Grader {
                     n.path("loi").forEach(x -> loi.add(x.asText()));
                     return new Result(Verdict.FORBIDDEN_CALL, String.join("; ", loi), List.of(), null);
                 }
+                case "bien_dich" -> {
+                    return new Result(Verdict.COMPILE_ERROR, n.path("loi").asText("Lỗi biên dịch"), List.of(), null);
+                }
                 case "test" -> byId.putIfAbsent(n.path("id").asText(), n);
                 default -> {
                     // "done"
@@ -109,7 +125,7 @@ public final class Grader {
         TestResult firstFail = null;
         for (TestCase t : tests) {
             JsonNode n = byId.get(t.id());
-            TestResult tr = judge(t, n, r.killed(), l.thoiGianMs());
+            TestResult tr = judge(t, n, r.killed(), limitMs);
             results.add(tr);
             if (firstFail == null && tr.verdict() != Verdict.OK) {
                 firstFail = tr;
@@ -118,7 +134,7 @@ public final class Grader {
         if (firstFail != null) {
             return new Result(firstFail.verdict(), message(firstFail), List.copyOf(results), firstFail.id());
         }
-        if (l.hasTraceRule() && tb != null) {
+        if (lang == Language.PYTHON && l.hasTraceRule() && tb != null) {
             String violation = traceRule(l, code, tb);
             if (violation != null) {
                 return new Result(Verdict.TRACE_RULE, violation, List.copyOf(results), null);

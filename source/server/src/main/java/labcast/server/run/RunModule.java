@@ -15,6 +15,7 @@ import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.ErrorMessage;
 import labcast.common.protocol.Frame;
 import labcast.common.protocol.JsonPayload;
+import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.PayloadWriter;
@@ -65,9 +66,11 @@ public final class RunModule implements ServerModule {
     }
 
     /**
-     * {@code RUN_REQ(str lessonId, i64 codeSeq, str testId)} → {@code RUN_QUEUED(i64 runId, u16 position)},
-     * các {@code TRACE_CHUNK(i64 runId, i32 chunkIndex, bool last, blob lines)}, rồi {@code RUN_RESULT
-     * JSON{runId, ok, stdout, error, truncated, timeMs, tests:[{id, verdict}]}}.
+     * {@code RUN_REQ(str lessonId, i64 codeSeq, str testId, bool lineTrace, str lang)} → {@code RUN_QUEUED(i64
+     * runId, u16 position)}, các {@code TRACE_CHUNK(i64 runId, i32 chunkIndex, bool last, blob lines)}, rồi {@code
+     * RUN_RESULT JSON{runId, ok, stdout, error, truncated, timeMs, tests:[{id, verdict}], errorLine?, errorKind?}}.
+     * {@code lineTrace} và {@code lang} có thể thiếu (client cũ): tắt chạy từng dòng, Python. Code chạy là bản
+     * đang lưu của khoá tài liệu {@code lessonId} ở ngôn ngữ đó.
      */
     private void run(Ctx c, Frame f) throws Exception {
         PayloadReader r = f.reader();
@@ -75,10 +78,13 @@ public final class RunModule implements ServerModule {
         long codeSeq = r.i64();
         String testId = r.str();
         boolean lineTrace = r.hasRemaining() && r.bool(); // client cũ không gửi cờ: tắt tracing từng dòng
+        String langCode = r.hasRemaining() ? r.str() : "";
         Session s = c.session();
         LessonRepository repo = ctx.require(LessonRepository.class);
         Lesson l = repo.get(lessonId)
                 .orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không có bài " + lessonId));
+        Language lang = language(l, langCode);
+        String docKey = Language.docKey(lessonId, lang);
         if (testId.isEmpty()) {
             testId = l.testXem().isEmpty() ? "" : l.testXem().get(0);
         }
@@ -87,10 +93,10 @@ public final class RunModule implements ServerModule {
 
         // Chạy đúng phiên bản code học viên đang thấy: delta có thể còn trên đường tới, chờ tối đa 1 s.
         CodeStore store = ctx.require(CodeStore.class);
-        CodeStore.Snapshot snap = store.current(s.userId(), lessonId);
+        CodeStore.Snapshot snap = store.current(s.userId(), docKey);
         for (int i = 0; i < 20 && snap.seq() < codeSeq; i++) {
             Thread.sleep(50);
-            snap = store.current(s.userId(), lessonId);
+            snap = store.current(s.userId(), docKey);
         }
 
         long runId = runIds.incrementAndGet();
@@ -100,7 +106,10 @@ public final class RunModule implements ServerModule {
             return;
         }
 
-        Job job = new Job(snap.code(), input, true, l.thoiGianMs(), lessonId, LessonModule.views(l), lineTrace);
+        // C/C++/Java không có animation: chỉ ghi trace khi chạy từng dòng
+        boolean trace = lang == Language.PYTHON || lineTrace;
+        List<Map<String, String>> views = lang == Language.PYTHON ? LessonModule.views(l) : List.of();
+        Job job = new Job(snap.code(), input, trace, l.thoiGianMs(), lessonId, views, lineTrace, lang);
         Chunker chunker = new Chunker(runId, s);
         String tid = testId;
         long seqRun = snap.seq();
@@ -118,7 +127,7 @@ public final class RunModule implements ServerModule {
                         Priority.NORMAL);
                 return;
             }
-            String verdict = verdict(o, expected, l.thoiGianMs());
+            String verdict = verdict(o, expected, job.effectiveTimeLimitMs());
             record(s.userId(), lessonId, seqRun, verdict);
             Map<String, Object> res = new LinkedHashMap<>();
             res.put("runId", runId);
@@ -128,16 +137,28 @@ public final class RunModule implements ServerModule {
             res.put("truncated", o.truncated());
             res.put("timeMs", o.timeMs());
             res.put("tests", List.of(Map.of("id", tid, "verdict", verdict)));
+            if (o.errorLine() > 0) {
+                res.put("errorLine", o.errorLine());
+                res.put("errorKind", o.errorKind());
+            }
             s.send(JsonPayload.frame(MessageType.RUN_RESULT, res), Priority.NORMAL);
         });
     }
 
-    /** Workspace tự do: code Python do người dùng nhập, không chọn bài và không ghi submissions. */
+    /**
+     * Workspace tự do: code do người dùng nhập, không chọn bài và không ghi submissions. {@code
+     * PLAYGROUND_RUN_REQ JSON{code, input, trace, lang?}}; thiếu {@code lang} là Python.
+     */
     private void runPlayground(Ctx c, Frame f) throws Exception {
         var request = JsonPayload.tree(f);
         String code = request.path("code").asText("");
         String input = request.path("input").asText("");
         boolean lineTrace = request.path("trace").asBoolean(false);
+        Language lang = Language.of(request.path("lang").asText(""));
+        if (lang == null) {
+            throw new ProtocolException(
+                    ErrorCode.BAD_FRAME, "Code tự do không chạy được ngôn ngữ " + request.path("lang"));
+        }
         if (code.isBlank() || code.length() > 30_000 || input.length() > 20_000) {
             throw new ProtocolException(
                     ErrorCode.BAD_FRAME, "Code tự do yêu cầu 1-30000 ký tự và stdin tối đa 20000 ký tự");
@@ -148,7 +169,7 @@ public final class RunModule implements ServerModule {
                 MessageType.PLAYGROUND_RUN_QUEUED,
                 new PayloadWriter().i64(runId).toBytes());
         // Giới hạn thời gian, dung lượng và quyền truy cập giống Chạy thử Python.
-        Job job = new Job(code, input, lineTrace, 3000, "playground", List.of(), lineTrace);
+        Job job = new Job(code, input, lineTrace, 3000, "playground", List.of(), lineTrace, lang);
         List<String> pending = new ArrayList<>();
         int[] part = {0};
         Consumer<Boolean> sendChunk = last -> {
@@ -269,6 +290,21 @@ public final class RunModule implements ServerModule {
     }
 
     /** Kết quả chấm của một test (spec §10.3). */
+    /**
+     * Ngôn ngữ của lượt chạy hay nộp bài: mã rỗng (client cũ) là Python; bài SQL bỏ qua mã. Mã lạ hay ngôn ngữ bài
+     * không cho chọn là frame sai.
+     */
+    public static Language language(Lesson l, String code) throws ProtocolException {
+        if (l.isSql()) {
+            return Language.PYTHON;
+        }
+        Language lang = Language.of(code);
+        if (lang == null || !l.choPhep(lang)) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Bài " + l.id() + " không cho viết bằng " + code);
+        }
+        return lang;
+    }
+
     static String verdict(Outcome o, String expected, int timeLimitMs) {
         // time_ms đo bên trong runner, không gồm thời gian dựng container
         if (o.killed() || (o.ok() && o.timeMs() > timeLimitMs)) {

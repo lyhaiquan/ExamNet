@@ -68,7 +68,8 @@ public class DockerSandbox extends ProcessSandbox {
                 "64",
                 "--read-only",
                 "--tmpfs",
-                "/tmp:size=16m",
+                // exec: bài C/C++ chạy file vừa biên dịch trong /tmp (tmpfs của Docker mặc định noexec)
+                "/tmp:size=64m,exec",
                 "--user",
                 "65534:65534",
                 "--cap-drop",
