@@ -32,6 +32,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      # gdb: chạy từng dòng bài C/C++ (spec đa ngôn ngữ §5); gcc/g++ có sẵn trên máy CI, JDK từ setup-java
+      - name: Cài gdb
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gdb
+
       - name: Test runner (pytest)
         run: |
           python -m pip install --quiet -r runner/requirements-dev.txt

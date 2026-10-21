@@ -458,10 +458,13 @@ Mỗi lượt chạy là một container dùng một lần:
 
 ```text
 docker run --rm -i --network none --memory 256m --memory-swap 256m --cpus 1
-           --pids-limit 64 --read-only --tmpfs /tmp:size=16m
+           --pids-limit 64 --read-only --tmpfs /tmp:size=64m,exec
            --user 65534:65534 --cap-drop ALL --security-opt no-new-privileges
            labcast-runner:py3.12 python /runner/run.py
 ```
+
+- `/tmp` cho chạy file (`exec`) vì bài C/C++ chạy file vừa biên dịch ở đó; image và các ngôn ngữ: xem
+  [spec đa ngôn ngữ](labcast-da-ngon-ngu.md) §5.
 
 - Java gửi công việc (code, input, chế độ ghi trace) qua stdin dạng JSON, đọc trace và kết quả qua stdout dạng JSON từng dòng, đọc stderr để lấy lỗi Python.
 - Thời gian bị giới hạn ở hai lớp: `RLIMIT_CPU` bên trong container và `docker kill` từ phía Java khi quá hạn.
