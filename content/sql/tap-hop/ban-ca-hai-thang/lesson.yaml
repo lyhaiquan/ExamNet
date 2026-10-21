@@ -1,0 +1,13 @@
+id: sql.tap-hop.ban-ca-hai-thang
+mon: sql
+chuong: tap-hop
+ten: Sản phẩm bán được cả tháng 8 và tháng 9/2024
+loai: bai-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: select                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: []
