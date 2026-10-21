@@ -570,12 +570,15 @@ class VizContractTest {
     /**
      * Mọi bài DSA có lời giải mẫu: chạy với đúng {@code khung_nhin} của bài, trên {@code demo.in} và các test học
      * viên xem được; mọi bộ vẽ tua tới đâu cũng ra đúng hình. Bài mới thêm vào {@code content/} tự được kiểm.
+     * Bài luyện tập không khai báo bộ vẽ nào ({@code khung_nhin: []}) thì không có hình để kiểm.
      */
     @TestFactory
     Stream<DynamicTest> moiBaiDsa_tuaToiDauCungDung() {
         LessonRepository repo = LessonRepository.load(repo().resolve("content"));
         return repo.all().stream()
-                .filter(l -> l.mon().equals("dsa") && Files.exists(l.dir().resolve("loi_giai.py")))
+                .filter(l -> l.mon().equals("dsa")
+                        && !l.khungNhin().isEmpty()
+                        && Files.exists(l.dir().resolve("loi_giai.py")))
                 .map(l -> DynamicTest.dynamicTest(l.id(), () -> kiemBai(l)));
     }
 

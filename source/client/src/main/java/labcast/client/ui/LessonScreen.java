@@ -191,7 +191,12 @@ public final class LessonScreen extends BorderPane {
 
         animTab = new Tab("Animation", anim);
         Tab deTab = new Tab("Đề bài", de);
-        tabs.getTabs().addAll(animTab, deTab, traceTab);
+        // Bài không khai báo bộ vẽ nào (luyện tập): chỉ chấm test và Trace Table, không có thẻ Animation.
+        // PlayerPane vẫn giữ để Trace Table điều khiển từng bước.
+        if (sql || lesson.path("khungNhin").size() > 0) {
+            tabs.getTabs().add(animTab);
+        }
+        tabs.getTabs().addAll(deTab, traceTab);
         if (lesson.path("loiGiai").size() > 0) {
             tabs.getTabs().add(new Tab("Lời giải", solutionPane(lesson.path("loiGiai"))));
         }
@@ -564,7 +569,10 @@ public final class LessonScreen extends BorderPane {
         }
         Player currentPlayer = player.load(t, views());
         traceTable.load(t, t.header().path("source").asText(editor.text()), currentPlayer, editor::highlightTraceLine);
-        tabs.getSelectionModel().select(runPanel.lastRunLineTrace() && traceTable.hasSteps() ? traceTab : animTab);
+        Tab hien = runPanel.lastRunLineTrace() && traceTable.hasSteps() ? traceTab : animTab;
+        if (tabs.getTabs().contains(hien)) {
+            tabs.getSelectionModel().select(hien);
+        }
         setSource("Đang xem: code của em", "mine");
     }
 
