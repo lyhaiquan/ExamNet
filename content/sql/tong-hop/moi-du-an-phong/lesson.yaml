@@ -1,0 +1,13 @@
+id: sql.tong-hop.moi-du-an-phong
+mon: sql
+chuong: tong-hop
+ten: Nhân viên tham gia mọi dự án của phòng mình
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: select                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: []

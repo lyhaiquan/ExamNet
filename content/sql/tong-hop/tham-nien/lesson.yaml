@@ -1,0 +1,13 @@
+id: sql.tong-hop.tham-nien
+mon: sql
+chuong: tong-hop
+ten: Số nhân viên và lương trung bình theo năm vào làm
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin:                     # câu SQL vẽ bằng bộ vẽ bảng
+  - bien: sql
+    kieu: bang-sql
+loai_cau: select                # select | dml
+thu_tu: khong                   # khong: so kết quả như đa tập, không xét thứ tự dòng
+gioi_han: { thoi_gian_ms: 2000 }
+mo_khoa: []
