@@ -15,6 +15,12 @@ public enum ErrorCode {
     SANDBOX_DOWN(9),
     /** Không có bài, mốc lưu, học viên… được hỏi tới. */
     NOT_FOUND(10),
+    /** Bài giao chưa tới giờ mở, đã qua giờ đóng, hoặc đang bị giáo viên tắt. */
+    NOT_OPEN(11),
+    /** Hết thời gian làm bài (tính từ lúc học viên bắt đầu bài kiểm tra). */
+    TIME_UP(12),
+    /** File upload bài học không hợp lệ; message liệt kê lỗi. */
+    INVALID_UPLOAD(13),
     INTERNAL(99);
 
     private final int code;

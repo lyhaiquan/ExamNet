@@ -178,5 +178,66 @@ CREATE TABLE IF NOT EXISTS comments (
     created_at    INTEGER NOT NULL
 );
 
+-- ---------------------------------------------------------------------
+-- Đợt 2: nhiều lớp, quản trị — chủ: A (docs/PHAN-CONG-DOT-2.md)
+-- ---------------------------------------------------------------------
+-- Mỗi server một môn (ServerConfig), nên lớp không cần cột môn: DSA1, DSA2… cùng một server DSA.
+-- classes.teacher_id giữ người tạo lớp; giáo viên phụ trách (có thể nhiều) nằm ở bảng này.
+CREATE TABLE IF NOT EXISTS class_teachers (
+    class_id      INTEGER NOT NULL REFERENCES classes(id),
+    user_id       INTEGER NOT NULL REFERENCES users(id),
+    PRIMARY KEY (class_id, user_id)
+);
+
+-- Mỗi lần upload .zip bài học trên trang quản trị, hợp lệ hay không đều ghi lại
+CREATE TABLE IF NOT EXISTS lesson_uploads (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    uploaded_by   TEXT    NOT NULL,     -- username, hoặc 'localhost' khi upload từ máy server
+    uploaded_at   INTEGER NOT NULL,
+    file_name     TEXT    NOT NULL,
+    sha256        TEXT    NOT NULL,
+    status        TEXT    NOT NULL CHECK (status IN ('OK', 'LOI')),
+    lesson_ids    TEXT,                 -- JSON: các bài được thêm hoặc thay
+    errors        TEXT                  -- JSON: danh sách lỗi khi status = 'LOI'
+);
+
+-- ---------------------------------------------------------------------
+-- Đợt 2: bài giao, thời gian làm bài, ca học — chủ: B
+-- ---------------------------------------------------------------------
+-- Giáo viên giao một bài cho một lớp làm thực hành hoặc kiểm tra. Chỉ nộp được khi
+-- active = 1 và opens_at <= giờ server < closes_at (kiểm ở server, không tin giờ máy học viên).
+CREATE TABLE IF NOT EXISTS assignments (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id      INTEGER NOT NULL REFERENCES classes(id),
+    lesson_id     TEXT    NOT NULL,     -- mã bài, không kèm đuôi #cpp/#java
+    loai          TEXT    NOT NULL CHECK (loai IN ('thuc-hanh', 'kiem-tra')),
+    opens_at      INTEGER NOT NULL,
+    closes_at     INTEGER NOT NULL,
+    minutes       INTEGER,              -- thời gian làm tính từ lúc bắt đầu; NULL = tới closes_at
+    active        INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+    created_by    INTEGER NOT NULL REFERENCES users(id),
+    created_at    INTEGER NOT NULL,
+    CHECK (closes_at > opens_at)
+);
+
+-- Lúc học viên bắt đầu một bài giao; hết giờ = started_at + minutes phút (hoặc closes_at nếu sớm hơn)
+CREATE TABLE IF NOT EXISTS assignment_starts (
+    assignment_id INTEGER NOT NULL REFERENCES assignments(id),
+    user_id       INTEGER NOT NULL REFERENCES users(id),
+    started_at    INTEGER NOT NULL,
+    PRIMARY KEY (assignment_id, user_id)
+);
+
+-- Ca học cố định hằng tuần của lớp, ví dụ thứ 3 13:30–16:00
+CREATE TABLE IF NOT EXISTS class_schedule (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id      INTEGER NOT NULL REFERENCES classes(id),
+    weekday       INTEGER NOT NULL CHECK (weekday BETWEEN 1 AND 7),  -- 1 = thứ 2 … 7 = chủ nhật
+    start_min     INTEGER NOT NULL CHECK (start_min BETWEEN 0 AND 1439),  -- phút trong ngày
+    end_min       INTEGER NOT NULL CHECK (end_min BETWEEN 1 AND 1440),
+    CHECK (end_min > start_min)
+);
+
+CREATE INDEX IF NOT EXISTS idx_assignments_class ON assignments (class_id, opens_at);
 CREATE INDEX IF NOT EXISTS idx_checkpoints_latest ON checkpoints (user_id, lesson_id, upto_seq);
 CREATE INDEX IF NOT EXISTS idx_submissions_user   ON submissions (user_id, lesson_id, created_at);

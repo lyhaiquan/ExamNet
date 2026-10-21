@@ -22,11 +22,36 @@ class DatabaseTest {
     }
 
     @Test
-    void moTrongBoNho_coDu15Bang() throws Exception {
+    void moTrongBoNho_coDu20Bang() throws Exception {
         try (Database db = Database.open(":memory:")) {
             assertEquals(
-                    15,
+                    20,
                     count(db, "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"));
+        }
+    }
+
+    @Test
+    void baiGiao_dongTruocMo_biTuChoi() throws Exception {
+        try (Database db = Database.open(":memory:")) {
+            db.tx(c -> c.createStatement()
+                    .executeUpdate(
+                            "INSERT INTO users (id, username, full_name, role, pwd_hash, salt, iterations, created_at)"
+                                    + " VALUES (1, 'gv', 'GV', 'TEACHER', x'00', x'00', 1, 0);"));
+            db.tx(c -> c.createStatement()
+                    .executeUpdate("INSERT INTO classes (id, name, teacher_id, created_at) VALUES (1, 'DSA1', 1, 0)"));
+            String giao =
+                    "INSERT INTO assignments (class_id, lesson_id, loai, opens_at, closes_at, minutes, created_by,"
+                            + " created_at) VALUES (1, 'dsa.x', 'kiem-tra', %d, %d, 60, 1, 0)";
+            db.tx(c -> c.createStatement().executeUpdate(giao.formatted(1000, 2000)));
+            assertThrows(
+                    SQLException.class,
+                    () -> db.tx(c -> c.createStatement().executeUpdate(giao.formatted(2000, 1000))));
+            assertThrows(
+                    SQLException.class,
+                    () -> db.tx(c -> c.createStatement()
+                            .executeUpdate("INSERT INTO class_schedule (class_id, weekday, start_min, end_min)"
+                                    + " VALUES (1, 8, 600, 700)")));
+            assertEquals(1, count(db, "SELECT count(*) FROM assignments"));
         }
     }
 

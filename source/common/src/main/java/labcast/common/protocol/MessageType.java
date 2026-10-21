@@ -94,7 +94,41 @@ public enum MessageType {
     CAST_DATA(0x71),
     CAST_KEYFRAME(0x72),
     CAST_NACK(0x73),
-    CAST_REPAIR(0x74);
+    CAST_REPAIR(0x74),
+
+    // 0x80–0x8F: nhiều lớp, quản trị — A (đợt 2, docs/PHAN-CONG-DOT-2.md). Payload JSON.
+    /** Hỏi: rỗng. Trả: {@code {"lop":[{"id","ten","siSo"}]}} — các lớp người đang đăng nhập dạy hoặc học. */
+    CLASS_LIST(0x80),
+    /** Hỏi: {@code {"id"}}. Trả: {@code {"id","ten","siSo","giaoVien":[…],"hocVien":[{"id","ten","online"}]}}. */
+    CLASS_INFO(0x81),
+    /** Hỏi: {@code {"vaiTro":"TEACHER|STUDENT"|null,"lop":id|null}}. Trả: {@code {"users":[{"id","username","ten","vaiTro","lop":[…]}]}}. */
+    ADMIN_USER_LIST(0x84),
+    /** {@code {"id":null|id,"username","ten","vaiTro","matKhau":null|"…","lop":[id…]}}; id null là tạo mới. Trả {@code ADMIN_OK}. */
+    ADMIN_USER_SAVE(0x85),
+    /** {@code {"id"}}. Trả {@code ADMIN_OK}. */
+    ADMIN_USER_DELETE(0x86),
+    /** {@code {"id":null|id,"ten","giaoVien":[id…]}}; id null là tạo mới. Trả {@code ADMIN_OK}. */
+    ADMIN_CLASS_SAVE(0x88),
+    /** {@code {"lop":id,"them":[userId…],"bot":[userId…]}}. Trả {@code ADMIN_OK}. */
+    ADMIN_CLASS_ENROLL(0x89),
+    /** {@code {"ten":"bai.zip","zip":"<base64>"}}. Trả {@code {"ok",bool,"baiMoi":[id…],"loi":[…]}}. */
+    ADMIN_LESSON_UPLOAD(0x8C),
+
+    // 0x90–0x9F: bài giao, thời gian làm bài, ca học — B (đợt 2). Payload JSON.
+    /** Hỏi: {@code {"lop":id}}. Trả: {@code {"giao":[{"id","lessonId","loai","moLuc","dongLuc","phut","bat"}]}}. */
+    ASSIGN_LIST(0x90),
+    /** Giáo viên giao bài: {@code {"classId","lessonIds":[…],"loai":"thuc-hanh|kiem-tra","moLuc","dongLuc","phut"}}. */
+    ASSIGN_SET(0x91),
+    /** Bật bài giao: {@code {"id"}}. Học viên mở bài kiểm tra cũng gửi mã này để bắt đầu tính giờ. */
+    ASSIGN_OPEN(0x92),
+    /** Tắt bài giao: {@code {"id"}}. */
+    ASSIGN_CLOSE(0x93),
+    /** Server đẩy cho cả lớp khi bài giao đổi: {@code {"giao":[…]}} như {@code ASSIGN_LIST}, kèm {@code batDauLuc}. */
+    ASSIGN_STATE(0x94),
+    /** Hỏi: {@code {"lop":id}}. Trả: {@code {"ca":[{"thu":1..7,"tu":"13:30","den":"16:00"}]}}. */
+    SCHEDULE_LIST(0x98),
+    /** {@code {"lop":id,"ca":[…]}} như trên, thay toàn bộ lịch của lớp. Trả {@code ADMIN_OK}. */
+    SCHEDULE_SET(0x99);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

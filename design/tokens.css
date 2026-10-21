@@ -1,0 +1,94 @@
+/*
+ * LabCast — bộ màu, chữ, khoảng cách dùng chung (đợt 2). Chủ: C.
+ *
+ * Lấy từ bản demo giao diện mới. App JavaFX, màn giáo viên và trang quản trị chỉ dùng biến ở đây,
+ * không viết màu cứng. Cần biến mới thì nhờ C thêm.
+ *
+ * JavaFX CSS không hiểu var(); C sinh bản "-lc-*" cho .root của app từ file này.
+ */
+:root {
+  /* Chữ */
+  --font-ui: "Be Vietnam Pro", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, monospace;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 28px;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Nền và chữ */
+  --bg: #F4F5F8;
+  --surface: #FFFFFF;
+  --surface-2: #F7F8FB;
+  --surface-3: #EDEFF4;
+  --border: #E3E6EE;
+  --border-strong: #D5DAE6;
+  --text: #141A2E;
+  --text-2: #3A4260;
+  --text-muted: #5B6480;
+  --text-faint: #8A93B8;
+
+  /* Màu nhấn */
+  --accent: #3346C9;
+  --accent-strong: #2A388F;
+  --accent-soft: #EEF0FB;
+  --accent-on: #FFFFFF;
+
+  /* Trạng thái */
+  --ok: #17663F;
+  --ok-soft: #DFF5E9;
+  --ok-dot: #3FBF7F;
+  --warn: #9A430C;
+  --warn-strong: #B4500F;
+  --warn-soft: #FFE8D6;
+  --danger: #A61E1E;
+  --danger-soft: #FDE7E7;
+  --info: #0F766E;
+  --violet: #7C3AED;
+
+  /* Nhóm bài trên sidebar */
+  --nhom-mau: var(--text-muted);
+  --nhom-luyen-tap: var(--accent);
+  --nhom-thuc-hanh: var(--info);
+  --nhom-kiem-tra: var(--warn);
+
+  /* Ô code */
+  --code-bg: #141A2E;
+  --code-text: #DDE2F5;
+
+  /* Khoảng cách, bo góc, bóng */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(20, 26, 46, 0.06);
+  --shadow-2: 0 4px 16px rgba(20, 26, 46, 0.08);
+}
+
+/* Nền tối: C điền tiếp, giữ đúng tên biến */
+:root[data-theme="dark"] {
+  --bg: #0F1322;
+  --surface: #161B2E;
+  --surface-2: #1B2136;
+  --surface-3: #222941;
+  --border: #2A3150;
+  --border-strong: #353D60;
+  --text: #E8EBF5;
+  --text-2: #C3C9DE;
+  --text-muted: #8F98B8;
+  --text-faint: #646D90;
+  --accent: #6F7FF0;
+  --accent-strong: #8E9BF5;
+  --accent-soft: #232B55;
+}
