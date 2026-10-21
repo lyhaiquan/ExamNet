@@ -13,12 +13,14 @@ import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.cast.CastModule;
 import labcast.server.classroom.ClassEvents;
+import labcast.server.lesson.LessonRepository;
 import labcast.server.presence.AppFocus;
 import labcast.server.session.Session;
 
 /**
  * Số liệu cho trang dashboard ({@code http://localhost:8080/}): học viên nào đang vào, mạng tốt hay chập
- * chờn, ai đang rời app, lượt chạy code gần đây, nhật ký sự kiện và log server. Chỉ đọc, không đổi gì.
+ * chờn, ai đang rời app, ai làm nhiều làm ít, lượt chạy code gần đây, nhật ký sự kiện và log server (mỗi
+ * dòng kèm loại theo {@link LogCategory} để lọc). Chỉ đọc, không đổi gì.
  *
  * <p>KHÔNG đưa token phiên hay mật khẩu băm vào JSON. Mỗi bảng lấy tối đa vài chục dòng mới nhất để
  * trang hỏi 2 giây một lần cũng không làm nặng database (một kết nối SQLite dùng chung).
@@ -29,6 +31,9 @@ public final class Dashboard {
     static final int AUDIT = 60;
     static final int LOGS = 120;
     static final int STUDENTS = 500;
+    /** Mã bài bỏ đuôi ngôn ngữ: {@code dsa.cay.heap-them#cpp} → {@code dsa.cay.heap-them}. */
+    private static final String BAI = "(CASE WHEN instr(s.lesson_id, '#') > 0"
+            + " THEN substr(s.lesson_id, 1, instr(s.lesson_id, '#') - 1) ELSE s.lesson_id END)";
 
     private final ServerContext ctx;
     private final BuildInfo info;
@@ -62,6 +67,14 @@ public final class Dashboard {
             sessions.put(s.userId(), s);
         }
         Optional<AppFocus> focus = ctx.find(AppFocus.class);
+        root.put(
+                "baiNopDuoc",
+                ctx.find(LessonRepository.class)
+                        .map(r -> r.all().stream()
+                                .filter(l -> !l.loai().equals("giang-giai"))
+                                .count())
+                        .orElse(0L));
+        Map<Long, ObjectNode> stats = stats();
         ArrayNode students = root.putArray("students");
         try {
             ctx.db().read(c -> {
@@ -76,6 +89,7 @@ public final class Dashboard {
                             n.put("username", rs.getString(2));
                             n.put("fullName", rs.getString(3));
                             student(n, id, sessions.get(id), focus, now);
+                            n.set("stats", stats.getOrDefault(id, emptyStats()));
                         }
                     }
                 }
@@ -120,6 +134,7 @@ public final class Dashboard {
                             n.put("ts", rs.getLong(1));
                             n.put("actor", rs.getString(2));
                             n.put("action", rs.getString(3));
+                            n.put("category", LogCategory.ofAction(rs.getString(3)));
                             n.put("detail", rs.getString(4));
                         }
                     }
@@ -137,10 +152,63 @@ public final class Dashboard {
                 n.put("ts", l.ts());
                 n.put("level", l.level());
                 n.put("logger", l.logger());
+                n.put("category", l.category());
                 n.put("message", l.message());
             });
         }
         return root.toString();
+    }
+
+    /**
+     * Học viên làm nhiều hay ít: số lượt chạy, lượt nộp, nộp sai, số bài đã giải (nộp đúng, mỗi bài tính
+     * một lần), tổng điểm (điểm cao nhất của mỗi bài đã giải) và lúc chạy hoặc nộp gần nhất. Một câu
+     * GROUP BY trên {@code submissions}, có index theo user_id.
+     *
+     * <p>Bản ngôn ngữ khác của một bài có mã {@code <bài>#cpp}, {@code <bài>#java}…: bỏ đuôi {@code #…}
+     * trước khi đếm, giải một bài bằng hai ngôn ngữ vẫn là một bài.
+     */
+    private Map<Long, ObjectNode> stats() {
+        Map<Long, ObjectNode> out = new HashMap<>();
+        try {
+            ctx.db().read(c -> {
+                try (var st = c.prepareStatement("SELECT s.user_id,"
+                        + " SUM(s.kind = 'RUN'), SUM(s.kind = 'SUBMIT'), SUM(s.kind = 'SUBMIT' AND s.verdict <> 'OK'),"
+                        + " COUNT(DISTINCT CASE WHEN s.kind = 'SUBMIT' AND s.verdict = 'OK' THEN " + BAI + " END),"
+                        + " MAX(s.created_at), COALESCE(b.diem, 0)"
+                        + " FROM submissions s LEFT JOIN (SELECT user_id, SUM(cao) AS diem FROM (SELECT s.user_id,"
+                        + " MAX(s.score) AS cao FROM submissions s WHERE s.kind = 'SUBMIT' AND s.verdict = 'OK'"
+                        + " GROUP BY s.user_id, " + BAI + ") GROUP BY user_id) b ON b.user_id = s.user_id"
+                        + " GROUP BY s.user_id")) {
+                    try (ResultSet rs = st.executeQuery()) {
+                        while (rs.next()) {
+                            ObjectNode n = JsonPayload.MAPPER.createObjectNode();
+                            n.put("chay", rs.getInt(2));
+                            n.put("nop", rs.getInt(3));
+                            n.put("nopSai", rs.getInt(4));
+                            n.put("daGiai", rs.getInt(5));
+                            n.put("lanCuoi", rs.getLong(6));
+                            n.put("diem", rs.getInt(7));
+                            out.put(rs.getLong(1), n);
+                        }
+                    }
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "Dashboard không đọc được thống kê học viên", e);
+        }
+        return out;
+    }
+
+    private static ObjectNode emptyStats() {
+        ObjectNode n = JsonPayload.MAPPER.createObjectNode();
+        n.put("chay", 0);
+        n.put("nop", 0);
+        n.put("nopSai", 0);
+        n.put("daGiai", 0);
+        n.put("lanCuoi", 0L);
+        n.put("diem", 0);
+        return n;
     }
 
     private void student(ObjectNode n, long id, Session s, Optional<AppFocus> focus, long now) {
