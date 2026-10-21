@@ -2,13 +2,14 @@
 
 Đọc từ stdin một object JSON:
 
-    {"k": "<khoá bí mật của lượt chấm>", "code": "...", "time_limit_ms": 1000,
+    {"k": "<khoá bí mật của lượt chấm>", "code": "...", "time_limit_ms": 1000, "ngon_ngu": "python",
      "tests": [{"id": "nho-1", "input": "3 2 1\\n"}, ...],
      "cam": {"cam_dung": ["sorted", "sort"], "cam_import": [], "cam_cu_phap": []}}
 
 In ra stdout, mỗi dòng một JSON, dòng nào cũng kèm "k":
 
     {"k": "...", "t": "cam", "loi": ["Không được dùng sorted (dòng 4)"]}      # dùng hàm cấm: dừng luôn
+    {"k": "...", "t": "bien_dich", "loi": "Lỗi biên dịch: ...", "dong": 3}     # C/C++/Java không biên dịch được
     {"k": "...", "t": "test", "id": "nho-1", "status": "OK", "time_ms": 41, "stdout": "...", "error": null}
     {"k": "...", "t": "done"}
 
@@ -32,6 +33,7 @@ import tempfile
 import time
 
 import kiem_cam
+import ngon_ngu as ngon_ngu_mod
 
 THU_MUC = os.path.dirname(os.path.abspath(__file__))
 CHAY_MOT = os.path.join(THU_MUC, "chay_mot.py")
@@ -97,6 +99,9 @@ def main():
 
     code = job.get("code", "")
     cam = job.get("cam", {})
+    if job.get("ngon_ngu", "python") != "python":
+        cham_ngon_ngu(job, in_ra)
+        return
     loi = kiem_cam.kiem(code, cam.get("cam_dung", ()), cam.get("cam_import", ()), cam.get("cam_cu_phap", ()))
     if loi:
         in_ra({"t": "cam", "loi": loi})
@@ -109,6 +114,32 @@ def main():
             f.write(code)
         for t in job.get("tests", []):
             kq = chay_test(duong_dan, t.get("input", ""), gioi_han)
+            kq.update({"t": "test", "id": t["id"]})
+            in_ra(kq)
+    in_ra({"t": "done"})
+
+
+def cham_ngon_ngu(job, in_ra):
+    """C/C++/Java: kiểm tên cấm, biên dịch MỘT lần, chạy từng test ở tiến trình riêng như bài Python."""
+    ngon_ngu = job["ngon_ngu"]
+    code = job.get("code", "")
+    cam = job.get("cam", {})
+    ds_cam = kiem_cam.cam_cua(ngon_ngu, cam.get("cam_dung", ()), cam.get("cam_import", ()),
+                              cam.get("cam_theo_ngon_ngu"))
+    loi = kiem_cam.kiem_ngon_ngu(code, ngon_ngu, ds_cam)
+    if loi:
+        in_ra({"t": "cam", "loi": loi})
+        return
+    gioi_han = int(job.get("time_limit_ms", 1000))
+    with ngon_ngu_mod.ThuMuc(ngon_ngu, code) as tm:
+        ok, loi_bd, dong = tm.bien_dich()
+        if not ok:
+            in_ra({"t": "bien_dich", "loi": loi_bd, "dong": dong})
+            return
+        for t in job.get("tests", []):
+            kq = ngon_ngu_mod.chay(tm, t.get("input", ""), gioi_han)
+            kq.pop("stdout_truncated", None)
+            kq.pop("error_line", None)
             kq.update({"t": "test", "id": t["id"]})
             in_ra(kq)
     in_ra({"t": "done"})

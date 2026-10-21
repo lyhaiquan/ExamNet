@@ -11,6 +11,7 @@ Hàm tự viết trùng tên (`def sort(a): ...`) là code của học viên, kh
 """
 
 import ast
+import re
 
 NE_KIEM_TRA = ("eval", "exec", "compile", "__import__", "__builtins__")
 # Lấy lại hàm cấm dưới tên khác: from builtins import sorted as s, importlib.import_module(...)
@@ -101,3 +102,92 @@ def _ten_cu_phap(kieu):
         "Set": "Không được dùng set {x}",
         "SetComp": "Không được dùng set comprehension",
     }.get(kieu, f"Không được dùng cú pháp {kieu}")
+
+
+# ---- C, C++, Java (spec đa ngôn ngữ §2) ------------------------------------------------------------------
+
+# Bài chỉ khai báo hàm cấm cho Python (cam_dung, cam_import) mà không có cam_theo_ngon_ngu: suy ra hàm tương
+# đương ở ngôn ngữ khác, để "không dùng sort" ở Python cũng là "không dùng std::sort" ở C++.
+# Tên bắt đầu bằng "." là phương thức của đối tượng bất kỳ (list.sort(), s.indexOf()).
+TUONG_DUONG = {
+    "sort": {"c": ["qsort"], "cpp": ["sort", "stable_sort", "partial_sort", "nth_element", "qsort"],
+             "java": ["Arrays.sort", "Collections.sort", ".sort", ".sorted"]},
+    "sorted": {"c": ["qsort"], "cpp": ["sort", "stable_sort", "partial_sort", "nth_element", "qsort"],
+               "java": ["Arrays.sort", "Collections.sort", ".sort", ".sorted"]},
+    "min": {"cpp": ["min_element", "minmax_element"], "java": ["Collections.min", ".min"]},
+    "max": {"cpp": ["max_element", "minmax_element"], "java": ["Collections.max", ".max"]},
+    "reversed": {"cpp": ["reverse"], "java": ["Collections.reverse", ".reverse"]},
+    "index": {"c": ["strchr", "strstr", "memchr"], "cpp": ["find", "find_if", ".find"],
+              "java": [".indexOf", ".lastIndexOf"]},
+    "find": {"c": ["strchr", "strstr", "memchr"], "cpp": ["find", "find_if", ".find"],
+             "java": [".indexOf", ".lastIndexOf", ".contains"]},
+    "count": {"cpp": ["count", "count_if", ".count"], "java": ["Collections.frequency"]},
+    "set": {"cpp": ["set", "unordered_set", "multiset"], "java": ["HashSet", "TreeSet", "LinkedHashSet"]},
+    "frozenset": {"cpp": ["set", "unordered_set"], "java": ["HashSet", "TreeSet"]},
+    "dict": {"cpp": ["map", "unordered_map", "multimap"],
+             "java": ["HashMap", "TreeMap", "LinkedHashMap", "Hashtable"]},
+    "bin": {"cpp": ["bitset"], "java": ["Integer.toBinaryString", "Long.toBinaryString", "Integer.toString"]},
+    "format": {"cpp": ["bitset"], "java": ["Integer.toBinaryString", "Long.toBinaryString"]},
+}
+TUONG_DUONG_IMPORT = {
+    "heapq": {"cpp": ["priority_queue", "make_heap", "push_heap", "pop_heap"], "java": ["PriorityQueue"]},
+    "bisect": {"cpp": ["lower_bound", "upper_bound", "binary_search", "equal_range"],
+               "java": ["Arrays.binarySearch", "Collections.binarySearch"]},
+    "collections": {"cpp": ["deque", "queue", "list"], "java": ["ArrayDeque", "LinkedList", "Deque", "Queue"]},
+    "queue": {"cpp": ["deque", "queue"], "java": ["ArrayDeque", "LinkedList", "Deque", "Queue"]},
+    "itertools": {"cpp": ["next_permutation", "prev_permutation"]},
+}
+
+_CHU_THICH_CHUOI = re.compile(
+    r"//[^\n]*|/\*.*?\*/|\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'", re.S)
+
+
+def _bo_chu_thich_chuoi(code):
+    """Thay chú thích và chuỗi bằng dấu cách (giữ xuống dòng để số dòng vẫn đúng)."""
+    return _CHU_THICH_CHUOI.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), code)
+
+
+def cam_cua(ngon_ngu, cam_dung=(), cam_import=(), cam_theo_ngon_ngu=None):
+    """Danh sách tên cấm cho ngôn ngữ: khai báo riêng của bài nếu có, không thì suy từ cấm của Python."""
+    if cam_theo_ngon_ngu and ngon_ngu in cam_theo_ngon_ngu:
+        return list(cam_theo_ngon_ngu[ngon_ngu])
+    ds = []
+    for ten in cam_dung:
+        ds += TUONG_DUONG.get(ten, {}).get(ngon_ngu, [])
+    for ten in cam_import:
+        ds += TUONG_DUONG_IMPORT.get(ten, {}).get(ngon_ngu, [])
+    return list(dict.fromkeys(ds))
+
+
+def kiem_ngon_ngu(code, ngon_ngu, cam):
+    """Kiểm thô bằng tên (sau khi bỏ chú thích, chuỗi). Trả danh sách lỗi có số dòng, rỗng nếu không vi phạm.
+
+    Hàm học viên tự định nghĩa trùng tên (`void sort(int a[], int n) { … }`) không bị bắt. Đổi tên qua
+    `#define` hay con trỏ hàm vẫn lách được: bài cần chặt thì cho làm bằng Python có luật soi trace.
+    """
+    if not cam:
+        return []
+    sach = _bo_chu_thich_chuoi(code)
+    tu_dinh_nghia = set(re.findall(r"\b([A-Za-z_]\w*)\s*\([^;{}()]*\)\s*(?:const\s*)?\{", sach))
+    tu_dinh_nghia |= set(re.findall(r"\b(?:class|struct|interface|enum)\s+([A-Za-z_]\w*)", sach))
+    loi = []
+    for ten in cam:
+        # std::sort cũng bắt sort(...) viết sau using namespace std
+        ten = ten[5:] if ten.startswith("std::") else ten
+        if ten.startswith("."):
+            mau = r"\.\s*" + re.escape(ten[1:]) + r"\s*\("
+            hien_ten = ten + "()"
+        elif "." in ten or "::" in ten:
+            phan = re.split(r"\.|::", ten)
+            mau = r"\b" + r"\s*(?:\.|::)\s*".join(re.escape(p) for p in phan) + r"\b"
+            hien_ten = ten
+        else:
+            if ten in tu_dinh_nghia:
+                continue
+            mau = r"(?<![\w.])(?:std\s*::\s*)?" + re.escape(ten) + r"\b(?!\s*::)"
+            hien_ten = ten
+        m = re.search(mau, sach)
+        if m:
+            dong = sach.count("\n", 0, m.start()) + 1
+            loi.append(f"Không được dùng {hien_ten} (dòng {dong})")
+    return loi
