@@ -14,7 +14,8 @@ import java.util.logging.SimpleFormatter;
  * khởi động; vòng có giới hạn nên chạy cả buổi học cũng không tốn thêm bộ nhớ.
  */
 public final class LogBuffer extends Handler {
-    public record Line(long ts, String level, String logger, String message) {}
+    /** {@code logger} là tên lớp ngắn; {@code category} là loại theo {@link LogCategory#ofLogger}. */
+    public record Line(long ts, String level, String logger, String category, String message) {}
 
     private final int capacity;
     private final Deque<Line> lines = new ArrayDeque<>();
@@ -35,7 +36,12 @@ public final class LogBuffer extends Handler {
             msg += " — " + r.getThrown();
         }
         String logger = r.getLoggerName() == null ? "" : r.getLoggerName();
-        Line line = new Line(r.getMillis(), r.getLevel().getName(), logger.substring(logger.lastIndexOf('.') + 1), msg);
+        Line line = new Line(
+                r.getMillis(),
+                r.getLevel().getName(),
+                logger.substring(logger.lastIndexOf('.') + 1),
+                LogCategory.ofLogger(logger),
+                msg);
         synchronized (lines) {
             lines.addLast(line);
             while (lines.size() > capacity) {
