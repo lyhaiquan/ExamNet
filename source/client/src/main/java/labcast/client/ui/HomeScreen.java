@@ -905,21 +905,25 @@ public final class HomeScreen extends BorderPane {
         c.send(MessageType.ADMIN_LESSON_TOGGLE, new PayloadWriter().str(lessonId).bool(active).toBytes());
         reply.orTimeout(10, TimeUnit.SECONDS)
                 .whenComplete((f, err) -> Platform.runLater(() -> {
-                    if (err != null || f.type() != MessageType.ADMIN_OK) {
-                        alert(Alert.AlertType.ERROR, "Không đổi được trạng thái bài: " + (err != null ? err.getMessage() : ErrorMessage.from(f).message()));
-                        return;
-                    }
-                    for (int i = 0; i < allLessons.size(); i++) {
-                        JsonNode n = allLessons.get(i);
-                        if (lessonId.equals(n.path("id").asText())) {
-                            if (n instanceof ObjectNode on) {
-                                on.put("active", active);
-                            }
-                            break;
+                    try {
+                        if (err != null || f.type() != MessageType.ADMIN_OK) {
+                            alert(Alert.AlertType.ERROR, "Không đổi được trạng thái bài: " + (err != null ? err.getMessage() : ErrorMessage.from(f).message()));
+                            return;
                         }
+                        for (int i = 0; i < allLessons.size(); i++) {
+                            JsonNode n = allLessons.get(i);
+                            if (lessonId.equals(n.path("id").asText())) {
+                                if (n instanceof ObjectNode on) {
+                                    on.put("active", active);
+                                }
+                                break;
+                            }
+                        }
+                        rebuildSidebar();
+                        setStatus(active ? "Đã mở kích hoạt bài " + lessonId : "Đã tạm ẩn bài " + lessonId, null);
+                    } catch (Exception e) {
+                        alert(Alert.AlertType.ERROR, e.getMessage());
                     }
-                    rebuildSidebar();
-                    setStatus(active ? "Đã mở kích hoạt bài " + lessonId : "Đã tạm ẩn bài " + lessonId, null);
                 }));
     }
 
