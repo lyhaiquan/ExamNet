@@ -64,7 +64,9 @@ public final class TraceTablePane extends BorderPane {
         TableColumn<Step, String> vars = new TableColumn<>("Biến tại bước này");
         vars.setCellValueFactory(v -> new ReadOnlyStringWrapper(v.getValue().vars()));
         vars.setPrefWidth(405);
-        table.getColumns().addAll(number, line, vars);
+        table.getColumns().add(number);
+        table.getColumns().add(line);
+        table.getColumns().add(vars);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setItems(shown);
         table.setPlaceholder(placeholder);

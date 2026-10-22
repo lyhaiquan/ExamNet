@@ -1,23 +1,36 @@
 package labcast.server.lesson;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import labcast.common.protocol.ErrorCode;
+import labcast.common.protocol.Frame;
 import labcast.common.protocol.JsonPayload;
 import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
+import labcast.common.protocol.PayloadReader;
+import labcast.common.protocol.PayloadWriter;
 import labcast.common.protocol.ProtocolException;
+import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
 import labcast.server.journal.CodeStore;
@@ -38,6 +51,8 @@ public final class LessonModule implements ServerModule {
     private LessonRepository repo;
     /** Trace giảng giải: chạy lời giải mẫu với demo.in lần đầu được hỏi, rồi giữ trong bộ nhớ. */
     private final Map<String, CompletableFuture<List<String>>> demoTraces = new ConcurrentHashMap<>();
+    /** Danh sách id các bài tạm tắt (inactive) */
+    private final Set<String> inactiveLessons = ConcurrentHashMap.newKeySet();
 
     @Override
     public void install(ServerContext ctx) {
@@ -64,7 +79,14 @@ public final class LessonModule implements ServerModule {
                 DemoTraces.class,
                 id -> repo.get(id).map(this::demoTrace).orElseGet(() -> CompletableFuture.completedFuture(List.of())));
 
-        ctx.router().on(MessageType.LESSON_LIST, this::list).on(MessageType.LESSON_FETCH, this::fetch);
+        loadInactiveLessons();
+
+        ctx.router()
+                .on(MessageType.LESSON_LIST, this::list)
+                .on(MessageType.LESSON_FETCH, this::fetch)
+                .on(MessageType.ADMIN_LESSON_DELETE, Set.of(Role.TEACHER), this::deleteLesson)
+                .on(MessageType.ADMIN_LESSON_TOGGLE, Set.of(Role.TEACHER), this::toggleLesson)
+                .on(MessageType.ADMIN_LESSON_UPLOAD, Set.of(Role.TEACHER), this::uploadLesson);
     }
 
     /**
@@ -72,7 +94,8 @@ public final class LessonModule implements ServerModule {
      * MASTERED = nộp đúng; OPEN = đã nộp nhưng chưa đạt;
      * NOT_STARTED = chưa có dòng progress (có thể đã lưu code nháp).
      */
-    private void list(Ctx c, labcast.common.protocol.Frame f) throws SQLException {
+    private void list(Ctx c, Frame f) throws SQLException {
+        boolean isTeacher = c.session() != null && c.session().role() == Role.TEACHER;
         Map<String, Map<String, Object>> progress = new HashMap<>();
         ctx.db().read(dbConn -> {
             try (PreparedStatement ps =
@@ -92,14 +115,16 @@ public final class LessonModule implements ServerModule {
         });
         List<Map<String, Object>> items = new ArrayList<>();
         for (Lesson l : repo.all()) {
+            boolean active = !inactiveLessons.contains(l.id());
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", l.id());
             m.put("mon", l.mon());
             m.put("chuong", l.chuong());
             m.put("ten", l.ten());
             m.put("loai", l.loai());
+            m.put("active", active);
             Map<String, Object> state = progress.get(l.id());
-            m.put("status", state == null ? "NOT_STARTED" : state.get("status"));
+            m.put("status", !active && !isTeacher ? "LOCKED" : (state == null ? "NOT_STARTED" : state.get("status")));
             if (state != null && state.containsKey("score")) m.put("score", state.get("score"));
             items.add(m);
         }
@@ -112,8 +137,12 @@ public final class LessonModule implements ServerModule {
      * học viên đang có trên server, để mở lại bài thì làm tiếp đúng chỗ (ngôn ngữ khác: {@code CODE_FETCH}).
      * {@code ngonNgu}: mã các ngôn ngữ được chọn; {@code loiGiai}: lời giải C/C++/Java của bài giảng giải.
      */
-    private void fetch(Ctx c, labcast.common.protocol.Frame f) throws Exception {
+    private void fetch(Ctx c, Frame f) throws Exception {
         String id = f.reader().str();
+        boolean isTeacher = c.session() != null && c.session().role() == Role.TEACHER;
+        if (!isTeacher && inactiveLessons.contains(id)) {
+            throw new ProtocolException(ErrorCode.FORBIDDEN, "Bài học này hiện chưa được mở");
+        }
         Lesson l = repo.get(id).orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không có bài " + id));
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("kind", "lesson");
@@ -232,6 +261,229 @@ public final class LessonModule implements ServerModule {
                         ps.setString(7, l.contentHash());
                         ps.addBatch();
                     }
+                }
+                ps.executeBatch();
+            }
+            return null;
+        });
+    }
+
+    /** {@code ADMIN_LESSON_TOGGLE(str lessonId, bool active)} → {@code ADMIN_OK(str message)}. */
+    private void toggleLesson(Ctx c, Frame f) throws Exception {
+        PayloadReader r = f.reader();
+        String lessonId = r.str();
+        boolean active = r.bool();
+        if (active) {
+            inactiveLessons.remove(lessonId);
+        } else {
+            inactiveLessons.add(lessonId);
+        }
+        saveInactiveLessons();
+        String msg = (active ? "Đã mở kích hoạt bài: " : "Đã tạm ẩn bài: ") + lessonId;
+        ctx.audit().record(c.session().username(), "ADMIN_LESSON_TOGGLE", msg);
+        c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(msg).toBytes());
+    }
+
+    /** {@code ADMIN_LESSON_UPLOAD(str filename, blob zipBytes)} → {@code ADMIN_OK(str message)}. */
+    @SuppressWarnings("unchecked")
+    private void uploadLesson(Ctx c, Frame f) throws Exception {
+        PayloadReader r = f.reader();
+        String filename = r.str();
+        byte[] zipBytes = r.blob();
+        if (zipBytes.length == 0) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "File zip rỗng");
+        }
+        Path tempDir = Files.createTempDirectory("labcast-upload-");
+        try {
+            try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    String name = entry.getName().replace('\\', '/');
+                    if (name.contains("..") || name.startsWith("/")) {
+                        throw new ProtocolException(ErrorCode.BAD_FRAME, "Đường dẫn không hợp lệ trong zip: " + name);
+                    }
+                    Path target = tempDir.resolve(name);
+                    if (entry.isDirectory()) {
+                        Files.createDirectories(target);
+                    } else {
+                        Files.createDirectories(target.getParent());
+                        Files.copy(zis, target, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    zis.closeEntry();
+                }
+            }
+
+            Path lessonYaml;
+            try (var stream = Files.walk(tempDir)) {
+                lessonYaml = stream.filter(p -> p.getFileName().toString().equals("lesson.yaml"))
+                        .findFirst()
+                        .orElseThrow(() -> new ProtocolException(
+                                ErrorCode.BAD_FRAME, "Không tìm thấy file lesson.yaml trong file zip"));
+            }
+
+            Path lessonDir = lessonYaml.getParent();
+            Map<String, Object> y;
+            try (var in = Files.newInputStream(lessonYaml)) {
+                Object o = new org.yaml.snakeyaml.Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(
+                                new org.yaml.snakeyaml.LoaderOptions()))
+                        .load(in);
+                if (!(o instanceof Map)) {
+                    throw new ProtocolException(ErrorCode.BAD_FRAME, "lesson.yaml phải là một map/object");
+                }
+                y = (Map<String, Object>) o;
+            }
+            String id = String.valueOf(y.get("id"));
+            String mon = String.valueOf(y.get("mon"));
+            String chuong = String.valueOf(y.get("chuong"));
+            if (id == null || id.isBlank() || mon == null || chuong == null) {
+                throw new ProtocolException(ErrorCode.BAD_FRAME, "lesson.yaml thiếu id, mon hoặc chuong");
+            }
+            String[] parts = id.split("\\.");
+            if (parts.length != 3 || !parts[0].equals(mon) || !parts[1].equals(chuong)) {
+                throw new ProtocolException(
+                        ErrorCode.BAD_FRAME,
+                        "id phải có định dạng <mon>.<chuong>.<ten-bai>, ví dụ: " + mon + "." + chuong + ".bai-1");
+            }
+
+            Path contentRoot = ctx.config().content();
+            Path destDir = contentRoot.resolve(parts[0]).resolve(parts[1]).resolve(parts[2]);
+            Files.createDirectories(destDir);
+
+            try (var files = Files.walk(lessonDir)) {
+                for (Path src : files.toList()) {
+                    Path relPath = lessonDir.relativize(src);
+                    Path dst = destDir.resolve(relPath.toString());
+                    if (Files.isDirectory(src)) {
+                        Files.createDirectories(dst);
+                    } else {
+                        Files.createDirectories(dst.getParent());
+                        Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
+            }
+
+            String rel = contentRoot.relativize(destDir).toString().replace('\\', '/');
+            Lesson l = LessonRepository.parseLesson(destDir, rel);
+            repo.addOrUpdate(l);
+            syncSingleLessonToDb(ctx.db(), l);
+
+            String msg = "Tải lên thành công bài: " + l.ten() + " (" + l.id() + ")";
+            ctx.audit().record(c.session().username(), "ADMIN_LESSON_UPLOAD", msg);
+            c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(msg).toBytes());
+        } finally {
+            try (var s = Files.walk(tempDir)) {
+                s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (Exception ignored) {
+                    }
+                });
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    /** {@code ADMIN_LESSON_DELETE(str lessonId)} → {@code ADMIN_OK(str message)}. */
+    private void deleteLesson(Ctx c, Frame f) throws Exception {
+        PayloadReader r = f.reader();
+        String lessonId = r.str();
+        if (lessonId == null || lessonId.isBlank()) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Mã bài học không hợp lệ");
+        }
+        Optional<Lesson> opt = repo.get(lessonId);
+        if (opt.isEmpty()) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Không tìm thấy bài học: " + lessonId);
+        }
+        Lesson l = opt.get();
+        Path lessonDir = l.dir();
+
+        Path contentRoot = ctx.config().content().toAbsolutePath().normalize();
+        Path targetDir = lessonDir.toAbsolutePath().normalize();
+        if (!targetDir.startsWith(contentRoot) || targetDir.equals(contentRoot)) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Đường dẫn bài học không hợp lệ hoặc nằm ngoài content");
+        }
+
+        if (Files.exists(targetDir)) {
+            try (var s = Files.walk(targetDir)) {
+                s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (Exception ignored) {
+                    }
+                });
+            }
+        }
+
+        repo.remove(lessonId);
+        synchronized (inactiveLessons) {
+            if (inactiveLessons.remove(lessonId)) {
+                saveInactiveLessons();
+            }
+        }
+
+        try {
+            ctx.db().tx(conn -> {
+                try (var ps = conn.prepareStatement("DELETE FROM lessons WHERE id = ? OR id LIKE ?")) {
+                    ps.setString(1, lessonId);
+                    ps.setString(2, lessonId + "#%");
+                    ps.executeUpdate();
+                }
+                return null;
+            });
+        } catch (Exception ex) {
+            LOG.warning("Không xoá được dòng bài học trong db: " + ex.getMessage());
+        }
+
+        String msg = "Đã xoá bài học: " + l.ten() + " (" + lessonId + ")";
+        ctx.audit().record(c.session().username(), "ADMIN_LESSON_DELETE", msg);
+        c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(msg).toBytes());
+    }
+
+    private void loadInactiveLessons() {
+        Path p = ctx.config().content().resolve(".inactive_lessons.json");
+        if (Files.exists(p)) {
+            try {
+                byte[] bytes = Files.readAllBytes(p);
+                JsonNode arr = JsonPayload.MAPPER.readTree(bytes);
+                if (arr != null && arr.isArray()) {
+                    for (JsonNode n : arr) {
+                        inactiveLessons.add(n.asText());
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warning("Không đọc được file .inactive_lessons.json: " + e.getMessage());
+            }
+        }
+    }
+
+    private synchronized void saveInactiveLessons() {
+        Path p = ctx.config().content().resolve(".inactive_lessons.json");
+        try {
+            List<String> list = new ArrayList<>(inactiveLessons);
+            Collections.sort(list);
+            byte[] bytes = JsonPayload.MAPPER.writerWithDefaultPrettyPrinter().writeValueAsBytes(list);
+            Files.write(p, bytes);
+        } catch (Exception e) {
+            LOG.warning("Không ghi được file .inactive_lessons.json: " + e.getMessage());
+        }
+    }
+
+    private static void syncSingleLessonToDb(Database db, Lesson l) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "INSERT INTO lessons (id, mon, chuong, ten, loai, path, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                            + " ON CONFLICT(id) DO UPDATE SET mon = excluded.mon, chuong = excluded.chuong,"
+                            + " ten = excluded.ten, loai = excluded.loai, path = excluded.path,"
+                            + " content_hash = excluded.content_hash")) {
+                for (Language lang : l.isSql() ? List.of(Language.PYTHON) : l.ngonNgu()) {
+                    ps.setString(1, Language.docKey(l.id(), lang));
+                    ps.setString(2, l.mon());
+                    ps.setString(3, l.chuong());
+                    ps.setString(4, l.ten());
+                    ps.setString(5, l.loai());
+                    ps.setString(6, l.dir().toString());
+                    ps.setString(7, l.contentHash());
+                    ps.addBatch();
                 }
                 ps.executeBatch();
             }

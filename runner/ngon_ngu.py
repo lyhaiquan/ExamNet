@@ -74,10 +74,12 @@ TIN_HIEU = {
                     "khởi tạo hoặc đệ quy quá sâu",
     signal.SIGFPE: "Lỗi số học (Floating point exception): thường là chia hoặc lấy dư cho 0",
     signal.SIGABRT: "Chương trình bị huỷ (abort): thường do assert sai, cấp phát lỗi hoặc ngoại lệ không bắt",
-    signal.SIGBUS: "Lỗi truy cập bộ nhớ (Bus error)",
     signal.SIGILL: "Lệnh không hợp lệ (Illegal instruction): thường do chia cho 0 hoặc hàm có kiểu trả về mà "
                    "thiếu return",
 }
+if hasattr(signal, "SIGBUS"):
+    TIN_HIEU[signal.SIGBUS] = "Lỗi truy cập bộ nhớ (Bus error)"
+
 
 
 def ho_tro(ngon_ngu):
@@ -209,7 +211,8 @@ def chay(tm, du_lieu, gioi_han_ms):
     if p.returncode == 0:
         return {"status": "TIME_LIMIT" if ms > gioi_han else "OK", "time_ms": ms, "stdout": stdout,
                 "error": None, "error_line": None, "stdout_truncated": len(p.stdout) > MAX_STDOUT}
-    het_cpu = p.returncode in (-signal.SIGXCPU, -signal.SIGKILL, 128 + signal.SIGXCPU, 128 + signal.SIGKILL)
+    _sig_cpu = tuple(s for s in (getattr(signal, "SIGXCPU", None), getattr(signal, "SIGKILL", None)) if s is not None)
+    het_cpu = any(p.returncode in (-s, 128 + s) for s in _sig_cpu)
     if ms > gioi_han or het_cpu:
         return {"status": "TIME_LIMIT", "time_ms": ms, "stdout": stdout, "error": None, "error_line": None}
     loi, dong = loi_chay(tm.ngon_ngu, p.returncode, p.stderr.decode("utf-8", "replace"))
@@ -325,7 +328,7 @@ def chay_tung_dong(tm, du_lieu, gioi_han_ms, tran=TRAN_BUOC):
         else:
             kq = {"status": "RUNTIME_ERROR", "time_ms": ms, "stdout": stdout, "error": loi,
                   "error_line": meta.get("dong")}
-    elif meta.get("ma", 0) in (128 + signal.SIGXCPU, 128 + signal.SIGKILL):
+    elif any(meta.get("ma", 0) == 128 + s for s in (getattr(signal, "SIGXCPU", None), getattr(signal, "SIGKILL", None)) if s is not None):
         # JVM bài làm chết vì giới hạn CPU kế thừa từ debugger: quá giờ
         kq = {"status": "TIME_LIMIT", "time_ms": ms, "stdout": stdout, "error": None, "error_line": None}
     elif meta.get("ma", 0) != 0:

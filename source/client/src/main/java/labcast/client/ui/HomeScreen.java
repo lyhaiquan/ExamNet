@@ -1,6 +1,7 @@
 package labcast.client.ui;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,6 +23,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.OverrunStyle;
@@ -232,7 +234,12 @@ public final class HomeScreen extends BorderPane {
                     && node != null
                     && node.getValue() != null
                     && node.getValue().isLesson()) {
-                String id = node.getValue().lesson().path("id").asText();
+                JsonNode lesson = node.getValue().lesson();
+                if (li.role() == Role.STUDENT && !lesson.path("active").asBoolean(true)) {
+                    setStatus("Bài học này hiện chưa được mở", "warning");
+                    return;
+                }
+                String id = lesson.path("id").asText();
                 if (!id.equals(openLesson.get())) open(id);
             }
         });
@@ -420,7 +427,7 @@ public final class HomeScreen extends BorderPane {
 
         // Không setLeft(null): nếu ẩn cả sidebar sẽ không còn nút để mở lại.
         // Khi thu gọn chỉ còn thanh icon 44 px, nội dung làm bài rộng hơn.
-        double defaultWidth = w < 1100 ? 220 : 260;
+        double defaultWidth = w < 1100 ? 260 : 300;
         double preferredWidth = Double.isNaN(sidebarUserWidth) ? defaultWidth : sidebarUserWidth;
         double maxWidth = w > 0 ? Math.max(180, Math.min(480, w - 380)) : 480;
         double expandedWidth = Math.max(180, Math.min(maxWidth, preferredWidth));
@@ -499,10 +506,14 @@ public final class HomeScreen extends BorderPane {
             bar.getChildren().add(castChip);
         }
         if (li.role() == Role.TEACHER) {
+            Button uploadBtn = new Button("Tải lên bài tập (.zip)…");
+            uploadBtn.getStyleClass().add("on-dark");
+            uploadBtn.setOnAction(e -> uploadLessonZip());
+
             Button importBtn = new Button("Nhập danh sách lớp (CSV)…");
             importBtn.getStyleClass().add("on-dark");
             importBtn.setOnAction(e -> importRoster());
-            bar.getChildren().add(importBtn);
+            bar.getChildren().addAll(uploadBtn, importBtn);
         }
         bar.getChildren().addAll(avatar, who);
 
@@ -538,28 +549,42 @@ public final class HomeScreen extends BorderPane {
         title.setTooltip(new Tooltip(fullTitle));
         HBox.setHgrow(title, Priority.ALWAYS);
 
+        boolean isTeacher = li.role() == Role.TEACHER;
+        boolean active = n.path("active").asBoolean(true);
+        String lessonId = n.path("id").asText();
+
         String value = n.path("status").asText("NOT_STARTED");
-        String iconText =
-                switch (value) {
-                    case "MASTERED" -> "✓";
-                    case "OPEN" -> "●";
-                    default -> "○";
-                };
-        String fullStatus =
-                switch (value) {
-                    case "MASTERED" -> "Đã hoàn thành";
-                    case "OPEN" -> "Đang học";
-                    default -> "Chưa có kết quả";
-                };
+        boolean isInactiveForStudent = (!isTeacher && !active);
+
+        String iconText;
+        String fullStatus;
+        if (isInactiveForStudent) {
+            iconText = "—";
+            fullStatus = "Chưa mở";
+        } else {
+            iconText = switch (value) {
+                case "MASTERED" -> "✓";
+                case "OPEN" -> "●";
+                default -> "○";};
+            fullStatus = switch (value) {
+                case "MASTERED" -> "Đã hoàn thành";
+                case "OPEN" -> "Đang học";
+                default -> "Chưa có kết quả";};
+        }
+
         Label state = new Label(iconText);
-        state.getStyleClass()
-                .addAll(
-                        "lesson-state-dot",
-                        switch (value) {
-                            case "MASTERED" -> "lesson-state-done";
-                            case "OPEN" -> "lesson-state-progress";
-                            default -> "lesson-state-new";
-                        });
+        state.getStyleClass().add("lesson-state-dot");
+        if (isInactiveForStudent) {
+            state.getStyleClass().add("lesson-state-disabled");
+        } else {
+            state.getStyleClass()
+                    .add(
+                            switch (value) {
+                                case "MASTERED" -> "lesson-state-done";
+                                case "OPEN" -> "lesson-state-progress";
+                                default -> "lesson-state-new";
+                            });
+        }
         state.setTooltip(new Tooltip(fullStatus));
         HBox firstLine = new HBox(4, title, state);
         firstLine.setAlignment(Pos.CENTER_LEFT);
@@ -567,17 +592,56 @@ public final class HomeScreen extends BorderPane {
         String type = LessonScreen.loaiLabel(n.path("loai").asText());
         Label typeLabel = new Label(type);
         typeLabel.getStyleClass().add("lesson-type-compact");
+        typeLabel.setMinWidth(50);
+        typeLabel.setPrefWidth(50);
+
         Label statusText = new Label(fullStatus);
         statusText.getStyleClass().add("lesson-detail-status");
-        if ("MASTERED".equals(value) && n.path("score").isNumber()) {
+        if (!isInactiveForStudent && "MASTERED".equals(value) && n.path("score").isNumber()) {
             statusText.setText(n.path("score").asText() + " điểm");
         }
         statusText.setTooltip(new Tooltip(fullStatus));
+        statusText.setMinWidth(86);
+        statusText.setPrefWidth(86);
+
         HBox secondLine = new HBox(6, typeLabel, statusText);
         secondLine.setAlignment(Pos.CENTER_LEFT);
 
+        if (isTeacher) {
+            Label toggleBadge = new Label(active ? "● Đang mở" : "○ Tạm ẩn");
+            toggleBadge
+                    .getStyleClass()
+                    .addAll("lesson-toggle-badge", active ? "lesson-toggle-active" : "lesson-toggle-inactive");
+            toggleBadge.setTooltip(new Tooltip(
+                    active ? "Nhấn để tạm ẩn bài tập đối với học viên" : "Nhấn để kích hoạt mở bài tập cho học viên"));
+            toggleBadge.setMinWidth(68);
+            toggleBadge.setPrefWidth(68);
+            toggleBadge.setAlignment(Pos.CENTER);
+            toggleBadge.setOnMouseClicked(e -> {
+                e.consume();
+                toggleLessonActive(lessonId, !active);
+            });
+
+            Label deleteBadge = new Label("✕");
+            deleteBadge.getStyleClass().add("lesson-delete-badge");
+            deleteBadge.setTooltip(new Tooltip("Xoá bài tập này khỏi hệ thống"));
+            deleteBadge.setMinSize(18, 16);
+            deleteBadge.setPrefSize(18, 16);
+            deleteBadge.setMaxSize(18, 16);
+            deleteBadge.setAlignment(Pos.CENTER);
+            deleteBadge.setOnMouseClicked(e -> {
+                e.consume();
+                deleteLesson(lessonId, n.path("ten").asText(lessonId));
+            });
+
+            secondLine.getChildren().addAll(toggleBadge, deleteBadge);
+        }
+
         VBox cell = new VBox(2, firstLine, secondLine);
         cell.getStyleClass().add("lesson-compact-row");
+        if (isInactiveForStudent) {
+            cell.getStyleClass().add("lesson-row-inactive");
+        }
         return cell;
     }
 
@@ -782,6 +846,14 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void open(String lessonId) {
+        if (li.role() == Role.STUDENT) {
+            for (JsonNode n : allLessons) {
+                if (lessonId.equals(n.path("id").asText()) && !n.path("active").asBoolean(true)) {
+                    setStatus("Bài học này hiện chưa được mở", "warning");
+                    return;
+                }
+            }
+        }
         // Chỉ bấm vào một bài mới gửi LESSON_FETCH. Code tự do không đi qua đây.
         if (playgroundOpen) hidePlayground();
         long requestVersion = ++lessonRequestVersion;
@@ -847,6 +919,130 @@ public final class HomeScreen extends BorderPane {
                                         ? f.reader().str()
                                         : ErrorMessage.from(f).message();
                         alert(Alert.AlertType.INFORMATION, msg);
+                    } catch (Exception e) {
+                        alert(Alert.AlertType.ERROR, e.getMessage());
+                    }
+                }));
+    }
+
+    private void toggleLessonActive(String lessonId, boolean active) {
+        LcpClient c = li.client();
+        var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
+        c.send(
+                MessageType.ADMIN_LESSON_TOGGLE,
+                new PayloadWriter().str(lessonId).bool(active).toBytes());
+        reply.orTimeout(10, TimeUnit.SECONDS)
+                .whenComplete((f, err) -> Platform.runLater(() -> {
+                    try {
+                        if (err != null || f.type() != MessageType.ADMIN_OK) {
+                            alert(
+                                    Alert.AlertType.ERROR,
+                                    "Không đổi được trạng thái bài: "
+                                            + (err != null
+                                                    ? err.getMessage()
+                                                    : ErrorMessage.from(f).message()));
+                            return;
+                        }
+                        for (int i = 0; i < allLessons.size(); i++) {
+                            JsonNode n = allLessons.get(i);
+                            if (lessonId.equals(n.path("id").asText())) {
+                                if (n instanceof ObjectNode on) {
+                                    on.put("active", active);
+                                }
+                                break;
+                            }
+                        }
+                        rebuildSidebar();
+                    } catch (Exception e) {
+                        alert(Alert.AlertType.ERROR, e.getMessage());
+                    }
+                }));
+    }
+
+    private void deleteLesson(String lessonId, String lessonTitle) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Xác nhận xoá bài tập");
+        confirm.setHeaderText("Xoá bài tập: " + lessonTitle);
+        confirm.setContentText(
+                "Bạn có chắc chắn muốn xoá bài tập này không?\nToàn bộ thư mục bài tập trong content/ sẽ bị xoá khỏi hệ thống.");
+        if (getScene() != null) {
+            confirm.initOwner(getScene().getWindow());
+        }
+        var res = confirm.showAndWait();
+        if (res.isEmpty() || res.get() != ButtonType.OK) {
+            return;
+        }
+
+        LcpClient c = li.client();
+        var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
+        try {
+            c.send(
+                    MessageType.ADMIN_LESSON_DELETE,
+                    new PayloadWriter().str(lessonId).toBytes());
+        } catch (Exception e) {
+            alert(Alert.AlertType.ERROR, "Lỗi gửi yêu cầu xoá: " + e.getMessage());
+            return;
+        }
+        reply.orTimeout(20, TimeUnit.SECONDS)
+                .whenComplete((Frame f, Throwable err) -> Platform.runLater(() -> {
+                    try {
+                        if (err != null || f.type() != MessageType.ADMIN_OK) {
+                            String msg = err != null
+                                    ? err.getMessage()
+                                    : ErrorMessage.from(f).message();
+                            alert(Alert.AlertType.ERROR, "Không xoá được bài: " + msg);
+                            return;
+                        }
+                        String msg = f.reader().str();
+                        alert(Alert.AlertType.INFORMATION, msg);
+                        allLessons.removeIf(
+                                node -> lessonId.equals(node.path("id").asText()));
+                        rebuildSidebar();
+                    } catch (Exception e) {
+                        alert(Alert.AlertType.ERROR, e.getMessage());
+                    }
+                }));
+    }
+
+    private void uploadLessonZip() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Chọn file ZIP bài tập (chứa lesson.yaml, de.md...)");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("File ZIP", "*.zip"));
+        File file = fc.showOpenDialog(getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        byte[] bytes;
+        try {
+            bytes = Files.readAllBytes(file.toPath());
+        } catch (Exception e) {
+            alert(Alert.AlertType.ERROR, "Không đọc được file: " + e.getMessage());
+            return;
+        }
+        setStatus("Đang tải lên bài tập…", null);
+        LcpClient c = li.client();
+        var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
+        c.send(
+                MessageType.ADMIN_LESSON_UPLOAD,
+                new PayloadWriter().str(file.getName()).blob(bytes).toBytes());
+        reply.orTimeout(60, TimeUnit.SECONDS)
+                .whenComplete((Frame f, Throwable err) -> Platform.runLater(() -> {
+                    try {
+                        if (err != null) {
+                            alert(Alert.AlertType.ERROR, "Server không phản hồi: " + err.getMessage());
+                            setStatus("Tải lên thất bại", "error");
+                            return;
+                        }
+                        if (f.type() == MessageType.ADMIN_OK) {
+                            String msg = f.reader().str();
+                            alert(Alert.AlertType.INFORMATION, msg);
+                            setStatus(msg, null);
+                            loadLessons();
+                        } else {
+                            String msg = ErrorMessage.from(f).message();
+                            alert(Alert.AlertType.ERROR, msg);
+                            setStatus("Lỗi: " + msg, "error");
+                        }
                     } catch (Exception e) {
                         alert(Alert.AlertType.ERROR, e.getMessage());
                     }

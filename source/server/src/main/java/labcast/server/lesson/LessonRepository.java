@@ -73,12 +73,20 @@ public final class LessonRepository {
         return new LessonRepository(out, errors);
     }
 
-    public Optional<Lesson> get(String id) {
+    public synchronized Optional<Lesson> get(String id) {
         return Optional.ofNullable(lessons.get(id));
     }
 
-    public List<Lesson> all() {
+    public synchronized List<Lesson> all() {
         return List.copyOf(lessons.values());
+    }
+
+    public synchronized void addOrUpdate(Lesson l) {
+        lessons.put(l.id(), l);
+    }
+
+    public synchronized boolean remove(String id) {
+        return lessons.remove(id) != null;
     }
 
     public List<String> errors() {
@@ -202,6 +210,10 @@ public final class LessonRepository {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public static Lesson parseLesson(Path dir, String rel) throws IOException {
+        return parse(dir, rel);
     }
 
     @SuppressWarnings("unchecked")
