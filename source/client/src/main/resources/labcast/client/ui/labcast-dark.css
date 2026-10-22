@@ -1275,7 +1275,7 @@
 }
 .lesson-toggle-badge {
     -fx-font-size: 9.5px;
-    -fx-padding: 1 5 1 5;
+    -fx-padding: 1 4 1 4;
     -fx-background-radius: 999px;
     -fx-cursor: hand;
 }
@@ -1291,13 +1291,14 @@
     -fx-background-color: rgba(148, 163, 184, 0.12);
 }
 .lesson-delete-badge {
-    -fx-font-size: 10px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
-    -fx-padding: 0 4 0 4;
+    -fx-padding: 0;
+    -fx-alignment: center;
     -fx-background-radius: 999px;
     -fx-cursor: hand;
     -fx-text-fill: #f87171;
-    -fx-background-color: rgba(239, 68, 68, 0.15);
+    -fx-background-color: rgba(239, 68, 68, 0.18);
 }
 .lesson-delete-badge:hover {
     -fx-text-fill: white;

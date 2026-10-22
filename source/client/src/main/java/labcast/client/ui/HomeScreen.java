@@ -427,7 +427,7 @@ public final class HomeScreen extends BorderPane {
 
         // Không setLeft(null): nếu ẩn cả sidebar sẽ không còn nút để mở lại.
         // Khi thu gọn chỉ còn thanh icon 44 px, nội dung làm bài rộng hơn.
-        double defaultWidth = w < 1100 ? 220 : 260;
+        double defaultWidth = w < 1100 ? 240 : 270;
         double preferredWidth = Double.isNaN(sidebarUserWidth) ? defaultWidth : sidebarUserWidth;
         double maxWidth = w > 0 ? Math.max(180, Math.min(480, w - 380)) : 480;
         double expandedWidth = Math.max(180, Math.min(maxWidth, preferredWidth));
@@ -602,20 +602,21 @@ public final class HomeScreen extends BorderPane {
             statusText.setText(n.path("score").asText() + " điểm");
         }
         statusText.setTooltip(new Tooltip(fullStatus));
-        statusText.setMinWidth(72);
-        statusText.setPrefWidth(72);
-        statusText.setMaxWidth(72);
+        statusText.setTextOverrun(OverrunStyle.ELLIPSIS);
+        statusText.setMinWidth(68);
+        statusText.setPrefWidth(68);
+        statusText.setMaxWidth(68);
 
-        HBox secondLine = new HBox(5, typeLabel, statusText);
+        HBox secondLine = new HBox(4, typeLabel, statusText);
         secondLine.setAlignment(Pos.CENTER_LEFT);
 
         if (isTeacher) {
             Label toggleBadge = new Label(active ? "● Đang mở" : "○ Tạm ẩn");
             toggleBadge.getStyleClass().addAll("lesson-toggle-badge", active ? "lesson-toggle-active" : "lesson-toggle-inactive");
             toggleBadge.setTooltip(new Tooltip(active ? "Nhấn để tạm ẩn bài tập đối với học viên" : "Nhấn để kích hoạt mở bài tập cho học viên"));
-            toggleBadge.setMinWidth(58);
-            toggleBadge.setPrefWidth(58);
-            toggleBadge.setMaxWidth(58);
+            toggleBadge.setMinWidth(56);
+            toggleBadge.setPrefWidth(56);
+            toggleBadge.setMaxWidth(56);
             toggleBadge.setAlignment(Pos.CENTER);
             toggleBadge.setOnMouseClicked(e -> {
                 e.consume();
@@ -625,9 +626,9 @@ public final class HomeScreen extends BorderPane {
             Label deleteBadge = new Label("✕");
             deleteBadge.getStyleClass().add("lesson-delete-badge");
             deleteBadge.setTooltip(new Tooltip("Xoá bài tập này khỏi hệ thống"));
-            deleteBadge.setMinWidth(16);
-            deleteBadge.setPrefWidth(16);
-            deleteBadge.setMaxWidth(16);
+            deleteBadge.setMinSize(18, 16);
+            deleteBadge.setPrefSize(18, 16);
+            deleteBadge.setMaxSize(18, 16);
             deleteBadge.setAlignment(Pos.CENTER);
             deleteBadge.setOnMouseClicked(e -> {
                 e.consume();
