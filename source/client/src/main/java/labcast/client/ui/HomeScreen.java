@@ -592,9 +592,9 @@ public final class HomeScreen extends BorderPane {
         String type = LessonScreen.loaiLabel(n.path("loai").asText());
         Label typeLabel = new Label(type);
         typeLabel.getStyleClass().add("lesson-type-compact");
-        typeLabel.setMinWidth(58);
-        typeLabel.setPrefWidth(58);
-        typeLabel.setMaxWidth(58);
+        typeLabel.setMinWidth(48);
+        typeLabel.setPrefWidth(48);
+        typeLabel.setMaxWidth(48);
 
         Label statusText = new Label(fullStatus);
         statusText.getStyleClass().add("lesson-detail-status");
@@ -602,20 +602,20 @@ public final class HomeScreen extends BorderPane {
             statusText.setText(n.path("score").asText() + " điểm");
         }
         statusText.setTooltip(new Tooltip(fullStatus));
-        statusText.setMinWidth(88);
-        statusText.setPrefWidth(88);
-        statusText.setMaxWidth(88);
+        statusText.setMinWidth(72);
+        statusText.setPrefWidth(72);
+        statusText.setMaxWidth(72);
 
-        HBox secondLine = new HBox(6, typeLabel, statusText);
+        HBox secondLine = new HBox(5, typeLabel, statusText);
         secondLine.setAlignment(Pos.CENTER_LEFT);
 
         if (isTeacher) {
             Label toggleBadge = new Label(active ? "● Đang mở" : "○ Tạm ẩn");
             toggleBadge.getStyleClass().addAll("lesson-toggle-badge", active ? "lesson-toggle-active" : "lesson-toggle-inactive");
             toggleBadge.setTooltip(new Tooltip(active ? "Nhấn để tạm ẩn bài tập đối với học viên" : "Nhấn để kích hoạt mở bài tập cho học viên"));
-            toggleBadge.setMinWidth(64);
-            toggleBadge.setPrefWidth(64);
-            toggleBadge.setMaxWidth(64);
+            toggleBadge.setMinWidth(58);
+            toggleBadge.setPrefWidth(58);
+            toggleBadge.setMaxWidth(58);
             toggleBadge.setAlignment(Pos.CENTER);
             toggleBadge.setOnMouseClicked(e -> {
                 e.consume();
