@@ -592,12 +592,20 @@ public final class HomeScreen extends BorderPane {
         String type = LessonScreen.loaiLabel(n.path("loai").asText());
         Label typeLabel = new Label(type);
         typeLabel.getStyleClass().add("lesson-type-compact");
+        typeLabel.setMinWidth(58);
+        typeLabel.setPrefWidth(58);
+        typeLabel.setMaxWidth(58);
+
         Label statusText = new Label(fullStatus);
         statusText.getStyleClass().add("lesson-detail-status");
         if (!isInactiveForStudent && "MASTERED".equals(value) && n.path("score").isNumber()) {
             statusText.setText(n.path("score").asText() + " điểm");
         }
         statusText.setTooltip(new Tooltip(fullStatus));
+        statusText.setMinWidth(88);
+        statusText.setPrefWidth(88);
+        statusText.setMaxWidth(88);
+
         HBox secondLine = new HBox(6, typeLabel, statusText);
         secondLine.setAlignment(Pos.CENTER_LEFT);
 
@@ -605,6 +613,10 @@ public final class HomeScreen extends BorderPane {
             Label toggleBadge = new Label(active ? "● Đang mở" : "○ Tạm ẩn");
             toggleBadge.getStyleClass().addAll("lesson-toggle-badge", active ? "lesson-toggle-active" : "lesson-toggle-inactive");
             toggleBadge.setTooltip(new Tooltip(active ? "Nhấn để tạm ẩn bài tập đối với học viên" : "Nhấn để kích hoạt mở bài tập cho học viên"));
+            toggleBadge.setMinWidth(64);
+            toggleBadge.setPrefWidth(64);
+            toggleBadge.setMaxWidth(64);
+            toggleBadge.setAlignment(Pos.CENTER);
             toggleBadge.setOnMouseClicked(e -> {
                 e.consume();
                 toggleLessonActive(lessonId, !active);
@@ -613,6 +625,10 @@ public final class HomeScreen extends BorderPane {
             Label deleteBadge = new Label("✕");
             deleteBadge.getStyleClass().add("lesson-delete-badge");
             deleteBadge.setTooltip(new Tooltip("Xoá bài tập này khỏi hệ thống"));
+            deleteBadge.setMinWidth(16);
+            deleteBadge.setPrefWidth(16);
+            deleteBadge.setMaxWidth(16);
+            deleteBadge.setAlignment(Pos.CENTER);
             deleteBadge.setOnMouseClicked(e -> {
                 e.consume();
                 deleteLesson(lessonId, n.path("ten").asText(lessonId));
