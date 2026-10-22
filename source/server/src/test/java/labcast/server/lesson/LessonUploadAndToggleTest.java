@@ -29,7 +29,9 @@ class LessonUploadAndToggleTest {
     @Test
     void toggleLessonActive_and_uploadZipLesson(@TempDir Path tempContent) throws Exception {
         Path baiGoc = Files.createDirectories(tempContent.resolve("dsa/sap-xep/noi-bot"));
-        Files.writeString(baiGoc.resolve("lesson.yaml"), """
+        Files.writeString(
+                baiGoc.resolve("lesson.yaml"),
+                """
                 id: dsa.sap-xep.noi-bot
                 mon: dsa
                 chuong: sap-xep
@@ -39,15 +41,10 @@ class LessonUploadAndToggleTest {
         Files.writeString(baiGoc.resolve("de.md"), "# Đề bài nổi bọt");
         Files.writeString(baiGoc.resolve("khung.py"), "def sort(a):\\n    pass\\n");
 
-        var cfg = ServerConfig.forTest()
-                .withContent(tempContent)
-                .withKhongSandbox(true);
+        var cfg = ServerConfig.forTest().withContent(tempContent).withKhongSandbox(true);
 
         try (Database db = Database.open(":memory:");
-                var server = new LabCastServer(
-                        cfg,
-                        db,
-                        List.of(new AccountModule(), new LessonModule()))) {
+                var server = new LabCastServer(cfg, db, List.of(new AccountModule(), new LessonModule()))) {
             server.start();
             var users = new UserRepository(db);
             users.create("gv", "Giáo viên", Role.TEACHER, "123");
@@ -57,8 +54,12 @@ class LessonUploadAndToggleTest {
             try (var gvClient = TestClient.connect(server.port())) {
                 assertEquals(MessageType.AUTH_OK, gvClient.login("gv", "123").type());
 
-                gvClient.send(MessageType.ADMIN_LESSON_TOGGLE,
-                        new PayloadWriter().str("dsa.sap-xep.noi-bot").bool(false).toBytes());
+                gvClient.send(
+                        MessageType.ADMIN_LESSON_TOGGLE,
+                        new PayloadWriter()
+                                .str("dsa.sap-xep.noi-bot")
+                                .bool(false)
+                                .toBytes());
                 Frame okFrame = gvClient.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
                 assertEquals(MessageType.ADMIN_OK, okFrame.type());
 
@@ -80,22 +81,27 @@ class LessonUploadAndToggleTest {
                 assertEquals("LOCKED", lessons.get(0).path("status").asText());
 
                 // Học viên thử fetch bài đang bị inactive: bị chặn bởi ERROR
-                svClient.send(MessageType.LESSON_FETCH, new PayloadWriter().str("dsa.sap-xep.noi-bot").toBytes());
+                svClient.send(
+                        MessageType.LESSON_FETCH,
+                        new PayloadWriter().str("dsa.sap-xep.noi-bot").toBytes());
                 Frame resp = svClient.readUntil(MessageType.LESSON_DATA, MessageType.ERROR);
                 assertEquals(MessageType.ERROR, resp.type());
             }
 
             // 3. Giáo viên tải lên bài tập mới dạng file ZIP
             byte[] zipData;
-            try (var baos = new ByteArrayOutputStream(); var zos = new ZipOutputStream(baos)) {
+            try (var baos = new ByteArrayOutputStream();
+                    var zos = new ZipOutputStream(baos)) {
                 zos.putNextEntry(new ZipEntry("lesson.yaml"));
-                zos.write("""
+                zos.write(
+                        """
                         id: dsa.sap-xep.chen-moi
                         mon: dsa
                         chuong: sap-xep
                         ten: Sắp xếp chèn mới
                         loai: bai-tap
-                        """.getBytes(StandardCharsets.UTF_8));
+                        """
+                                .getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
 
                 zos.putNextEntry(new ZipEntry("de.md"));
@@ -113,7 +119,8 @@ class LessonUploadAndToggleTest {
             try (var gvClient = TestClient.connect(server.port())) {
                 assertEquals(MessageType.AUTH_OK, gvClient.login("gv", "123").type());
 
-                gvClient.send(MessageType.ADMIN_LESSON_UPLOAD,
+                gvClient.send(
+                        MessageType.ADMIN_LESSON_UPLOAD,
                         new PayloadWriter().str("bai_chen.zip").blob(zipData).toBytes());
                 Frame uploadResp = gvClient.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
                 assertEquals(MessageType.ADMIN_OK, uploadResp.type());
@@ -124,9 +131,15 @@ class LessonUploadAndToggleTest {
                 assertEquals(2, list.path("lessons").size());
 
                 // Giáo viên toggle lại bài noi-bot thành active (true)
-                gvClient.send(MessageType.ADMIN_LESSON_TOGGLE,
-                        new PayloadWriter().str("dsa.sap-xep.noi-bot").bool(true).toBytes());
-                assertEquals(MessageType.ADMIN_OK, gvClient.readUntil(MessageType.ADMIN_OK).type());
+                gvClient.send(
+                        MessageType.ADMIN_LESSON_TOGGLE,
+                        new PayloadWriter()
+                                .str("dsa.sap-xep.noi-bot")
+                                .bool(true)
+                                .toBytes());
+                assertEquals(
+                        MessageType.ADMIN_OK,
+                        gvClient.readUntil(MessageType.ADMIN_OK).type());
             }
 
             // 4. Học viên check lại: bài noi-bot đã active và fetch được
@@ -137,7 +150,9 @@ class LessonUploadAndToggleTest {
                 JsonNode list = JsonPayload.tree(svClient.readUntil(MessageType.LESSON_DATA));
                 assertEquals(2, list.path("lessons").size());
 
-                svClient.send(MessageType.LESSON_FETCH, new PayloadWriter().str("dsa.sap-xep.noi-bot").toBytes());
+                svClient.send(
+                        MessageType.LESSON_FETCH,
+                        new PayloadWriter().str("dsa.sap-xep.noi-bot").toBytes());
                 Frame fetchResp = svClient.readUntil(MessageType.LESSON_DATA, MessageType.ERROR);
                 assertEquals(MessageType.LESSON_DATA, fetchResp.type());
             }
@@ -146,7 +161,8 @@ class LessonUploadAndToggleTest {
             try (var gvClient = TestClient.connect(server.port())) {
                 assertEquals(MessageType.AUTH_OK, gvClient.login("gv", "123").type());
 
-                gvClient.send(MessageType.ADMIN_LESSON_DELETE,
+                gvClient.send(
+                        MessageType.ADMIN_LESSON_DELETE,
                         new PayloadWriter().str("dsa.sap-xep.chen-moi").toBytes());
                 Frame delResp = gvClient.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
                 assertEquals(MessageType.ADMIN_OK, delResp.type());

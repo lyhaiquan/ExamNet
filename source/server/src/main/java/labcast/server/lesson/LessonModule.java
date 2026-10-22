@@ -1,5 +1,6 @@
 package labcast.server.lesson;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import com.fasterxml.jackson.databind.JsonNode;
 import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.Frame;
 import labcast.common.protocol.JsonPayload;
@@ -317,13 +317,16 @@ public final class LessonModule implements ServerModule {
             try (var stream = Files.walk(tempDir)) {
                 lessonYaml = stream.filter(p -> p.getFileName().toString().equals("lesson.yaml"))
                         .findFirst()
-                        .orElseThrow(() -> new ProtocolException(ErrorCode.BAD_FRAME, "Không tìm thấy file lesson.yaml trong file zip"));
+                        .orElseThrow(() -> new ProtocolException(
+                                ErrorCode.BAD_FRAME, "Không tìm thấy file lesson.yaml trong file zip"));
             }
 
             Path lessonDir = lessonYaml.getParent();
             Map<String, Object> y;
             try (var in = Files.newInputStream(lessonYaml)) {
-                Object o = new org.yaml.snakeyaml.Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(new org.yaml.snakeyaml.LoaderOptions())).load(in);
+                Object o = new org.yaml.snakeyaml.Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(
+                                new org.yaml.snakeyaml.LoaderOptions()))
+                        .load(in);
                 if (!(o instanceof Map)) {
                     throw new ProtocolException(ErrorCode.BAD_FRAME, "lesson.yaml phải là một map/object");
                 }
@@ -337,7 +340,9 @@ public final class LessonModule implements ServerModule {
             }
             String[] parts = id.split("\\.");
             if (parts.length != 3 || !parts[0].equals(mon) || !parts[1].equals(chuong)) {
-                throw new ProtocolException(ErrorCode.BAD_FRAME, "id phải có định dạng <mon>.<chuong>.<ten-bai>, ví dụ: " + mon + "." + chuong + ".bai-1");
+                throw new ProtocolException(
+                        ErrorCode.BAD_FRAME,
+                        "id phải có định dạng <mon>.<chuong>.<ten-bai>, ví dụ: " + mon + "." + chuong + ".bai-1");
             }
 
             Path contentRoot = ctx.config().content();
@@ -368,9 +373,13 @@ public final class LessonModule implements ServerModule {
         } finally {
             try (var s = Files.walk(tempDir)) {
                 s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
-                    try { Files.deleteIfExists(p); } catch (Exception ignored) {}
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (Exception ignored) {
+                    }
                 });
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -397,7 +406,10 @@ public final class LessonModule implements ServerModule {
         if (Files.exists(targetDir)) {
             try (var s = Files.walk(targetDir)) {
                 s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
-                    try { Files.deleteIfExists(p); } catch (Exception ignored) {}
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (Exception ignored) {
+                    }
                 });
             }
         }

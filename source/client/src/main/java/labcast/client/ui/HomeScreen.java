@@ -565,13 +565,11 @@ public final class HomeScreen extends BorderPane {
             iconText = switch (value) {
                 case "MASTERED" -> "✓";
                 case "OPEN" -> "●";
-                default -> "○";
-            };
+                default -> "○";};
             fullStatus = switch (value) {
                 case "MASTERED" -> "Đã hoàn thành";
                 case "OPEN" -> "Đang học";
-                default -> "Chưa có kết quả";
-            };
+                default -> "Chưa có kết quả";};
         }
 
         Label state = new Label(iconText);
@@ -579,11 +577,13 @@ public final class HomeScreen extends BorderPane {
         if (isInactiveForStudent) {
             state.getStyleClass().add("lesson-state-disabled");
         } else {
-            state.getStyleClass().add(switch (value) {
-                case "MASTERED" -> "lesson-state-done";
-                case "OPEN" -> "lesson-state-progress";
-                default -> "lesson-state-new";
-            });
+            state.getStyleClass()
+                    .add(
+                            switch (value) {
+                                case "MASTERED" -> "lesson-state-done";
+                                case "OPEN" -> "lesson-state-progress";
+                                default -> "lesson-state-new";
+                            });
         }
         state.setTooltip(new Tooltip(fullStatus));
         HBox firstLine = new HBox(4, title, state);
@@ -609,8 +609,11 @@ public final class HomeScreen extends BorderPane {
 
         if (isTeacher) {
             Label toggleBadge = new Label(active ? "● Đang mở" : "○ Tạm ẩn");
-            toggleBadge.getStyleClass().addAll("lesson-toggle-badge", active ? "lesson-toggle-active" : "lesson-toggle-inactive");
-            toggleBadge.setTooltip(new Tooltip(active ? "Nhấn để tạm ẩn bài tập đối với học viên" : "Nhấn để kích hoạt mở bài tập cho học viên"));
+            toggleBadge
+                    .getStyleClass()
+                    .addAll("lesson-toggle-badge", active ? "lesson-toggle-active" : "lesson-toggle-inactive");
+            toggleBadge.setTooltip(new Tooltip(
+                    active ? "Nhấn để tạm ẩn bài tập đối với học viên" : "Nhấn để kích hoạt mở bài tập cho học viên"));
             toggleBadge.setMinWidth(68);
             toggleBadge.setPrefWidth(68);
             toggleBadge.setAlignment(Pos.CENTER);
@@ -925,12 +928,19 @@ public final class HomeScreen extends BorderPane {
     private void toggleLessonActive(String lessonId, boolean active) {
         LcpClient c = li.client();
         var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
-        c.send(MessageType.ADMIN_LESSON_TOGGLE, new PayloadWriter().str(lessonId).bool(active).toBytes());
+        c.send(
+                MessageType.ADMIN_LESSON_TOGGLE,
+                new PayloadWriter().str(lessonId).bool(active).toBytes());
         reply.orTimeout(10, TimeUnit.SECONDS)
                 .whenComplete((f, err) -> Platform.runLater(() -> {
                     try {
                         if (err != null || f.type() != MessageType.ADMIN_OK) {
-                            alert(Alert.AlertType.ERROR, "Không đổi được trạng thái bài: " + (err != null ? err.getMessage() : ErrorMessage.from(f).message()));
+                            alert(
+                                    Alert.AlertType.ERROR,
+                                    "Không đổi được trạng thái bài: "
+                                            + (err != null
+                                                    ? err.getMessage()
+                                                    : ErrorMessage.from(f).message()));
                             return;
                         }
                         for (int i = 0; i < allLessons.size(); i++) {
@@ -953,7 +963,8 @@ public final class HomeScreen extends BorderPane {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Xác nhận xoá bài tập");
         confirm.setHeaderText("Xoá bài tập: " + lessonTitle);
-        confirm.setContentText("Bạn có chắc chắn muốn xoá bài tập này không?\nToàn bộ thư mục bài tập trong content/ sẽ bị xoá khỏi hệ thống.");
+        confirm.setContentText(
+                "Bạn có chắc chắn muốn xoá bài tập này không?\nToàn bộ thư mục bài tập trong content/ sẽ bị xoá khỏi hệ thống.");
         if (getScene() != null) {
             confirm.initOwner(getScene().getWindow());
         }
@@ -965,7 +976,9 @@ public final class HomeScreen extends BorderPane {
         LcpClient c = li.client();
         var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
         try {
-            c.send(MessageType.ADMIN_LESSON_DELETE, new PayloadWriter().str(lessonId).toBytes());
+            c.send(
+                    MessageType.ADMIN_LESSON_DELETE,
+                    new PayloadWriter().str(lessonId).toBytes());
         } catch (Exception e) {
             alert(Alert.AlertType.ERROR, "Lỗi gửi yêu cầu xoá: " + e.getMessage());
             return;
@@ -974,13 +987,16 @@ public final class HomeScreen extends BorderPane {
                 .whenComplete((Frame f, Throwable err) -> Platform.runLater(() -> {
                     try {
                         if (err != null || f.type() != MessageType.ADMIN_OK) {
-                            String msg = err != null ? err.getMessage() : ErrorMessage.from(f).message();
+                            String msg = err != null
+                                    ? err.getMessage()
+                                    : ErrorMessage.from(f).message();
                             alert(Alert.AlertType.ERROR, "Không xoá được bài: " + msg);
                             return;
                         }
                         String msg = f.reader().str();
                         alert(Alert.AlertType.INFORMATION, msg);
-                        allLessons.removeIf(node -> lessonId.equals(node.path("id").asText()));
+                        allLessons.removeIf(
+                                node -> lessonId.equals(node.path("id").asText()));
                         rebuildSidebar();
                     } catch (Exception e) {
                         alert(Alert.AlertType.ERROR, e.getMessage());
@@ -1006,7 +1022,9 @@ public final class HomeScreen extends BorderPane {
         setStatus("Đang tải lên bài tập…", null);
         LcpClient c = li.client();
         var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
-        c.send(MessageType.ADMIN_LESSON_UPLOAD, new PayloadWriter().str(file.getName()).blob(bytes).toBytes());
+        c.send(
+                MessageType.ADMIN_LESSON_UPLOAD,
+                new PayloadWriter().str(file.getName()).blob(bytes).toBytes());
         reply.orTimeout(60, TimeUnit.SECONDS)
                 .whenComplete((Frame f, Throwable err) -> Platform.runLater(() -> {
                     try {
