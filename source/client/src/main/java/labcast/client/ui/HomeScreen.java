@@ -23,6 +23,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.OverrunStyle;
@@ -608,7 +609,16 @@ public final class HomeScreen extends BorderPane {
                 e.consume();
                 toggleLessonActive(lessonId, !active);
             });
-            secondLine.getChildren().add(toggleBadge);
+
+            Label deleteBadge = new Label("✕");
+            deleteBadge.getStyleClass().add("lesson-delete-badge");
+            deleteBadge.setTooltip(new Tooltip("Xoá bài tập này khỏi hệ thống"));
+            deleteBadge.setOnMouseClicked(e -> {
+                e.consume();
+                deleteLesson(lessonId, n.path("ten").asText(lessonId));
+            });
+
+            secondLine.getChildren().addAll(toggleBadge, deleteBadge);
         }
 
         VBox cell = new VBox(2, firstLine, secondLine);
@@ -920,7 +930,45 @@ public final class HomeScreen extends BorderPane {
                             }
                         }
                         rebuildSidebar();
-                        setStatus(active ? "Đã mở kích hoạt bài " + lessonId : "Đã tạm ẩn bài " + lessonId, null);
+                    } catch (Exception e) {
+                        alert(Alert.AlertType.ERROR, e.getMessage());
+                    }
+                }));
+    }
+
+    private void deleteLesson(String lessonId, String lessonTitle) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Xác nhận xoá bài tập");
+        confirm.setHeaderText("Xoá bài tập: " + lessonTitle);
+        confirm.setContentText("Bạn có chắc chắn muốn xoá bài tập này không?\nToàn bộ thư mục bài tập trong content/ sẽ bị xoá khỏi hệ thống.");
+        if (getScene() != null) {
+            confirm.initOwner(getScene().getWindow());
+        }
+        var res = confirm.showAndWait();
+        if (res.isEmpty() || res.get() != ButtonType.OK) {
+            return;
+        }
+
+        LcpClient c = li.client();
+        var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
+        try {
+            c.send(MessageType.ADMIN_LESSON_DELETE, new PayloadWriter().str(lessonId).toBytes());
+        } catch (Exception e) {
+            alert(Alert.AlertType.ERROR, "Lỗi gửi yêu cầu xoá: " + e.getMessage());
+            return;
+        }
+        reply.orTimeout(20, TimeUnit.SECONDS)
+                .whenComplete((Frame f, Throwable err) -> Platform.runLater(() -> {
+                    try {
+                        if (err != null || f.type() != MessageType.ADMIN_OK) {
+                            String msg = err != null ? err.getMessage() : ErrorMessage.from(f).message();
+                            alert(Alert.AlertType.ERROR, "Không xoá được bài: " + msg);
+                            return;
+                        }
+                        String msg = f.reader().str();
+                        alert(Alert.AlertType.INFORMATION, msg);
+                        allLessons.removeIf(node -> lessonId.equals(node.path("id").asText()));
+                        rebuildSidebar();
                     } catch (Exception e) {
                         alert(Alert.AlertType.ERROR, e.getMessage());
                     }

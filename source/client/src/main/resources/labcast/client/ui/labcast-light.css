@@ -1168,6 +1168,18 @@
     -fx-text-fill: -lc-faint;
     -fx-background-color: rgba(148, 163, 184, 0.12);
 }
+.lesson-delete-badge {
+    -fx-font-size: 9.5px;
+    -fx-padding: 1 5 1 5;
+    -fx-background-radius: 999px;
+    -fx-cursor: hand;
+    -fx-text-fill: -lc-faint;
+    -fx-background-color: transparent;
+}
+.lesson-delete-badge:hover {
+    -fx-text-fill: -lc-danger;
+    -fx-background-color: rgba(239, 68, 68, 0.18);
+}
 .lesson-type-compact {
     -fx-text-fill: -lc-muted;
     -fx-font-size: 10px;

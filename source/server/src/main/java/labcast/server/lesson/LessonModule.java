@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -83,6 +84,7 @@ public final class LessonModule implements ServerModule {
         ctx.router()
                 .on(MessageType.LESSON_LIST, this::list)
                 .on(MessageType.LESSON_FETCH, this::fetch)
+                .on(MessageType.ADMIN_LESSON_DELETE, Set.of(Role.TEACHER), this::deleteLesson)
                 .on(MessageType.ADMIN_LESSON_TOGGLE, Set.of(Role.TEACHER), this::toggleLesson)
                 .on(MessageType.ADMIN_LESSON_UPLOAD, Set.of(Role.TEACHER), this::uploadLesson);
     }
@@ -370,6 +372,59 @@ public final class LessonModule implements ServerModule {
                 });
             } catch (Exception ignored) {}
         }
+    }
+
+    /** {@code ADMIN_LESSON_DELETE(str lessonId)} → {@code ADMIN_OK(str message)}. */
+    private void deleteLesson(Ctx c, Frame f) throws Exception {
+        PayloadReader r = f.reader();
+        String lessonId = r.str();
+        if (lessonId == null || lessonId.isBlank()) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Mã bài học không hợp lệ");
+        }
+        Optional<Lesson> opt = repo.get(lessonId);
+        if (opt.isEmpty()) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Không tìm thấy bài học: " + lessonId);
+        }
+        Lesson l = opt.get();
+        Path lessonDir = l.dir();
+
+        Path contentRoot = ctx.config().content().toAbsolutePath().normalize();
+        Path targetDir = lessonDir.toAbsolutePath().normalize();
+        if (!targetDir.startsWith(contentRoot) || targetDir.equals(contentRoot)) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Đường dẫn bài học không hợp lệ hoặc nằm ngoài content");
+        }
+
+        if (Files.exists(targetDir)) {
+            try (var s = Files.walk(targetDir)) {
+                s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                    try { Files.deleteIfExists(p); } catch (Exception ignored) {}
+                });
+            }
+        }
+
+        repo.remove(lessonId);
+        synchronized (inactiveLessons) {
+            if (inactiveLessons.remove(lessonId)) {
+                saveInactiveLessons();
+            }
+        }
+
+        try {
+            ctx.db().tx(conn -> {
+                try (var ps = conn.prepareStatement("DELETE FROM lessons WHERE id = ? OR id LIKE ?")) {
+                    ps.setString(1, lessonId);
+                    ps.setString(2, lessonId + "#%");
+                    ps.executeUpdate();
+                }
+                return null;
+            });
+        } catch (Exception ex) {
+            LOG.warning("Không xoá được dòng bài học trong db: " + ex.getMessage());
+        }
+
+        String msg = "Đã xoá bài học: " + l.ten() + " (" + lessonId + ")";
+        ctx.audit().record(c.session().username(), "ADMIN_LESSON_DELETE", msg);
+        c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(msg).toBytes());
     }
 
     private void loadInactiveLessons() {

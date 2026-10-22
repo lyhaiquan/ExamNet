@@ -141,6 +141,21 @@ class LessonUploadAndToggleTest {
                 Frame fetchResp = svClient.readUntil(MessageType.LESSON_DATA, MessageType.ERROR);
                 assertEquals(MessageType.LESSON_DATA, fetchResp.type());
             }
+
+            // 5. Giáo viên xoá bài chèn vừa tải lên
+            try (var gvClient = TestClient.connect(server.port())) {
+                assertEquals(MessageType.AUTH_OK, gvClient.login("gv", "123").type());
+
+                gvClient.send(MessageType.ADMIN_LESSON_DELETE,
+                        new PayloadWriter().str("dsa.sap-xep.chen-moi").toBytes());
+                Frame delResp = gvClient.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
+                assertEquals(MessageType.ADMIN_OK, delResp.type());
+
+                // Gọi LESSON_LIST: chỉ còn 1 bài duy nhất
+                gvClient.send(MessageType.LESSON_LIST, new byte[0]);
+                JsonNode list = JsonPayload.tree(gvClient.readUntil(MessageType.LESSON_DATA));
+                assertEquals(1, list.path("lessons").size());
+            }
         }
     }
 }

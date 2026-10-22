@@ -85,6 +85,10 @@ public final class LessonRepository {
         lessons.put(l.id(), l);
     }
 
+    public synchronized boolean remove(String id) {
+        return lessons.remove(id) != null;
+    }
+
     public List<String> errors() {
         return Collections.unmodifiableList(errors);
     }
