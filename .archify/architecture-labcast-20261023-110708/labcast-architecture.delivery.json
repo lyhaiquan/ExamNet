@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "b00654d1-b0dc-4d02-9f6c-00c67276cdb7",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\ExamNet\\.archify\\architecture-labcast-20261023-110708\\candidate.json",
+  "output": "D:\\ExamNet\\.archify\\architecture-labcast-20261023-110708\\labcast-architecture.html",
+  "specification": {
+    "sha256": "c2fa0cdd9b75d2d852e08556fa7510b0e98f66b1f06dbf9ec0cd1d8ab194ec37",
+    "bytes": 5219
+  },
+  "artifact": {
+    "sha256": "d93be91141998dac5089bf2108da2f8ec01c7fb1bb080d1546cc4addd84797d8",
+    "bytes": 832793
+  }
+}
