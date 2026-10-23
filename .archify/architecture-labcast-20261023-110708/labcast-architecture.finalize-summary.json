@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\ExamNet\\.archify\\architecture-labcast-20261023-110708\\candidate.json",
+    "sha256": "c2fa0cdd9b75d2d852e08556fa7510b0e98f66b1f06dbf9ec0cd1d8ab194ec37",
+    "bytes": 5219
+  },
+  "artifact": {
+    "path": "D:\\ExamNet\\.archify\\architecture-labcast-20261023-110708\\labcast-architecture.html",
+    "sha256": "d93be91141998dac5089bf2108da2f8ec01c7fb1bb080d1546cc4addd84797d8",
+    "bytes": 832793
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [
+    {
+      "code": "i18n/locale-fallback",
+      "severity": "warning",
+      "message": "meta.locale \"vi\" has no bundled catalog and no usable meta.translations; the Viewer chrome and <html lang> fall back to English.",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/locale"
+      },
+      "evidence": {
+        "locale": "vi",
+        "bundledLocales": [
+          "en",
+          "zh-CN",
+          "zh-TW",
+          "es",
+          "ko",
+          "ar"
+        ]
+      },
+      "supportedFixes": [
+        "Supply meta.translations for this locale.",
+        "Use a bundled locale: en, zh-CN, zh-TW, es, ko, ar."
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\ExamNet\\.archify\\architecture-labcast-20261023-110708\\labcast-architecture.finalize.json",
+    "summaryReceipt": "D:\\ExamNet\\.archify\\architecture-labcast-20261023-110708\\labcast-architecture.finalize-summary.json",
+    "browserCheckReceipt": "D:\\ExamNet\\.archify\\architecture-labcast-20261023-110708\\labcast-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-23T04:07:33.109Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 5291,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 2,
+      "routesOverSuggestedBends": 2,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "client-to-server",
+            "from": "client",
+            "to": "server",
+            "label": "TCP LCP/1.0 :7000",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "multicast-to-client",
+            "from": "multicast",
+            "to": "client",
+            "label": "CAST_DATA / KEYFRAME",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "point": [
+            340.05,
+            276
+          ],
+          "sharedNode": "client"
+        },
+        {
+          "left": {
+            "id": "server-to-sqlite",
+            "from": "server",
+            "to": "sqlite",
+            "label": "read/write",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "right": {
+            "id": "server-to-status",
+            "from": "server",
+            "to": "status",
+            "label": "HTTP :8080",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            676,
+            150
+          ],
+          "sharedNode": "server"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "client-to-server",
+            "from": "client",
+            "to": "server",
+            "label": "TCP LCP/1.0 :7000",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1.291
+        },
+        {
+          "relationship": {
+            "id": "server-to-multicast",
+            "from": "server",
+            "to": "multicast",
+            "label": "phát chiếu (UDP)",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.353
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "client → server and multicast → client cross next to client: move node server or multicast so the two reach client from different sides (for example one level with it, one directly above or below it).",
+      "server → sqlite and server → status cross next to server: move node sqlite or status so the two reach server from different sides (for example one level with it, one directly above or below it).",
+      "client → server needs 3 bends: move node client or server so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "server → multicast needs 3 bends: move node server or multicast so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
