@@ -932,9 +932,6 @@ public final class HomeScreen extends BorderPane {
                     .thenComparingInt(l -> LessonScreen.loaiRank(l.path("loai").asText())));
             for (JsonNode lesson : ordered) {
                 if ("MASTERED".equals(lesson.path("status").asText())) done++;
-                String kind = lesson.path("loai").asText();
-                if (activeNav == Nav.EXERCISES && !"bai-tap".equals(kind)) continue;
-                if (activeNav == Nav.PRACTICE && !"luyen-tap".equals(kind) && !"giang-giai".equals(kind)) continue;
                 String statusValue = lesson.path("status").asText("NOT_STARTED");
                 if ("Đã hoàn thành".equals(selection) && !"MASTERED".equals(statusValue)) continue;
                 if ("Đang học".equals(selection) && !"OPEN".equals(statusValue)) continue;

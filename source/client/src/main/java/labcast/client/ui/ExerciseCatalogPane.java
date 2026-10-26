@@ -78,7 +78,7 @@ public final class ExerciseCatalogPane extends VBox {
         search.setPrefHeight(48);
         search.setMaxHeight(48);
         search.textProperty().addListener((o, before, after) -> render());
-        filter.getItems().addAll("Tất cả", "DSA", "SQL");
+        filter.getItems().addAll("Tất cả", "DSA", "SQL", "Bài giảng", "Bài tập");
         if (student) filter.getItems().addAll("Đã hoàn thành", "Chưa hoàn thành");
         filter.getSelectionModel().selectFirst();
         filter.setMinWidth(190);
@@ -115,11 +115,14 @@ public final class ExerciseCatalogPane extends VBox {
 
     public void update(List<JsonNode> items) {
         lessons.clear();
-        for (JsonNode lesson : items) {
-            if ("bai-tap".equals(lesson.path("loai").asText())) lessons.add(lesson);
-        }
+        // Đủ mọi loại bài: bài giảng giải (nơi giáo viên chiếu cho lớp), luyện tập và bài tập
+        lessons.addAll(items);
         lessons.sort(Comparator.comparing((JsonNode l) -> l.path("mon").asText())
-                .thenComparing(l -> l.path("chuong").asText())
+                .thenComparingInt(l -> {
+                    int i = LessonScreen.CHAPTERS.indexOf(l.path("chuong").asText());
+                    return i < 0 ? Integer.MAX_VALUE : i;
+                })
+                .thenComparingInt(l -> LessonScreen.loaiRank(l.path("loai").asText()))
                 .thenComparing(l -> l.path("ten").asText()));
         long completed = lessons.stream()
                 .filter(l -> "MASTERED".equals(l.path("status").asText()))
@@ -172,6 +175,9 @@ public final class ExerciseCatalogPane extends VBox {
                             .toLowerCase(Locale.ROOT)
                             .contains(query)) continue;
             if (("DSA".equals(option) || "SQL".equals(option)) && !option.equals(subject)) continue;
+            String kind = lesson.path("loai").asText();
+            if ("Bài giảng".equals(option) && !"giang-giai".equals(kind)) continue;
+            if ("Bài tập".equals(option) && "giang-giai".equals(kind)) continue;
             if ("Đã hoàn thành".equals(option) && !done) continue;
             if ("Chưa hoàn thành".equals(option) && done) continue;
 
