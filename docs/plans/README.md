@@ -11,6 +11,7 @@ Mỗi file là kế hoạch triển khai của **một giai đoạn** trong [`..
 | [giai-doan-4.md](giai-doan-4.md) | Thí nghiệm và nội dung | 9–10 |
 | [giai-doan-5.md](giai-doan-5.md) | Đóng gói và bảo vệ | 11 |
 | [giai-doan-6.md](giai-doan-6.md) | Mở rộng: nhiều lớp, Admin, soạn bài, kiểm tra, thảo luận, ô code | sau giai đoạn 5; xếp theo mức ưu tiên |
+| [viec-tiep-theo.md](viec-tiep-theo.md) | **Đọc trước:** đang ở đâu, chỗ chồng giữa đợt 2 và giai đoạn 6, thứ tự việc tiếp theo | cập nhật 26/10 |
 | [danh-muc-bai.md](danh-muc-bai.md) | Danh mục 53 bài giảng giải, 100 bài DSA, 100 bài SQL (bản tạm, chờ đề cương) | soạn ở tuần 9–10 |
 
 ## Mức chi tiết

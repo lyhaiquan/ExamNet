@@ -1,5 +1,7 @@
 # Giai đoạn 6 — Nhiều lớp, Admin, soạn bài, kiểm tra, thảo luận
 
+> ⚠️ Kế hoạch này chồng với **đợt 2** ([`PHAN-CONG-DOT-2.md`](https://github.com/lyhaiquan/ExamNet/blob/feat/server-cong-9000/docs/PHAN-CONG-DOT-2.md), nhánh `feat/server-cong-9000` chưa merge): trùng dải mã `0x80–0x9F`, trang quản trị, thực hành/kiểm tra, bật/tắt bài. Đọc mục 2 của [viec-tiep-theo.md](viec-tiep-theo.md) và chốt trước khi làm các task 6.A3 trở đi.
+
 Kế hoạch mở rộng sau khi gộp giao diện mới ([#10](https://github.com/lyhaiquan/ExamNet/pull/10)). Mục tiêu:
 
 - **Một server, nhiều lớp.** DSA 1–5, SQL 1–n chạy chung một server; **Admin** tạo lớp, chọn môn và giáo viên.
