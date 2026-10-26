@@ -5,7 +5,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +19,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import labcast.common.protocol.ErrorCode;
@@ -46,6 +46,10 @@ import labcast.server.store.Database;
 /** Danh sách bài, nội dung một bài và trace giảng giải. Chủ: Người 3. */
 public final class LessonModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(LessonModule.class.getName());
+    /** id bài tải lên: {@code <mon>.<chuong>.<bai>}, mỗi phần chỉ chữ thường, số, '-' và '_'. */
+    private static final Pattern LESSON_ID = Pattern.compile("[a-z0-9_-]+\\.[a-z0-9_-]+\\.[a-z0-9_-]+");
+    /** Tổng dung lượng sau giải nén của một bài tải lên. */
+    private static final long MAX_UPLOAD_UNZIPPED = 50L * 1024 * 1024;
 
     private ServerContext ctx;
     private LessonRepository repo;
@@ -297,17 +301,31 @@ public final class LessonModule implements ServerModule {
         try {
             try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
                 ZipEntry entry;
+                long total = 0;
+                byte[] buf = new byte[8192];
                 while ((entry = zis.getNextEntry()) != null) {
                     String name = entry.getName().replace('\\', '/');
-                    if (name.contains("..") || name.startsWith("/")) {
+                    Path target = tempDir.resolve(name).normalize();
+                    if (name.contains("..") || name.startsWith("/") || !target.startsWith(tempDir)) {
                         throw new ProtocolException(ErrorCode.BAD_FRAME, "Đường dẫn không hợp lệ trong zip: " + name);
                     }
-                    Path target = tempDir.resolve(name);
                     if (entry.isDirectory()) {
                         Files.createDirectories(target);
                     } else {
                         Files.createDirectories(target.getParent());
-                        Files.copy(zis, target, StandardCopyOption.REPLACE_EXISTING);
+                        // Đếm byte giải nén thật, không tin kích thước khai trong zip: chặn zip bomb
+                        try (var out = Files.newOutputStream(target)) {
+                            int n;
+                            while ((n = zis.read(buf)) > 0) {
+                                total += n;
+                                if (total > MAX_UPLOAD_UNZIPPED) {
+                                    throw new ProtocolException(
+                                            ErrorCode.BAD_FRAME,
+                                            "Bài giải nén ra quá " + MAX_UPLOAD_UNZIPPED / (1024 * 1024) + " MB");
+                                }
+                                out.write(buf, 0, n);
+                            }
+                        }
                     }
                     zis.closeEntry();
                 }
@@ -332,54 +350,91 @@ public final class LessonModule implements ServerModule {
                 }
                 y = (Map<String, Object>) o;
             }
-            String id = String.valueOf(y.get("id"));
-            String mon = String.valueOf(y.get("mon"));
-            String chuong = String.valueOf(y.get("chuong"));
-            if (id == null || id.isBlank() || mon == null || chuong == null) {
-                throw new ProtocolException(ErrorCode.BAD_FRAME, "lesson.yaml thiếu id, mon hoặc chuong");
-            }
-            String[] parts = id.split("\\.");
-            if (parts.length != 3 || !parts[0].equals(mon) || !parts[1].equals(chuong)) {
+            // id thành đường dẫn content/<mon>/<chuong>/<bai>: chỉ nhận chữ thường, số, '-' và '_' để không
+            // trỏ được ra ngoài content/ (ví dụ phần cuối là "/etc" thì resolve() trả về /etc)
+            Object rawId = y.get("id");
+            String id = rawId == null ? "" : rawId.toString();
+            if (!LESSON_ID.matcher(id).matches()) {
                 throw new ProtocolException(
                         ErrorCode.BAD_FRAME,
-                        "id phải có định dạng <mon>.<chuong>.<ten-bai>, ví dụ: " + mon + "." + chuong + ".bai-1");
+                        "id phải có dạng <mon>.<chuong>.<ten-bai>, chỉ gồm chữ thường, số, '-' và '_'; đang là: " + id);
+            }
+            String rel = id.replace('.', '/');
+            Lesson parsed;
+            try {
+                parsed = LessonRepository.parseLesson(lessonDir, rel);
+            } catch (IOException e) {
+                throw new ProtocolException(ErrorCode.BAD_FRAME, "lesson.yaml không hợp lệ: " + e.getMessage());
+            }
+            String[] parts = id.split("\\.");
+            if (!parts[0].equals(parsed.mon()) || !parts[1].equals(parsed.chuong())) {
+                throw new ProtocolException(
+                        ErrorCode.BAD_FRAME,
+                        "id phải bắt đầu bằng <mon>.<chuong>, ví dụ: " + parsed.mon() + "." + parsed.chuong()
+                                + ".bai-1");
+            }
+            String serverMon = ctx.config().mon();
+            if (serverMon != null && !serverMon.equals(parsed.mon())) {
+                throw new ProtocolException(
+                        ErrorCode.BAD_FRAME,
+                        "Server này chỉ phục vụ môn " + serverMon.toUpperCase() + ", bài tải lên là môn "
+                                + parsed.mon().toUpperCase());
             }
 
-            Path contentRoot = ctx.config().content();
-            Path destDir = contentRoot.resolve(parts[0]).resolve(parts[1]).resolve(parts[2]);
-            Files.createDirectories(destDir);
+            Path contentRoot = ctx.config().content().toAbsolutePath().normalize();
+            Path destDir = contentRoot.resolve(rel).normalize();
+            if (!destDir.startsWith(contentRoot)
+                    || contentRoot.relativize(destDir).getNameCount() != 3) {
+                throw new ProtocolException(ErrorCode.BAD_FRAME, "Đường dẫn bài học nằm ngoài content: " + id);
+            }
 
-            try (var files = Files.walk(lessonDir)) {
-                for (Path src : files.toList()) {
-                    Path relPath = lessonDir.relativize(src);
-                    Path dst = destDir.resolve(relPath.toString());
-                    if (Files.isDirectory(src)) {
-                        Files.createDirectories(dst);
-                    } else {
-                        Files.createDirectories(dst.getParent());
-                        Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
-                    }
+            Lesson l;
+            synchronized (this) {
+                // Không đè bài có sẵn: muốn thay nội dung thì xoá bài cũ trước rồi tải lại
+                if (repo.get(id).isPresent() || Files.exists(destDir)) {
+                    throw new ProtocolException(
+                            ErrorCode.BAD_FRAME, "Đã có bài " + id + ". Xoá bài cũ trước hoặc đổi id rồi tải lại");
                 }
+                Files.createDirectories(destDir);
+                try {
+                    try (var files = Files.walk(lessonDir)) {
+                        for (Path src : files.toList()) {
+                            Path dst = destDir.resolve(lessonDir.relativize(src).toString());
+                            if (Files.isDirectory(src)) {
+                                Files.createDirectories(dst);
+                            } else {
+                                Files.createDirectories(dst.getParent());
+                                Files.copy(src, dst);
+                            }
+                        }
+                    }
+                    l = LessonRepository.parseLesson(destDir, rel);
+                    syncSingleLessonToDb(ctx.db(), l);
+                } catch (Exception e) {
+                    deleteTree(destDir);
+                    throw e;
+                }
+                repo.addOrUpdate(l);
             }
-
-            String rel = contentRoot.relativize(destDir).toString().replace('\\', '/');
-            Lesson l = LessonRepository.parseLesson(destDir, rel);
-            repo.addOrUpdate(l);
-            syncSingleLessonToDb(ctx.db(), l);
 
             String msg = "Tải lên thành công bài: " + l.ten() + " (" + l.id() + ")";
             ctx.audit().record(c.session().username(), "ADMIN_LESSON_UPLOAD", msg);
             c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(msg).toBytes());
         } finally {
-            try (var s = Files.walk(tempDir)) {
-                s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
-                    try {
-                        Files.deleteIfExists(p);
-                    } catch (Exception ignored) {
-                    }
-                });
-            } catch (Exception ignored) {
-            }
+            deleteTree(tempDir);
+        }
+    }
+
+    /** Xoá cả cây thư mục, bỏ qua file không xoá được (thư mục tạm, hoặc bài vừa chép dở). */
+    private static void deleteTree(Path dir) {
+        try (var s = Files.walk(dir)) {
+            s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (Exception ignored) {
+                }
+            });
+        } catch (Exception ignored) {
         }
     }
 
@@ -403,15 +458,24 @@ public final class LessonModule implements ServerModule {
             throw new ProtocolException(ErrorCode.BAD_FRAME, "Đường dẫn bài học không hợp lệ hoặc nằm ngoài content");
         }
 
-        if (Files.exists(targetDir)) {
-            try (var s = Files.walk(targetDir)) {
-                s.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
-                    try {
-                        Files.deleteIfExists(p);
-                    } catch (Exception ignored) {
-                    }
-                });
-            }
+        // Xoá dòng trong db TRƯỚC thư mục: bài đã có code nháp, bài nộp, tiến độ… thì khoá ngoại chặn lệnh
+        // DELETE, ta dừng ở đây và bài còn nguyên, không còn cảnh file mất mà db vẫn trỏ tới
+        try {
+            ctx.db().tx(conn -> {
+                try (var ps = conn.prepareStatement("DELETE FROM lessons WHERE id = ? OR substr(id, 1, ?) = ?")) {
+                    ps.setString(1, lessonId);
+                    ps.setInt(2, lessonId.length() + 1);
+                    ps.setString(3, lessonId + "#");
+                    ps.executeUpdate();
+                }
+                return null;
+            });
+        } catch (SQLException ex) {
+            LOG.info("Không xoá bài " + lessonId + ": db còn dữ liệu trỏ tới (" + ex.getMessage() + ")");
+            throw new ProtocolException(
+                    ErrorCode.FORBIDDEN,
+                    "Bài " + lessonId + " đã có học viên làm (code, bài nộp hoặc tiến độ) nên không xoá được."
+                            + " Hãy tạm ẩn bài thay vì xoá");
         }
 
         repo.remove(lessonId);
@@ -420,18 +484,8 @@ public final class LessonModule implements ServerModule {
                 saveInactiveLessons();
             }
         }
-
-        try {
-            ctx.db().tx(conn -> {
-                try (var ps = conn.prepareStatement("DELETE FROM lessons WHERE id = ? OR id LIKE ?")) {
-                    ps.setString(1, lessonId);
-                    ps.setString(2, lessonId + "#%");
-                    ps.executeUpdate();
-                }
-                return null;
-            });
-        } catch (Exception ex) {
-            LOG.warning("Không xoá được dòng bài học trong db: " + ex.getMessage());
+        if (Files.exists(targetDir)) {
+            deleteTree(targetDir);
         }
 
         String msg = "Đã xoá bài học: " + l.ten() + " (" + lessonId + ")";
