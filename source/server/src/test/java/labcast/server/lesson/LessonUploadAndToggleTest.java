@@ -174,4 +174,102 @@ class LessonUploadAndToggleTest {
             }
         }
     }
+
+    @Test
+    void upload_idTroRaNgoaiContent_hoacTrungBaiCu_biTuChoi(@TempDir Path root) throws Exception {
+        Path tempContent = Files.createDirectories(root.resolve("content"));
+        Path baiGoc = Files.createDirectories(tempContent.resolve("dsa/sap-xep/noi-bot"));
+        Files.writeString(baiGoc.resolve("lesson.yaml"), yaml("dsa.sap-xep.noi-bot", "dsa"));
+        Files.writeString(baiGoc.resolve("de.md"), "# Đề gốc");
+        Files.writeString(baiGoc.resolve("khung.py"), "pass\n");
+
+        var cfg = ServerConfig.forTest().withContent(tempContent).withKhongSandbox(true);
+        try (Database db = Database.open(":memory:");
+                var server = new LabCastServer(cfg, db, List.of(new AccountModule(), new LessonModule()))) {
+            server.start();
+            new UserRepository(db).create("gv", "Giáo viên", Role.TEACHER, "123");
+            try (var gv = TestClient.connect(server.port())) {
+                assertEquals(MessageType.AUTH_OK, gv.login("gv", "123").type());
+
+                // Phần cuối id là đường dẫn tuyệt đối: trước đây resolve() ghi thẳng ra ngoài content/
+                String ngoai = root.resolve("ngoai").toAbsolutePath().toString().replace('\\', '/');
+                assertEquals(
+                        MessageType.ERROR,
+                        upload(gv, zip(yaml("dsa.sap-xep." + ngoai, "dsa"))).type());
+                assertFalse(Files.exists(root.resolve("ngoai")));
+
+                // Trùng id bài có sẵn: không đè nội dung cũ
+                assertEquals(
+                        MessageType.ERROR,
+                        upload(gv, zip(yaml("dsa.sap-xep.noi-bot", "dsa"))).type());
+                assertEquals("# Đề gốc", Files.readString(baiGoc.resolve("de.md")));
+            }
+        }
+    }
+
+    @Test
+    void xoaBaiDaCoHocVienLam_biTuChoi_baiConNguyen(@TempDir Path tempContent) throws Exception {
+        Path bai = Files.createDirectories(tempContent.resolve("dsa/sap-xep/noi-bot"));
+        Files.writeString(bai.resolve("lesson.yaml"), yaml("dsa.sap-xep.noi-bot", "dsa"));
+        Files.writeString(bai.resolve("de.md"), "# Đề");
+        Files.writeString(bai.resolve("khung.py"), "pass\n");
+
+        var cfg = ServerConfig.forTest().withContent(tempContent).withKhongSandbox(true);
+        try (Database db = Database.open(":memory:");
+                var server = new LabCastServer(cfg, db, List.of(new AccountModule(), new LessonModule()))) {
+            server.start();
+            var users = new UserRepository(db);
+            users.create("gv", "Giáo viên", Role.TEACHER, "123");
+            users.create("sv", "Sinh viên", Role.STUDENT, "123");
+            db.tx(c -> {
+                try (var st = c.prepareStatement("INSERT INTO progress (user_id, lesson_id, tier, status, updated_at)"
+                        + " SELECT id, 'dsa.sap-xep.noi-bot', 'code', 'OPEN', 1 FROM users WHERE username = 'sv'")) {
+                    st.executeUpdate();
+                }
+                return null;
+            });
+
+            try (var gv = TestClient.connect(server.port())) {
+                assertEquals(MessageType.AUTH_OK, gv.login("gv", "123").type());
+                gv.send(
+                        MessageType.ADMIN_LESSON_DELETE,
+                        new PayloadWriter().str("dsa.sap-xep.noi-bot").toBytes());
+                assertEquals(
+                        MessageType.ERROR,
+                        gv.readUntil(MessageType.ADMIN_OK, MessageType.ERROR).type());
+                assertTrue(Files.exists(bai.resolve("lesson.yaml")), "file bài phải còn nguyên");
+
+                gv.send(MessageType.LESSON_LIST, new byte[0]);
+                JsonNode list = JsonPayload.tree(gv.readUntil(MessageType.LESSON_DATA));
+                assertEquals(1, list.path("lessons").size());
+            }
+        }
+    }
+
+    private static String yaml(String id, String mon) {
+        return "id: " + id + "\nmon: " + mon + "\nchuong: sap-xep\nten: Bài thử\nloai: bai-tap\n";
+    }
+
+    private static byte[] zip(String lessonYaml) throws Exception {
+        try (var baos = new ByteArrayOutputStream();
+                var zos = new ZipOutputStream(baos)) {
+            for (String[] e :
+                    List.of(new String[] {"lesson.yaml", lessonYaml}, new String[] {"de.md", "# Đề mới"}, new String[] {
+                        "khung.py", "pass\n"
+                    })) {
+                zos.putNextEntry(new ZipEntry(e[0]));
+                zos.write(e[1].getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+            zos.finish();
+            return baos.toByteArray();
+        }
+    }
+
+    private static Frame upload(TestClient gv, byte[] zip) throws Exception {
+        gv.send(
+                MessageType.ADMIN_LESSON_UPLOAD,
+                new PayloadWriter().str("bai.zip").blob(zip).toBytes());
+        return gv.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
+    }
 }
