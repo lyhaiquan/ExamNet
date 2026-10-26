@@ -10,7 +10,7 @@ Mỗi file là kế hoạch triển khai của **một giai đoạn** trong [`..
 | [giai-doan-3.md](giai-doan-3.md) | Trợ giúp và hoàn thiện | 7–8 |
 | [giai-doan-4.md](giai-doan-4.md) | Thí nghiệm và nội dung | 9–10 |
 | [giai-doan-5.md](giai-doan-5.md) | Đóng gói và bảo vệ | 11 |
-| [giai-doan-6.md](giai-doan-6.md) | Mở rộng: nhiều lớp, Admin, soạn bài, kiểm tra, thảo luận, ô code | sau #9, #10; xếp theo mức ưu tiên |
+| [giai-doan-6.md](giai-doan-6.md) | Mở rộng: nhiều lớp, Admin, soạn bài, kiểm tra, thảo luận, ô code | sau giai đoạn 5; xếp theo mức ưu tiên |
 | [danh-muc-bai.md](danh-muc-bai.md) | Danh mục 53 bài giảng giải, 100 bài DSA, 100 bài SQL (bản tạm, chờ đề cương) | soạn ở tuần 9–10 |
 
 ## Mức chi tiết
@@ -59,7 +59,7 @@ Chỗ nào ghi "tham khảo bản cũ" là có lớp tương tự trong code Exa
 | `0x70–0x7F` | 4 | `CAST_CONTROL 70`, `CAST_DATA 71`, `CAST_KEYFRAME 72`, `CAST_NACK 73`, `CAST_REPAIR 74` |
 | `0x80–0xBF` | giai đoạn 6 | Admin, hiện/ẩn bài, soạn bài, kiểm tra, thảo luận, trang chủ — xem [giai-doan-6.md](giai-doan-6.md#bảng-mã-thông-điệp-mới) |
 
-`PLAYGROUND_RUN_* 48–4B` và `CODE_FETCH 55`, `CODE_DATA 56` có trong `MessageType` nhưng chưa ghi ở bảng trên. Khi [#10](https://github.com/lyhaiquan/ExamNet/pull/10) vào sẽ thêm `CLASS_*`, `PRACTICE_*`, `STUDENT_*` (`0x1A`, `0x23–0x25`, `0x67–0x6F`, `0x75–0x7B`).
+Mã thêm sau khi lập bảng (xem `MessageType`): `PLAYGROUND_RUN_REQ 48`, `PLAYGROUND_RUN_QUEUED 49`, `PLAYGROUND_TRACE_CHUNK 4A`, `PLAYGROUND_RUN_RESULT 4B`, `CODE_FETCH 55`, `CODE_DATA 56`; từ [#10](https://github.com/lyhaiquan/ExamNet/pull/10): `CLASS_JOIN_RESULT 1A`, `CLASS_LIST_REQ 23`, `CLASS_LIST_DATA 24`, `CLASS_SELECT_REQ 25`, `PRACTICE_CREATE_REQ 67`, `PRACTICE_JOIN_REQ 68`, `PRACTICE_ACTION_RESULT 69`, `STUDENT_OVERVIEW_REQ 6A`, `STUDENT_OVERVIEW_DATA 6B`, `STUDENT_ACTIVITY 6C`, `CLASS_CREATE_REQ 6D`, `CLASS_CREATE_RESULT 6E`, `CLASS_JOIN_REQ 6F`, `PRACTICE_ASSIGN_REQ 75`, `PRACTICE_LESSONS_REQ 76`, `PRACTICE_LESSONS_DATA 77`, `PRACTICE_UNASSIGN_REQ 78`, `CLASS_SELECT_RESULT 79`, `PRACTICE_LIST_REQ 7A`, `PRACTICE_LIST_DATA 7B`.
 
 ## Ký hiệu payload
 

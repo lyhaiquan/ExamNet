@@ -21,8 +21,8 @@ Giao diện tham khảo ảnh mẫu (bố cục sidebar + thẻ số liệu + bi
 
 ## Điều kiện trước
 
-- [#9](https://github.com/lyhaiquan/ExamNet/pull/9) (sửa tải lên/xoá bài) và [#10](https://github.com/lyhaiquan/ExamNet/pull/10) (giao diện mới, `ClassroomWorkspaceModule`) đã merge. Mọi task dưới đây viết trên main sau hai PR đó.
-- Lúc #10 vào, bảng mã trong [README.md](README.md) cập nhật `CLASS_*`, `PRACTICE_*`, `STUDENT_*` và ba mã dời sang `0x79–0x7B`.
+- ✅ [#9](https://github.com/lyhaiquan/ExamNet/pull/9) (sửa tải lên/xoá bài) và [#10](https://github.com/lyhaiquan/ExamNet/pull/10) (giao diện mới, `ClassroomWorkspaceModule`) đã merge; bảng mã trong [README.md](README.md) đã ghi các mã `CLASS_*`, `PRACTICE_*`, `STUDENT_*`.
+- 6.A1 và 6.A2 đang ở [#11](https://github.com/lyhaiquan/ExamNet/pull/11).
 
 ## Thứ tự và mức ưu tiên
 
