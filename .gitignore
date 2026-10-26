@@ -27,6 +27,8 @@ __pycache__/
 
 # Đệm sinh từ content/ (đề biến thể, output test ẩn, trace lời giải mẫu)
 .labcast-cache/
+content/.inactive_lessons.json
+*.zip
 
 # Bộ cài jpackage
 packaging/out/
