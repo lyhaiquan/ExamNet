@@ -15,7 +15,7 @@ public final class Session {
     private final String fullName;
     private final Role role;
     private final String token;
-    private final long classId;
+    private volatile long classId;
     private volatile Connection connection;
 
     public Session(long userId, String username, String fullName, Role role, String token, long classId) {
@@ -49,6 +49,11 @@ public final class Session {
 
     public long classId() {
         return classId;
+    }
+
+    /** Chỉ được gọi sau khi ClassroomWorkspaceModule kiểm tra quyền thuộc lớp. */
+    public void setClassId(long classId) {
+        this.classId = classId;
     }
 
     /** Kết nối đang gắn, null khi mất mạng và chưa nối lại. */

@@ -49,7 +49,13 @@ class CodeBien:
             return
         self._recorded_lines += 1
         self._dong = frame.f_lineno
-        self._ghi({"t": "line", "n": self._dong})
+        # Offset UTF-8 đầu của stdout tại thời điểm TRƯỚC khi chạy dòng này.
+        # Client so chênh lệch giữa hai bước để gán kết quả in ra đúng dòng.
+        out = getattr(__import__("sys").stdout, "byte_count", None)
+        su_kien = {"t": "line", "n": self._dong}
+        if out is not None:
+            su_kien["o"] = out
+        self._ghi(su_kien)
         ham = "" if frame.f_code.co_name == "<module>" else frame.f_code.co_name
         bien = [[k, _hien(v)] for k, v in frame.f_locals.items() if not _bo_qua(k, v)][:TOI_DA_BIEN]
         if bien != self._bien or ham != self._ham:

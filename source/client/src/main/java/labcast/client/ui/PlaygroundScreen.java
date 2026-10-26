@@ -259,7 +259,7 @@ public final class PlaygroundScreen extends BorderPane {
                 Trace t = TraceReader.append(TraceReader.empty(), data);
                 if (!t.events().isEmpty()) {
                     player = new Player(t, Map.of(), System::currentTimeMillis);
-                    traceTable.load(t, submittedCode, player, editor::highlightTraceLine);
+                    traceTable.load(t, submittedCode, stdout, player, editor::highlightTraceLine);
                 }
             } catch (IOException e) {
                 status.setText("Không đọc được dữ liệu trace: " + e.getMessage());

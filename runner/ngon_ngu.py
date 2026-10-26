@@ -81,7 +81,6 @@ if hasattr(signal, "SIGBUS"):
     TIN_HIEU[signal.SIGBUS] = "Lỗi truy cập bộ nhớ (Bus error)"
 
 
-
 def ho_tro(ngon_ngu):
     return ngon_ngu in NGON_NGU
 
@@ -188,6 +187,19 @@ def gio_cua(ngon_ngu, gioi_han_ms):
     return gioi_han_ms * NGON_NGU[ngon_ngu]["he_so_gio"]
 
 
+def chuan_hoa_stdout(stdout):
+    """Chuẩn hóa xuống dòng Windows/Linux, giữ nguyên nội dung."""
+    return stdout.replace("\r\n", "\n")
+
+
+def la_loi_het_cpu(ma):
+    for ten in ("SIGXCPU", "SIGKILL"):
+        sig = getattr(signal, ten, None)
+        if sig is not None and ma in (-sig, 128 + sig):
+            return True
+    return False
+
+
 def chay(tm, du_lieu, gioi_han_ms):
     """Chạy file đã biên dịch với một input. Trả dict status/time_ms/stdout/error/error_line như cham.py."""
     gioi_han = gio_cua(tm.ngon_ngu, gioi_han_ms)
@@ -207,12 +219,13 @@ def chay(tm, du_lieu, gioi_han_ms):
         return {"status": "TIME_LIMIT", "time_ms": round((time.perf_counter() - bat_dau) * 1000),
                 "stdout": "", "error": None, "error_line": None}
     ms = round((time.perf_counter() - bat_dau) * 1000)
-    stdout = p.stdout[:MAX_STDOUT].decode("utf-8", "replace")
+    stdout = chuan_hoa_stdout(
+        p.stdout[:MAX_STDOUT].decode("utf-8", "replace")
+    )
     if p.returncode == 0:
         return {"status": "TIME_LIMIT" if ms > gioi_han else "OK", "time_ms": ms, "stdout": stdout,
                 "error": None, "error_line": None, "stdout_truncated": len(p.stdout) > MAX_STDOUT}
-    _sig_cpu = tuple(s for s in (getattr(signal, "SIGXCPU", None), getattr(signal, "SIGKILL", None)) if s is not None)
-    het_cpu = any(p.returncode in (-s, 128 + s) for s in _sig_cpu)
+    het_cpu = la_loi_het_cpu(p.returncode)
     if ms > gioi_han or het_cpu:
         return {"status": "TIME_LIMIT", "time_ms": ms, "stdout": stdout, "error": None, "error_line": None}
     loi, dong = loi_chay(tm.ngon_ngu, p.returncode, p.stderr.decode("utf-8", "replace"))
@@ -310,7 +323,9 @@ def chay_tung_dong(tm, du_lieu, gioi_han_ms, tran=TRAN_BUOC):
     stdout = ""
     if os.path.exists(f_ra):
         with open(f_ra, "rb") as f:
-            stdout = f.read(MAX_STDOUT).decode("utf-8", "replace")
+            stdout = chuan_hoa_stdout(
+                f.read(MAX_STDOUT).decode("utf-8", "replace")
+            )
     bi_cat = bool(meta.get("truncated"))
 
     if het_gio:
@@ -328,7 +343,7 @@ def chay_tung_dong(tm, du_lieu, gioi_han_ms, tran=TRAN_BUOC):
         else:
             kq = {"status": "RUNTIME_ERROR", "time_ms": ms, "stdout": stdout, "error": loi,
                   "error_line": meta.get("dong")}
-    elif any(meta.get("ma", 0) == 128 + s for s in (getattr(signal, "SIGXCPU", None), getattr(signal, "SIGKILL", None)) if s is not None):
+    elif la_loi_het_cpu(meta.get("ma", 0)):
         # JVM bài làm chết vì giới hạn CPU kế thừa từ debugger: quá giờ
         kq = {"status": "TIME_LIMIT", "time_ms": ms, "stdout": stdout, "error": None, "error_line": None}
     elif meta.get("ma", 0) != 0:
@@ -345,11 +360,14 @@ def _lop_jdi():
     if os.path.exists(os.path.join(THU_MUC_BUOC, "JdiBuoc.class")):
         return THU_MUC_BUOC
     dich = os.path.join(tempfile.gettempdir(), "labcast-jdi")
-    if not os.path.exists(os.path.join(dich, "JdiBuoc.class")):
+    source = os.path.join(THU_MUC_BUOC, "JdiBuoc.java")
+    compiled = os.path.join(dich, "JdiBuoc.class")
+    # Nếu Java debugger thay đổi (ví dụ có mốc stdout theo bước), build lại class cache.
+    if not os.path.exists(compiled) or os.path.getmtime(compiled) < os.path.getmtime(source):
         os.makedirs(dich, exist_ok=True)
         javac = os.path.join(os.path.dirname(_java()), "javac") if os.path.isabs(_java()) else "javac"
         subprocess.run([javac, "--release", "17", "-encoding", "UTF-8", "-d", dich,
-                        os.path.join(THU_MUC_BUOC, "JdiBuoc.java")], check=True, capture_output=True, timeout=60)
+                        source], check=True, capture_output=True, timeout=60)
     return dich
 
 

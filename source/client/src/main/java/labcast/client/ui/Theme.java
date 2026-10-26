@@ -41,14 +41,12 @@ public final class Theme {
     }
 
     // Hai giao dien luu trong file resource; CSS doi ngay khi bam nut, khong can restart.
-    private static final String LIGHT_CSS =
-            Theme.class.getResource("labcast-light.css").toExternalForm();
-    private static final String DARK_CSS =
-            Theme.class.getResource("labcast-dark.css").toExternalForm();
+    private static final String LIGHT_CSS = sheet("labcast-light.css", "labcast.css");
+    private static final String DARK_CSS = sheet("labcast-dark.css", "labcast.css");
     private static final String LIGHT_EDITOR =
-            Theme.class.getResource("/labcast/client/editor/python-light.css").toExternalForm();
+            sheet("/labcast/client/editor/python-light.css", "/labcast/client/editor/python.css");
     private static final String DARK_EDITOR =
-            Theme.class.getResource("/labcast/client/editor/python-dark.css").toExternalForm();
+            sheet("/labcast/client/editor/python-dark.css", "/labcast/client/editor/python.css");
     private static final Preferences PREFS = Preferences.userNodeForPackage(Theme.class);
     private static final Set<Parent> SCREENS = Collections.newSetFromMap(new WeakHashMap<>());
     private static final Set<Parent> EDITORS = Collections.newSetFromMap(new WeakHashMap<>());
@@ -76,9 +74,22 @@ public final class Theme {
         for (Parent p : EDITORS) switchSheet(p, LIGHT_EDITOR, DARK_EDITOR, dark ? DARK_EDITOR : LIGHT_EDITOR);
     }
 
+    private static String sheet(String preferred, String fallback) {
+        var resource = Theme.class.getResource(preferred);
+        if (resource == null) resource = Theme.class.getResource(fallback);
+        if (resource == null) {
+            LOG.warning("Không tìm thấy CSS: " + preferred + " và " + fallback
+                    + ". Kiểm tra vị trí trong client/src/main/resources.");
+            return "";
+        }
+        return resource.toExternalForm();
+    }
+
     private static void switchSheet(Parent root, String light, String darkCss, String next) {
         root.getStylesheets().removeAll(light, darkCss);
-        root.getStylesheets().add(next);
+        if (next != null && !next.isBlank() && !root.getStylesheets().contains(next)) {
+            root.getStylesheets().add(next);
+        }
     }
 
     /** Moi man JavaFX dang ky de cung thay doi khi nguoi dung bat/tat dark mode. */

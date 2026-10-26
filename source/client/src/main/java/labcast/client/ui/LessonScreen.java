@@ -549,7 +549,12 @@ public final class LessonScreen extends BorderPane {
                 return;
             }
             Player p = player.load(t, Map.of());
-            traceTable.load(t, t.header().path("source").asText(editor.text()), p, editor::highlightTraceLine);
+            traceTable.load(
+                    t,
+                    t.header().path("source").asText(editor.text()),
+                    runPanel.lastRunStdout(),
+                    p,
+                    editor::highlightTraceLine);
             tabs.getSelectionModel().select(traceTab);
             setSource("Animation chỉ có với Python — code " + language.label() + " xem ở Trace Table", "none");
             return;
@@ -563,7 +568,12 @@ public final class LessonScreen extends BorderPane {
             return;
         }
         Player currentPlayer = player.load(t, views());
-        traceTable.load(t, t.header().path("source").asText(editor.text()), currentPlayer, editor::highlightTraceLine);
+        traceTable.load(
+                t,
+                t.header().path("source").asText(editor.text()),
+                runPanel.lastRunStdout(),
+                currentPlayer,
+                editor::highlightTraceLine);
         tabs.getSelectionModel().select(runPanel.lastRunLineTrace() && traceTable.hasSteps() ? traceTab : animTab);
         setSource("Đang xem: code của em", "mine");
     }

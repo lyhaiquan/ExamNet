@@ -59,6 +59,7 @@ public final class JdiBuoc {
 
     private final PrintWriter trace;
     private final int max;
+    private final Path stdoutFile;
     private int dem;
     private int dongCuoi;
     private String bienTruoc;
@@ -68,9 +69,10 @@ public final class JdiBuoc {
     private int doSauTruoc = -1;
     private long chiSoTruoc = -1;
 
-    private JdiBuoc(PrintWriter trace, int max) {
+    private JdiBuoc(PrintWriter trace, int max, Path stdoutFile) {
         this.trace = trace;
         this.max = max;
+        this.stdoutFile = stdoutFile;
     }
 
     public static void main(String[] a) throws Exception {
@@ -82,7 +84,7 @@ public final class JdiBuoc {
         try (PrintWriter trace = new PrintWriter(Files.newBufferedWriter(Path.of(a[2]), StandardCharsets.UTF_8), true)) {
             String ketQua;
             try {
-                ketQua = new JdiBuoc(trace, max).chay(vao, ra, tuyChon);
+                ketQua = new JdiBuoc(trace, max, ra).chay(vao, ra, tuyChon);
             } catch (Exception e) {
                 ketQua = "{\"loi_debugger\": " + chuoi(e.getClass().getSimpleName() + ": " + e.getMessage()) + "}";
             }
@@ -202,7 +204,14 @@ public final class JdiBuoc {
             dongCuoi = loc.lineNumber();
             phuongThucTruoc = loc.method();
             doSauTruoc = doSau;
-            trace.println("{\"t\": \"line\", \"n\": " + dongCuoi + "}");
+            // Vị trí byte của stdout đã ghi tại breakpoint (trước dòng hiện tại).
+            long printedBefore = 0;
+            try {
+                printedBefore = Files.size(stdoutFile);
+            } catch (IOException ignored) {
+                // File output chưa được tạo/flush, giữ offset 0.
+            }
+            trace.println("{\"t\": \"line\", \"n\": " + dongCuoi + ", \"o\": " + printedBefore + "}");
         }
         chiSoTruoc = loc.codeIndex();
         String bien = docBien(luong);

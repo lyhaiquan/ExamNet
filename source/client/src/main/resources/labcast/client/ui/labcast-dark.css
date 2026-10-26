@@ -1535,3 +1535,481 @@
     -fx-border-radius: 6;
     -fx-font-size: 12px;
 }
+
+/* ===== 5 mục điều hướng Sidebar: Bài tập / Thực hành / Code tự do / Thêm / Chọn lớp ===== */
+.sidebar-navigation {
+    -fx-padding: 4 8 10 8;
+    -fx-border-color: transparent transparent -lc-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.sidebar-nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -lc-text;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 8px;
+    -fx-padding: 9 11;
+    -fx-cursor: hand;
+}
+.sidebar-nav-button:hover { -fx-background-color: -lc-surface-2; }
+.sidebar-nav-button.sidebar-nav-active {
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+}
+.sidebar-nav-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -lc-muted;
+    -fx-stroke-width: 1.7;
+    -fx-stroke-linecap: round;
+    -fx-stroke-linejoin: round;
+}
+.sidebar-nav-button.sidebar-nav-active .sidebar-nav-icon { -fx-stroke: -lc-primary; }
+.exercise-author-heading { -fx-padding: 16 20 10 20; }
+.exercise-author-scroll { -fx-background-color: transparent; -fx-border-color: transparent; }
+.exercise-author-form { -fx-padding: 12 20 24 20; -fx-max-width: 750px; }
+.exercise-author-form .text-field, .exercise-author-form .text-area {
+    -fx-font-size: 13px;
+}
+.exercise-author-feedback { -fx-text-fill: -lc-primary-text; }
+.exercise-author-feedback.error { -fx-text-fill: #db5366; }
+
+/* ===== Lớp thực hành / Danh sách bài / Giám sát lớp ===== */
+.class-chip-picker {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 20;
+    -fx-border-width: 0;
+    -fx-font-size: 12px;
+}
+.class-chip-picker .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -lc-text;
+    -fx-padding: 5 10;
+}
+.class-chip-picker .arrow-button { -fx-background-color: transparent; }
+.class-chip-picker .arrow { -fx-background-color: -lc-text; }
+.exercise-welcome { -fx-padding: 40; }
+.exercise-catalog {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: transparent transparent transparent -lc-border;
+    -fx-border-width: 0 0 0 1;
+}
+.exercise-catalog-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.exercise-catalog-scroll, .practice-scroll { -fx-background-color: transparent; -fx-background: transparent; }
+.exercise-catalog-scroll > .viewport, .practice-scroll > .viewport { -fx-background-color: transparent; }
+.exercise-group-header {
+    -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -lc-muted;
+    -fx-padding: 14 2 5 2;
+}
+.exercise-list-button {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 9;
+    -fx-text-fill: -lc-text;
+    -fx-alignment: center-left;
+    -fx-padding: 12;
+    -fx-cursor: hand;
+}
+.exercise-list-button:hover { -fx-background-color: -lc-primary-soft; }
+.exercise-list-button .label { -fx-text-fill: -lc-text; -fx-font-size: 12px; }
+.exercise-list-button.exercise-selected {
+    -fx-border-color: -lc-primary;
+    -fx-border-radius: 9;
+    -fx-border-width: 1;
+}
+.exercise-list-button .exercise-done-text { -fx-text-fill: #23b875; -fx-font-weight: bold; }
+.exercise-list-button.exercise-completed { -fx-border-color: rgba(35,184,117,0.35); -fx-border-radius: 9; }
+.practice-screen, .students-screen { -fx-background-color: -lc-bg; }
+.practice-room-row {
+    -fx-padding: 17;
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 11;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 11;
+    -fx-alignment: center-left;
+}
+
+
+/* ===== Giao diện bài tập dạng danh sách card và số liệu thực ===== */
+.exercise-library, .practice-screen-v2, .students-dashboard {
+    -fx-background-color: -lc-bg;
+}
+.exercise-library-heading, .workspace-heading {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lc-text;
+}
+.exercise-library-summary-card, .students-stat-card, .students-detail-card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-width: 1;
+    -fx-padding: 16 20;
+}
+.exercise-library-summary { -fx-alignment: center-left; }
+.exercise-library-stat-label, .students-stat-caption {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lc-muted;
+}
+.exercise-library-stat-value { -fx-text-fill: -lc-text; -fx-font-size: 22px; -fx-font-weight: bold; }
+.exercise-library-progress { -fx-pref-height: 6; }
+.exercise-library-progress > .track { -fx-background-color: -lc-surface-2; -fx-background-radius: 10; }
+.exercise-library-progress > .bar { -fx-background-color: #22bb79; -fx-background-radius: 10; -fx-background-insets: 0; }
+.exercise-library-search, .students-search {
+    -fx-background-color: -lc-surface;
+    -fx-text-fill: -lc-text;
+    -fx-border-color: -lc-border;
+    -fx-background-radius: 9;
+    -fx-border-radius: 9;
+    -fx-padding: 9 13;
+    -fx-prompt-text-fill: -lc-muted;
+}
+.exercise-library-refresh { -fx-font-size: 17px; -fx-background-radius: 9; -fx-padding: 7 12; }
+.exercise-library-scroll, .workspace-scroll { -fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent; }
+.exercise-library-scroll > .viewport, .workspace-scroll > .viewport { -fx-background-color: transparent; }
+.exercise-library-item {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-border-width: 1;
+    -fx-padding: 15 20;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0.06, 0, 2);
+}
+.exercise-library-item:hover { -fx-background-color: -lc-primary-soft; -fx-border-color: -lc-primary; }
+.exercise-library-item .label { -fx-text-fill: -lc-text; }
+.exercise-library-item .exercise-library-id {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 5;
+    -fx-padding: 4 8;
+    -fx-text-fill: -lc-muted;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 11px;
+}
+.exercise-library-item .exercise-library-tag {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 13;
+    -fx-padding: 4 10;
+    -fx-text-fill: #78a8ff;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.exercise-library-item .exercise-library-row-title { -fx-font-size: 14px; -fx-font-weight: bold; }
+.exercise-library-item .exercise-library-indicator { -fx-font-size: 18px; -fx-text-fill: -lc-muted; }
+.exercise-library-item.exercise-library-completed {
+    -fx-border-color: #34d399;
+    -fx-border-width: 2;
+    -fx-background-color: #103d31;
+}
+.exercise-library-item.exercise-library-completed .exercise-library-row-title,
+.exercise-library-item.exercise-library-completed .exercise-library-indicator { -fx-text-fill: #79e2b2; }
+.exercise-library-empty { -fx-padding: 25; -fx-text-fill: -lc-muted; }
+
+/* ===== Lớp thực hành, buổi thực hành và bài được giao ===== */
+.workspace-section-title { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -lc-text; -fx-padding: 8 0; }
+.workspace-form-row, .workspace-actions { -fx-padding: 2 0 7 0; -fx-alignment: center-left; }
+.practice-screen-v2 .text-field, .practice-screen-v2 .combo-box {
+    -fx-background-color: -lc-surface; -fx-text-fill: -lc-text;
+    -fx-border-color: -lc-border; -fx-border-radius: 7; -fx-background-radius: 7;
+    -fx-padding: 8 11;
+}
+.workspace-primary-button { -fx-background-color: -lc-primary; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 15; -fx-background-radius: 7; -fx-cursor: hand; }
+.workspace-status { -fx-font-size: 12px; -fx-text-fill: -lc-muted; }
+.workspace-room-card {
+    -fx-background-color: -lc-surface; -fx-border-color: -lc-border; -fx-border-width: 1;
+    -fx-border-radius: 12; -fx-background-radius: 12; -fx-padding: 16 19;
+}
+.workspace-room-title { -fx-text-fill: -lc-text; -fx-font-size: 16px; -fx-font-weight: bold; }
+.workspace-class-card {
+    -fx-background-color: -lc-surface; -fx-border-color: -lc-border;
+    -fx-border-radius: 10; -fx-background-radius: 10;
+    -fx-text-fill: -lc-text; -fx-padding: 14 18; -fx-cursor: hand;
+}
+.workspace-class-card:hover, .workspace-class-active {
+    -fx-background-color: -lc-primary-soft; -fx-border-color: -lc-primary;
+}
+.workspace-assignment-list { -fx-padding: 5 0 0 0; }
+.workspace-assignment-row {
+    -fx-background-color: -lc-surface-2; -fx-background-radius: 8; -fx-padding: 9 12;
+}
+.workspace-assignment-row .label { -fx-text-fill: -lc-text; }
+
+/* ===== Quản lý sinh viên ===== */
+.students-stat-card { -fx-min-width: 160; }
+.students-stat-number { -fx-text-fill: -lc-text; -fx-font-size: 26px; -fx-font-weight: bold; }
+.students-stat-online .students-stat-number { -fx-text-fill: #79e2b2; }
+.students-stat-working .students-stat-number { -fx-text-fill: #78a8ff; }
+.students-table {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: -lc-border;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-table-cell-border-color: transparent;
+}
+.students-table .column-header-background { -fx-background-color: -lc-surface-2; }
+.students-table .column-header, .students-table .filler { -fx-background-color: transparent; -fx-padding: 12 7; }
+.students-table .column-header .label { -fx-text-fill: -lc-muted; -fx-font-size: 10px; -fx-font-weight: bold; }
+.students-table .table-row-cell { -fx-background-color: -lc-surface; -fx-border-color: transparent transparent -lc-border transparent; }
+.students-table .table-row-cell:odd { -fx-background-color: -lc-surface-2; }
+.students-table .table-row-cell:selected { -fx-background-color: -lc-primary-soft; }
+.students-table .table-cell { -fx-text-fill: -lc-text; -fx-border-color: transparent; -fx-padding: 9; }
+.students-table .students-online-cell { -fx-text-fill: #79e2b2; -fx-font-weight: bold; }
+.students-table .students-offline-cell { -fx-text-fill: -lc-muted; }
+.students-detail-label { -fx-text-fill: -lc-text; -fx-padding: 8 0; }
+
+/* ===== Trace Table nâng cấp: tiêu đề, lệnh, biến, highlight bước hiện tại ===== */
+.trace-table-pane { -fx-background-color: -lc-surface; }
+.trace-panel-header {
+    -fx-background-color: -lc-surface;
+    -fx-padding: 15 16 12 16;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+.trace-panel-title { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.trace-panel-subtitle, .trace-hint { -fx-font-size: 11px; -fx-text-fill: -lc-muted; }
+.trace-controls { -fx-alignment: center-left; }
+.trace-control-button {
+    -fx-padding: 7 13; -fx-background-radius: 7; -fx-cursor: hand;
+    -fx-background-color: -lc-surface-2; -fx-text-fill: -lc-text;
+    -fx-border-color: -lc-border; -fx-border-radius: 7;
+}
+.trace-play-button { -fx-background-color: -lc-primary; -fx-border-color: -lc-primary; -fx-text-fill: white; -fx-font-weight: bold; }
+.trace-progress-pill {
+    -fx-background-color: -lc-primary-soft; -fx-background-radius: 20;
+    -fx-text-fill: #78a8ff; -fx-font-weight: bold; -fx-padding: 6 12;
+}
+.trace-table { -fx-background-color: -lc-surface; -fx-table-cell-border-color: transparent; }
+.trace-table .column-header-background { -fx-background-color: -lc-surface-2; }
+.trace-table .column-header { -fx-background-color: transparent; -fx-padding: 9 5; }
+.trace-table .column-header .label { -fx-text-fill: -lc-muted; -fx-font-size: 11px; -fx-font-weight: bold; }
+.trace-table .table-row-cell { -fx-background-color: -lc-surface; -fx-border-color: transparent transparent -lc-border transparent; }
+.trace-table .table-row-cell:odd { -fx-background-color: -lc-surface-2; }
+.trace-table .table-row-cell:filled:selected, .trace-table .table-row-cell.trace-current-step {
+    -fx-background-color: -lc-primary-soft;
+    -fx-border-color: transparent transparent -lc-primary transparent;
+}
+.trace-table .table-cell { -fx-text-fill: -lc-text; -fx-border-color: transparent; -fx-font-family: "JetBrains Mono"; -fx-font-size: 11px; -fx-padding: 6; }
+
+
+/* === 2026 UX: Bài tập dạng hàng gọn, lớp thực hành theo luồng danh sách -> tạo -> chi tiết === */
+.exercise-library-scroll { -fx-padding: 0; }
+.exercise-library-scroll .viewport { -fx-background-color: transparent; }
+.exercise-library-item {
+    -fx-min-height: 68px;
+    -fx-pref-height: 68px;
+    -fx-max-height: 68px;
+    -fx-padding: 0 19px;
+    -fx-content-display: graphic-only;
+    -fx-alignment: center-left;
+    -fx-background-insets: 0;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+.exercise-library-item .exercise-library-id { -fx-padding: 5px 9px; -fx-background-radius: 6; }
+.exercise-library-item .exercise-library-tag { -fx-padding: 5px 10px; -fx-background-radius: 14; }
+.exercise-library-item .exercise-library-row-title { -fx-font-size: 14px; -fx-font-weight: bold; }
+.exercise-library-item .exercise-library-indicator { -fx-font-size: 21px; }
+.exercise-library-item.exercise-library-completed {
+    -fx-background-color: #163D30;
+    -fx-border-color: #51D9A2;
+    -fx-border-width: 2px;
+}
+.workspace-directory-card {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 13px 20px;
+    -fx-content-display: graphic-only;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+}
+.workspace-directory-card:hover {
+    -fx-background-color: -lc-primary-soft;
+    -fx-border-color: -lc-primary;
+}
+.workspace-card-arrow { -fx-text-fill: -lc-primary; -fx-font-size: 26px; }
+.workspace-secondary-button {
+    -fx-background-color: -lc-surface;
+    -fx-text-fill: -lc-text;
+    -fx-border-color: -lc-border-strong;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 14px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+}
+.workspace-secondary-button:hover {
+    -fx-background-color: -lc-primary-soft;
+    -fx-border-color: -lc-primary;
+}
+.workspace-invite-badge {
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 16px;
+    -fx-padding: 7px 12px;
+    -fx-text-fill: -lc-primary-text;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+.workspace-count-badge {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 13px;
+    -fx-padding: 7px 12px;
+    -fx-text-fill: -lc-muted;
+    -fx-font-weight: bold;
+}
+.workspace-roster-row {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 14px;
+    -fx-min-height: 54px;
+}
+.workspace-roster-number { -fx-min-width: 32px; -fx-text-fill: -lc-muted; -fx-font-weight: bold; }
+.workspace-roster-name { -fx-text-fill: -lc-text; -fx-font-size: 13px; -fx-font-weight: bold; }
+.workspace-roster-user { -fx-text-fill: -lc-muted; -fx-font-size: 11px; }
+.workspace-online { -fx-text-fill: #14A870; -fx-font-weight: bold; }
+.workspace-offline { -fx-text-fill: -lc-muted; }
+.workspace-empty {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 10px;
+    -fx-padding: 20px;
+    -fx-text-fill: -lc-muted;
+}
+.practice-screen-v2 .workspace-room-card { -fx-padding: 18px 20px; -fx-spacing: 12px; }
+.practice-screen-v2 .workspace-section-title { -fx-padding: 2px 0px; }
+.practice-screen-v2 .workspace-primary-button { -fx-background-radius: 8px; -fx-padding: 10px 15px; }
+
+
+/* ===== UX polish 2026-10-23: danh sách bài, bài được giao, biểu mẫu, sinh viên & Trace ===== */
+.exercise-library { -fx-spacing: 14px; }
+.exercise-library-heading { -fx-font-size: 25px; }
+.exercise-library-search, .exercise-library-filter, .exercise-library-refresh {
+    -fx-min-height: 48px;
+    -fx-pref-height: 48px;
+    -fx-max-height: 48px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+}
+.exercise-library-filter {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: -lc-border;
+    -fx-border-width: 1px;
+    -fx-padding: 0px 8px;
+}
+.exercise-library-filter .list-cell { -fx-text-fill: -lc-text; -fx-font-size: 13px; }
+.exercise-library-filter .arrow-button { -fx-padding: 0 8px; }
+.exercise-library-refresh { -fx-padding: 0; -fx-font-size: 20px; -fx-border-color: -lc-border; }
+.exercise-library-item { -fx-min-height: 66px; -fx-pref-height: 66px; -fx-max-height: 66px; -fx-padding: 0px 18px; }
+.exercise-library-item .exercise-library-tag {
+    -fx-min-width: 154px; -fx-pref-width: 154px; -fx-max-width: 154px;
+    -fx-alignment: center-left;
+    -fx-font-size: 12px;
+    -fx-padding: 7px 11px;
+}
+.exercise-library-item .exercise-library-row-title { -fx-font-size: 14px; }
+.exercise-library-item .exercise-library-indicator { -fx-font-size: 21px; }
+
+.workspace-assignment-list { -fx-spacing: 8px; }
+.workspace-assignment-row {
+    -fx-min-height: 54px;
+    -fx-pref-height: 54px;
+    -fx-padding: 8px 12px 8px 16px;
+    -fx-alignment: center-left;
+    -fx-border-radius: 9px;
+    -fx-background-radius: 9px;
+}
+.workspace-assignment-title { -fx-font-size: 13px; -fx-font-weight: 600; }
+.workspace-remove-assignment {
+    -fx-background-color: transparent;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-font-size: 22px;
+    -fx-text-fill: -lc-muted;
+    -fx-padding: 0px;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+}
+.workspace-remove-assignment:hover {
+    -fx-text-fill: #dc2626;
+    -fx-border-color: #fca5a5;
+    -fx-background-color: #fff1f2;
+}
+
+/* Form thêm bài tập: nhóm nội dung cân đối, lề nhất quán, ô nhập cùng kích thước. */
+.exercise-author-screen { -fx-background-color: -lc-bg; }
+.exercise-author-heading { -fx-padding: 22px 28px 16px 28px; -fx-spacing: 5px; }
+.exercise-author-form { -fx-padding: 6px 28px 30px 28px; -fx-spacing: 16px; -fx-max-width: 1200px; }
+.exercise-author-scroll { -fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent; }
+.exercise-author-scroll .viewport { -fx-background-color: transparent; }
+.exercise-author-card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 13px;
+    -fx-border-radius: 13px;
+    -fx-border-width: 1px;
+    -fx-border-color: -lc-border;
+    -fx-padding: 20px 23px;
+    -fx-spacing: 12px;
+}
+.exercise-author-card-title { -fx-text-fill: -lc-text; -fx-font-size: 17px; -fx-font-weight: bold; }
+.exercise-author-card-description { -fx-text-fill: -lc-muted; -fx-font-size: 12px; }
+.exercise-author-field { -fx-spacing: 7px; }
+.exercise-author-field-label { -fx-text-fill: -lc-text; -fx-font-size: 12px; -fx-font-weight: bold; }
+.exercise-author-card .text-field, .exercise-author-card .combo-box,
+.exercise-author-card .text-area {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: -lc-border;
+    -fx-background-radius: 9px;
+    -fx-border-radius: 9px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -lc-text;
+    -fx-font-size: 13px;
+}
+.exercise-author-card .text-field, .exercise-author-card .combo-box { -fx-min-height: 44px; -fx-pref-height: 44px; -fx-max-height: 44px; }
+.exercise-author-card .text-area { -fx-padding: 0px; }
+.exercise-author-card .text-area .content { -fx-background-color: -lc-surface; }
+.exercise-author-card .text-area:focused, .exercise-author-card .text-field:focused, .exercise-author-card .combo-box:focused { -fx-border-color: -lc-primary; }
+.exercise-author-note { -fx-text-fill: -lc-muted; -fx-font-size: 12px; }
+.exercise-author-save { -fx-padding: 12px 21px; -fx-background-radius: 9px; -fx-font-weight: bold; }
+.exercise-author-feedback { -fx-font-size: 12px; -fx-padding: 3px 0px 0px 0px; }
+
+/* Thống kê và quản lý sinh viên: card đồng chiều cao, thanh lọc cân hàng. */
+.students-dashboard { -fx-background-color: -lc-bg; }
+.students-metrics { -fx-spacing: 14px; }
+.students-stat-card { -fx-min-height: 105px; -fx-pref-height: 105px; -fx-padding: 17px 21px; -fx-background-radius: 12px; }
+.students-stat-number { -fx-font-size: 30px; }
+.students-search, .students-filter, .students-refresh {
+    -fx-min-height: 46px; -fx-pref-height: 46px; -fx-max-height: 46px;
+    -fx-background-radius: 9px; -fx-border-radius: 9px;
+}
+.students-filter, .students-refresh {
+    -fx-border-color: -lc-border;
+    -fx-background-color: -lc-surface;
+    -fx-text-fill: -lc-text;
+}
+.students-filter .list-cell { -fx-text-fill: -lc-text; }
+.students-refresh { -fx-padding: 0 17px; -fx-cursor: hand; }
+.students-table { -fx-background-radius: 12px; -fx-border-radius: 12px; }
+.students-table .column-header, .students-table .filler { -fx-padding: 12px 8px; }
+.students-table .table-cell { -fx-padding: 11px 9px; -fx-font-size: 12px; }
+.students-table .table-row-cell { -fx-cell-size: 50px; }
+.students-detail-card { -fx-padding: 18px 21px; -fx-spacing: 8px; -fx-min-height: 112px; }
+.students-detail-caption { -fx-text-fill: -lc-muted; -fx-font-size: 11px; }
+.students-detail-label { -fx-font-size: 13px; -fx-padding: 4px 0; }
+
+/* Trace gọn: chỉ điều khiển và 5 cột (bao gồm kết quả in ra). */
+.trace-table-pane { -fx-background-color: -lc-surface; }
+.trace-controls {
+    -fx-background-color: -lc-surface;
+    -fx-padding: 8px 11px;
+    -fx-spacing: 8px;
+    -fx-alignment: center-left;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+.trace-control-button { -fx-min-height: 33px; -fx-pref-height: 33px; -fx-padding: 5px 10px; }
+.trace-play-button { -fx-background-color: -lc-primary; -fx-text-fill: white; -fx-border-color: -lc-primary; }
+.trace-play-button:disabled { -fx-opacity: 0.6; }
+.trace-output-cell { -fx-text-fill: #059669; -fx-font-weight: bold; }
+.trace-table .column-header .label { -fx-font-size: 11px; }

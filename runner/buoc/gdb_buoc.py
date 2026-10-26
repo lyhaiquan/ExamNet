@@ -218,7 +218,13 @@ def main():
             dem += 1
             dong = sal.line
             khung_truoc = khung
-            ghi({"t": "line", "n": dong})
+            # Offset thực sự đã flush ra file tới breakpoint này (byte UTF-8).
+            # Với cout/printf còn buffer, output chỉ thấy khi chương trình kết thúc.
+            try:
+                out_offset = os.path.getsize(os.environ["LC_OUT"])
+            except OSError:
+                out_offset = 0
+            ghi({"t": "line", "n": dong, "o": out_offset})
         pc_truoc = pc
         if bien != truoc:
             ghi({"t": "vars", "f": khung.name() or "", "d": bien})

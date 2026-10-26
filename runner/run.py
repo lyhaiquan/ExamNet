@@ -36,6 +36,7 @@ class GioiHanStdout(io.StringIO):
     def __init__(self):
         super().__init__()
         self.cat = False
+        self.byte_count = 0  # Mốc UTF-8 đã thực sự được ghi vào stdout của học viên.
 
     def write(self, s):
         con = MAX_STDOUT - self.tell()
@@ -45,6 +46,7 @@ class GioiHanStdout(io.StringIO):
         if len(s) > con:
             self.cat = True
             s = s[:con]
+        self.byte_count += len(s.encode("utf-8"))
         return super().write(s)
 
 

@@ -51,6 +51,7 @@ public final class RunPanel extends VBox {
     private final Button submitBtn = new Button(SUBMIT_TEXT);
     private final Button traceBtn = new Button("⇥ Trace từng dòng");
     private boolean lastRunLineTrace;
+    private String lastRunStdout = "";
     private final Label verdict = new Label();
     private final TextArea output = new TextArea();
     private final List<String> lines = new ArrayList<>();
@@ -176,8 +177,13 @@ public final class RunPanel extends VBox {
         return lastRunLineTrace;
     }
 
+    public String lastRunStdout() {
+        return lastRunStdout;
+    }
+
     private void run(boolean traceLines) {
         lastRunLineTrace = traceLines;
+        lastRunStdout = "";
         long seq = flushCode.getAsLong();
         String testId = tests.getSelectionModel().getSelectedItem();
         synchronized (lines) {
@@ -267,7 +273,8 @@ public final class RunPanel extends VBox {
                             },
                     v.equals("OK") ? "ok" : "fail");
             String err = r.path("error").isNull() ? "" : r.path("error").asText("");
-            output.setText(r.path("stdout").asText("") + (err.isEmpty() ? "" : "\n" + err));
+            lastRunStdout = r.path("stdout").asText("");
+            output.setText(lastRunStdout + (err.isEmpty() ? "" : "\n" + err));
             onTrace.accept(trace);
             if (r.path("errorLine").asInt(0) > 0) {
                 onErrorLine.accept(r.path("errorLine").asInt());
