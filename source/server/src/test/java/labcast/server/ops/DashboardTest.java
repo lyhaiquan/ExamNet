@@ -148,7 +148,76 @@ class DashboardTest {
                 assertEquals("APP_LEAVE", d.path("audit").get(0).path("action").asText());
                 assertEquals(
                         "thử cảnh báo", d.path("logs").get(0).path("message").asText());
+                assertEquals(
+                        LogCategory.GIAN_LAN,
+                        d.path("audit").get(0).path("category").asText());
+                assertEquals(
+                        LogCategory.HE_THONG,
+                        d.path("logs").get(0).path("category").asText());
+                assertEquals(0, binh.path("stats").path("chay").asInt(-1), "chưa làm gì vẫn có thống kê 0");
             }
+        }
+    }
+
+    @Test
+    void thongKe_demLuotVaBaiDaGiai_diemLayCaoNhatMoiBai() throws Exception {
+        try (Database db = Database.open(":memory:");
+                var server = new LabCastServer(ServerConfig.forTest(), db, List.of(new AccountModule()))) {
+            server.start();
+            var users = new UserRepository(db);
+            users.create("sv1", "Nguyễn Văn An", Role.STUDENT, "1");
+            users.create("sv2", "Trần Thị Bình", Role.STUDENT, "2");
+            long an = db.read(c -> {
+                try (var st = c.prepareStatement("SELECT id FROM users WHERE username = 'sv1'");
+                        var rs = st.executeQuery()) {
+                    rs.next();
+                    return rs.getLong(1);
+                }
+            });
+            db.read(c -> {
+                for (String id : List.of("dsa.a.mot", "dsa.a.mot#cpp", "dsa.a.hai")) {
+                    try (var st = c.prepareStatement("INSERT INTO lessons (id, mon, chuong, ten, loai, path,"
+                            + " content_hash) VALUES (?, 'dsa', 'a', ?, 'bai-tap', ?, 'x')")) {
+                        st.setString(1, id);
+                        st.setString(2, id);
+                        st.setString(3, id);
+                        st.executeUpdate();
+                    }
+                }
+                Object[][] rows = {
+                    {"dsa.a.mot", "RUN", "WRONG", null, 100L},
+                    {"dsa.a.mot", "RUN", "OK", null, 200L},
+                    {"dsa.a.mot", "SUBMIT", "WRONG", null, 300L},
+                    {"dsa.a.mot", "SUBMIT", "OK", 80, 400L},
+                    {"dsa.a.mot#cpp", "SUBMIT", "OK", 60, 500L},
+                    {"dsa.a.hai", "SUBMIT", "OK", 100, 600L},
+                };
+                for (Object[] r : rows) {
+                    try (var st = c.prepareStatement("INSERT INTO submissions (user_id, lesson_id, code_seq, kind,"
+                            + " verdict, score, created_at) VALUES (?, ?, 1, ?, ?, ?, ?)")) {
+                        st.setLong(1, an);
+                        st.setString(2, (String) r[0]);
+                        st.setString(3, (String) r[1]);
+                        st.setString(4, (String) r[2]);
+                        st.setObject(5, r[3]);
+                        st.setLong(6, (Long) r[4]);
+                        st.executeUpdate();
+                    }
+                }
+                return null;
+            });
+
+            JsonNode d = JsonPayload.MAPPER.readTree(new Dashboard(server.context(), INFO, null, server.port()).json());
+            JsonNode a = d.path("students").get(0).path("stats");
+            assertEquals(2, a.path("chay").asInt());
+            assertEquals(4, a.path("nop").asInt());
+            assertEquals(1, a.path("nopSai").asInt());
+            assertEquals(2, a.path("daGiai").asInt(), "nộp đúng một bài hai lần, bằng hai ngôn ngữ, vẫn tính một bài");
+            assertEquals(180, a.path("diem").asInt(), "80 (cao nhất của bài một, mọi ngôn ngữ) + 100");
+            assertEquals(600, a.path("lanCuoi").asLong());
+            JsonNode b = d.path("students").get(1).path("stats");
+            assertEquals(0, b.path("nop").asInt(-1));
+            assertEquals(0, b.path("daGiai").asInt(-1));
         }
     }
 }

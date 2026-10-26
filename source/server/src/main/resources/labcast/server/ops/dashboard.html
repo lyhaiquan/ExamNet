@@ -72,6 +72,13 @@ tr:last-child td { border-bottom: none; }
 .logs { font: 12px/1.5 Consolas, "Cascadia Mono", monospace; }
 .logs td { padding: 3px 14px; }
 .logs td.msg { white-space: pre-wrap; word-break: break-word; }
+.bar { width: 90px; height: 8px; border-radius: 4px; background: var(--idle-soft); overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--primary); }
+button, input[type=search] { font: inherit; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
+button { cursor: pointer; }
+input[type=search] { width: 160px; }
+.card h2 { flex-wrap: wrap; }
 select { font: inherit; background: var(--surface); color: var(--text); border: 1px solid var(--border);
   border-radius: 6px; padding: 2px 6px; }
 </style>
@@ -107,6 +114,28 @@ select { font: inherit; background: var(--surface); color: var(--text); border: 
     </div>
   </section>
 
+  <section class="card">
+    <h2>Thống kê học viên <span class="count" id="cIdle"></span><span class="spacer"></span>
+      <select id="statSort" aria-label="Sắp xếp">
+        <option value="daGiai">Giải nhiều bài nhất</option>
+        <option value="it">Làm ít nhất</option>
+        <option value="diem">Điểm cao nhất</option>
+        <option value="chay">Chạy code nhiều nhất</option>
+        <option value="nopSai">Nộp sai nhiều nhất</option>
+        <option value="roi">Rời app nhiều nhất</option>
+        <option value="ten">Theo tên đăng nhập</option>
+      </select>
+      <button id="csv" type="button">Tải CSV</button></h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>Học viên</th><th class="num">Bài đã giải</th><th>Mức làm</th><th class="num">Điểm</th>
+          <th class="num">Lượt chạy</th><th class="num">Lượt nộp</th><th class="num">Nộp sai</th>
+          <th class="num">Rời app</th><th>Làm gần nhất</th></tr></thead>
+        <tbody id="stats"></tbody>
+      </table>
+    </div>
+  </section>
+
   <div class="grid">
     <section class="card">
       <h2>Lượt chạy code gần đây</h2>
@@ -118,10 +147,11 @@ select { font: inherit; background: var(--surface); color: var(--text); border: 
       </div>
     </section>
     <section class="card">
-      <h2>Nhật ký sự kiện</h2>
+      <h2>Nhật ký sự kiện <span class="spacer"></span>
+        <select id="auditCat" aria-label="Loại sự kiện"></select></h2>
       <div class="scroll">
         <table>
-          <thead><tr><th>Lúc</th><th>Ai</th><th>Việc</th><th>Chi tiết</th></tr></thead>
+          <thead><tr><th>Lúc</th><th>Ai</th><th>Loại</th><th>Việc</th><th>Chi tiết</th></tr></thead>
           <tbody id="audit"></tbody>
         </table>
       </div>
@@ -129,8 +159,10 @@ select { font: inherit; background: var(--surface); color: var(--text); border: 
   </div>
 
   <section class="card">
-    <h2>Log server <span class="spacer"></span>
-      <select id="level"><option value="all">Tất cả</option><option value="warn">Chỉ cảnh báo và lỗi</option></select></h2>
+    <h2>Log server <span class="count" id="cLogs"></span><span class="spacer"></span>
+      <select id="logCat" aria-label="Loại log"></select>
+      <select id="level" aria-label="Mức"><option value="all">Mọi mức</option><option value="warn">Chỉ cảnh báo và lỗi</option></select>
+      <input type="search" id="logFind" placeholder="Tìm trong log…" aria-label="Tìm trong log"></h2>
     <div class="scroll">
       <table class="logs"><tbody id="logs"></tbody></table>
     </div>
@@ -195,6 +227,37 @@ const ACTION = {
   PASTE_FLAG: ["Dán khối lớn", "warn"], TOO_MANY_MESSAGES: ["Gửi dồn, bị ngắt", "bad"],
   ADMIN_ROSTER_IMPORT: ["Nhập danh sách lớp", "idle"],
 };
+// Trùng khoá với LogCategory.java
+const CATEGORY = {
+  "ket-noi": ["Kết nối", "idle"], "dang-nhap": ["Đăng nhập", "ok"], "bai-hoc": ["Bài học", "idle"],
+  "cham-bai": ["Chạy & chấm", "idle"], "chieu": ["Chiếu", "idle"], "code": ["Code học viên", "idle"],
+  "gian-lan": ["Gian lận", "warn"], "quan-tri": ["Quản trị", "idle"], "he-thong": ["Hệ thống", "idle"],
+};
+function catOptions(select) {
+  select.appendChild(new Option("Mọi loại", "all"));
+  Object.entries(CATEGORY).forEach(([k, v]) => select.appendChild(new Option(v[0], k)));
+}
+catOptions($("logCat"));
+catOptions($("auditCat"));
+function catPill(key) { const c = CATEGORY[key] || [key, "idle"]; return pill(c[0], c[1]); }
+
+// "Làm ít" = số bài đã giải, rồi lượt nộp, rồi lượt chạy: ai chưa giải bài nào nhưng chạy nhiều vẫn đứng trên ai chưa động tay
+const ACTIVITY = (s) => s.stats.daGiai * 1e6 + s.stats.nop * 1e3 + s.stats.chay;
+const STAT_SORT = {
+  daGiai: (a, b) => b.stats.daGiai - a.stats.daGiai || b.stats.diem - a.stats.diem,
+  it: (a, b) => ACTIVITY(a) - ACTIVITY(b),
+  diem: (a, b) => b.stats.diem - a.stats.diem,
+  chay: (a, b) => b.stats.chay - a.stats.chay,
+  nopSai: (a, b) => b.stats.nopSai - a.stats.nopSai,
+  roi: (a, b) => b.leaves - a.leaves || b.awayMs - a.awayMs,
+  ten: () => 0,
+};
+function sortedStats(d) {
+  const cmp = STAT_SORT[$("statSort").value] || STAT_SORT.daGiai;
+  return d.students.slice().sort((a, b) => cmp(a, b) || a.username.localeCompare(b.username));
+}
+function ago(now, ms) { return ms ? time(ms) + " (" + duration(now - ms) + " trước)" : "—"; }
+
 // Học viên cần chú ý lên đầu
 const ORDER = (s) => (!s.inApp && s.online ? 0 : s.presence === "SUSPECT" ? 1
   : s.loggedIn && !s.online ? 2 : s.online ? 3 : 4);
@@ -266,23 +329,61 @@ function render(d) {
     ]);
   }), "Chưa có học viên nào. Giáo viên nhập danh sách lớp trong app.", 8);
 
+  const total = d.baiNopDuoc || 0;
+  const idle = st.filter((s) => s.stats.chay + s.stats.nop === 0).length;
+  $("cIdle").textContent = idle ? "· " + idle + " học viên chưa chạy hay nộp bài nào" : "";
+  const maxSolved = Math.max(1, ...st.map((s) => s.stats.daGiai));
+  fill($("stats"), sortedStats(d).map((s, i) => {
+    const x = s.stats;
+    let level;
+    if (x.chay + x.nop === 0) level = pill("Chưa làm gì", "bad");
+    else {
+      level = el("div", undefined, "bar");
+      const fillBar = el("span");
+      fillBar.style.width = Math.round(100 * x.daGiai / maxSolved) + "%";
+      level.appendChild(fillBar);
+      level.title = x.daGiai + " bài, so với người giải nhiều nhất lớp " + maxSolved + " bài";
+    }
+    return row([
+      td(i + 1, "sub"),
+      td(person(s.fullName, s.username)),
+      td(total ? x.daGiai + " / " + total : x.daGiai, "num"),
+      td(level),
+      td(x.diem, "num"),
+      td(x.chay, "num"),
+      td(x.nop, "num"),
+      td(x.nopSai, "num"),
+      td(s.leaves, "num"),
+      td(ago(now, x.lanCuoi), "sub"),
+    ]);
+  }), "Chưa có học viên nào.", 10);
+
   fill($("runs"), d.runs.map((r) => {
     const v = VERDICT[r.verdict] || [r.verdict, "idle"];
     return row([td(time(r.ts), "sub"), td(person(r.fullName, r.username)), td(r.lessonId, "sub"),
       td(pill((r.kind === "SUBMIT" ? "Nộp · " : "") + v[0], v[1]))]);
   }), "Chưa có lượt chạy nào.", 4);
 
-  fill($("audit"), d.audit.map((a) => {
+  const auditCat = $("auditCat").value;
+  fill($("audit"), d.audit.filter((a) => auditCat === "all" || a.category === auditCat).map((a) => {
     const v = ACTION[a.action] || [a.action, "idle"];
-    return row([td(time(a.ts), "sub"), td(a.actor), td(pill(v[0], v[1])), td(a.detail, "wrap sub")]);
-  }), "Chưa có sự kiện nào.", 4);
+    return row([td(time(a.ts), "sub"), td(a.actor), td(catPill(a.category)), td(pill(v[0], v[1])),
+      td(a.detail, "wrap sub")]);
+  }), "Không có sự kiện nào khớp.", 5);
 
   const onlyWarn = $("level").value === "warn";
-  const logs = d.logs.filter((l) => !onlyWarn || l.level === "WARNING" || l.level === "SEVERE");
+  const logCat = $("logCat").value;
+  const find = $("logFind").value.trim().toLowerCase();
+  const logs = d.logs.filter((l) => (!onlyWarn || l.level === "WARNING" || l.level === "SEVERE")
+    && (logCat === "all" || l.category === logCat)
+    && (!find || l.message.toLowerCase().includes(find) || l.logger.toLowerCase().includes(find)));
+  $("cLogs").textContent = "(" + logs.length + " / " + d.logs.length + ")";
   fill($("logs"), logs.map((l) => {
     const cls = l.level === "SEVERE" ? "bad" : l.level === "WARNING" ? "warn" : "idle";
-    return row([td(time(l.ts), "sub"), td(pill(l.level, cls)), td(l.logger, "sub"), td(l.message, "msg")]);
-  }), "Chưa có dòng log nào.", 4);
+    const cat = td(catPill(l.category));
+    cat.title = l.logger;
+    return row([td(time(l.ts), "sub"), td(pill(l.level, cls)), cat, td(l.message, "msg")]);
+  }), "Không có dòng log nào khớp.", 4);
 }
 
 async function tick() {
@@ -298,7 +399,31 @@ async function tick() {
     $("liveText").textContent = "Mất kết nối tới server (" + e.message + ")";
   }
 }
-$("level").addEventListener("change", () => { if (last) render(last); });
+["level", "logCat", "auditCat", "statSort"].forEach((id) =>
+  $(id).addEventListener("change", () => { if (last) render(last); }));
+$("logFind").addEventListener("input", () => { if (last) render(last); });
+
+// CSV mở bằng Excel: có BOM để Excel đọc đúng tiếng Việt; ô bắt đầu bằng = + - @ thêm ' để không thành công thức
+function csvCell(v) {
+  let t = v == null ? "" : String(v);
+  if (/^[=+\-@]/.test(t)) t = "'" + t;
+  return /[",\n;]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+$("csv").addEventListener("click", () => {
+  if (!last) return;
+  const head = ["Tên đăng nhập", "Họ tên", "Bài đã giải", "Điểm", "Lượt chạy", "Lượt nộp", "Nộp sai",
+    "Số lần rời app", "Thời gian ngoài app (giây)", "Làm gần nhất"];
+  const lines = [head].concat(sortedStats(last).map((s) => [s.username, s.fullName, s.stats.daGiai, s.stats.diem,
+    s.stats.chay, s.stats.nop, s.stats.nopSai, s.leaves, Math.round(s.awayMs / 1000),
+    s.stats.lanCuoi ? new Date(s.stats.lanCuoi).toLocaleString("vi-VN", { hour12: false }) : ""]));
+  const text = "\uFEFF" + lines.map((r) => r.map(csvCell).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  a.download = "thong-ke-" + (last.server.mon || "lop").toLowerCase() + "-"
+    + new Date().toISOString().slice(0, 10) + ".csv";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
 tick();
 setInterval(tick, 2000);
 </script>
