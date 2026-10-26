@@ -17,6 +17,7 @@ import labcast.common.protocol.ProtocolException;
 import labcast.server.account.AccountModule;
 import labcast.server.cast.CastModule;
 import labcast.server.classroom.ClassEvents;
+import labcast.server.classroom.ClassroomWorkspaceModule;
 import labcast.server.journal.JournalModule;
 import labcast.server.lesson.LessonModule;
 import labcast.server.net.Connection;
@@ -40,6 +41,7 @@ public final class LabCastServer implements AutoCloseable {
     public static List<ServerModule> modules() {
         return List.of(
                 new AccountModule(), // Người 2
+                new ClassroomWorkspaceModule(), // Lớp thực hành và giám sát
                 new SyncModule(), // Người 3
                 new LessonModule(), // Người 3
                 new RunModule(), // Người 3

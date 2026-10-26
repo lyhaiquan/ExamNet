@@ -29,11 +29,15 @@ public enum MessageType {
     // 0x18–0x1F: đồng bộ đồng hồ — Người 3
     TIME_SYNC_REQ(0x18),
     TIME_SYNC_RESP(0x19),
+    CLASS_JOIN_RESULT(0x1A),
 
     // 0x20–0x2F: lớp học, quản trị, câu hỏi nhanh — Người 2
     CLASS_JOIN(0x20),
     CLASS_STATE(0x21),
     LESSON_PUSH(0x22),
+    CLASS_LIST_REQ(0x23),
+    CLASS_LIST_DATA(0x24),
+    CLASS_SELECT_REQ(0x25),
     ADMIN_LESSON_DELETE(0x26),
     ADMIN_LESSON_TOGGLE(0x27),
     ADMIN_ROSTER_IMPORT(0x28),
@@ -91,13 +95,33 @@ public enum MessageType {
     VIEW_JOIN(0x64),
     VIEW_CONTROL(0x65),
     VIEW_STATE(0x66),
+    PRACTICE_CREATE_REQ(0x67),
+    PRACTICE_JOIN_REQ(0x68),
+    PRACTICE_ACTION_RESULT(0x69),
+    STUDENT_OVERVIEW_REQ(0x6A),
+    STUDENT_OVERVIEW_DATA(0x6B),
+    STUDENT_ACTIVITY(0x6C),
+    CLASS_CREATE_REQ(0x6D),
+    CLASS_CREATE_RESULT(0x6E),
+    CLASS_JOIN_REQ(0x6F),
 
     // 0x70–0x7F: chiếu animation qua multicast — Người 4
     CAST_CONTROL(0x70),
     CAST_DATA(0x71),
     CAST_KEYFRAME(0x72),
     CAST_NACK(0x73),
-    CAST_REPAIR(0x74);
+    CAST_REPAIR(0x74),
+    /** Giáo viên gán bài có sẵn cho phiên: i64 roomId, str lessonId. */
+    PRACTICE_ASSIGN_REQ(0x75),
+    /** Đọc danh sách bài gắn với phiên: i64 roomId. */
+    PRACTICE_LESSONS_REQ(0x76),
+    PRACTICE_LESSONS_DATA(0x77),
+    /** Giáo viên bỏ bài khỏi phiên: i64 roomId, str lessonId. */
+    PRACTICE_UNASSIGN_REQ(0x78),
+    // 0x26, 0x27, 0x2B đã thuộc ADMIN_LESSON_* (bản #7) nên ba mã lớp/phiên này dời về đây
+    CLASS_SELECT_RESULT(0x79),
+    PRACTICE_LIST_REQ(0x7A),
+    PRACTICE_LIST_DATA(0x7B);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 
