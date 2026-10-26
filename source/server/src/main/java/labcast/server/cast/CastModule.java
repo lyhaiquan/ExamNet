@@ -104,7 +104,7 @@ public final class CastModule implements ServerModule {
             return t;
         });
         this.nacks = new NackAggregator(this::classSize, System::currentTimeMillis);
-        ctx.router().on(MessageType.CAST_CONTROL, Set.of(Role.TEACHER), this::onControl);
+        ctx.router().on(MessageType.CAST_CONTROL, Role.STAFF, this::onControl);
         ctx.router().on(MessageType.CAST_NACK, this::onNack);
         ctx.presence().onHeartbeat(this::onHeartbeat);
         ctx.scheduler()
@@ -153,7 +153,7 @@ public final class CastModule implements ServerModule {
     /** Máy này nhận chiếu qua TCP: giáo viên luôn luôn, học viên khi multicast không tới. */
     private boolean wantsTcp(Session s) {
         Connection c = s.connection();
-        return s.online() && c != null && (s.role() == Role.TEACHER || fallback.viaTcp(s.userId(), c.id()));
+        return s.online() && c != null && (s.role().isStaff() || fallback.viaTcp(s.userId(), c.id()));
     }
 
     /**

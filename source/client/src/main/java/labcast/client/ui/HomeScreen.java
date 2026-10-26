@@ -205,7 +205,7 @@ public final class HomeScreen extends BorderPane {
 
         // Nhóm điều hướng chính — không phải TreeItem bài học.
         configureNavButton(exerciseButton, "M6 5 H19 V19 H6 Z M9 9 H16 M9 13 H16", "Lọc danh sách bài tập");
-        practiceButton.setText(li.role() == Role.TEACHER ? "Lớp thực hành" : "Tham gia thực hành");
+        practiceButton.setText(li.role().isStaff() ? "Lớp thực hành" : "Tham gia thực hành");
         configureNavButton(
                 practiceButton, "M5 7 H19 V17 H5 Z M9 11 L11 13 L15 9", "Danh sách lớp thực hành và các buổi học");
         configureNavButton(
@@ -221,7 +221,7 @@ public final class HomeScreen extends BorderPane {
         addExerciseButton.setOnAction(e -> showAddExercise());
         manageStudentsButton.setOnAction(e -> showStudents());
         VBox menu = new VBox(5, exerciseButton, practiceButton, playgroundButton);
-        if (li.role() == Role.TEACHER) menu.getChildren().addAll(addExerciseButton, manageStudentsButton);
+        if (li.role().isStaff()) menu.getChildren().addAll(addExerciseButton, manageStudentsButton);
         menu.getStyleClass().add("sidebar-navigation");
         for (Button b :
                 new Button[] {exerciseButton, practiceButton, playgroundButton, addExerciseButton, manageStudentsButton
@@ -491,7 +491,7 @@ public final class HomeScreen extends BorderPane {
     private void showPracticeRooms() {
         leaveActiveScreen();
         activeNav = Nav.PRACTICE;
-        practiceRoomsScreen = new PracticeRoomsScreen(li.client(), li.role() == Role.TEACHER, allLessons);
+        practiceRoomsScreen = new PracticeRoomsScreen(li.client(), li.role().isStaff(), allLessons);
         practiceRoomsScreen.onImportRoster(this::importRoster);
         practiceRoomsScreen.onOpenLesson(id -> {
             showLessonCategory(Nav.EXERCISES);
@@ -500,7 +500,7 @@ public final class HomeScreen extends BorderPane {
         practiceRoomsScreen.onJoined(title -> reportActivity("Thực hành: " + title, ""));
         practiceRoomsScreen.onClassChanged(id -> {
             selectedClassId = id;
-            if (li.role() == Role.TEACHER) loadClasses();
+            if (li.role().isStaff()) loadClasses();
             loadLessons();
         });
         practiceRoomsScreen.onClassesLoaded(this::updateClassOptions);
@@ -511,7 +511,7 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void showStudents() {
-        if (li.role() != Role.TEACHER) return;
+        if (!li.role().isStaff()) return;
         leaveActiveScreen();
         activeNav = Nav.STUDENTS;
         studentManagementScreen = new StudentManagementScreen(li.client());
@@ -521,7 +521,7 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void showAddExercise() {
-        if (li.role() != Role.TEACHER) {
+        if (!li.role().isStaff()) {
             alert(Alert.AlertType.INFORMATION, "Chỉ giáo viên có thể tạo bài tập mới.");
             return;
         }
@@ -733,7 +733,12 @@ public final class HomeScreen extends BorderPane {
         avatar.getStyleClass().add("avatar");
         Label name = new Label(li.fullName());
         name.getStyleClass().add("user-name");
-        Label role = new Label(li.role() == Role.TEACHER ? "Giáo viên" : "Học viên");
+        Label role = new Label(
+                switch (li.role()) {
+                    case ADMIN -> "Quản trị";
+                    case TEACHER -> "Giáo viên";
+                    case STUDENT -> "Học viên";
+                });
         role.getStyleClass().add("user-role");
         VBox who = new VBox(0, name, role);
         who.setAlignment(Pos.CENTER_LEFT);
@@ -760,7 +765,7 @@ public final class HomeScreen extends BorderPane {
             castChip.setOnAction(e -> showCast());
             bar.getChildren().add(castChip);
         }
-        if (li.role() == Role.TEACHER) {
+        if (li.role().isStaff()) {
             Button uploadBtn = new Button("Tải lên bài tập (.zip)…");
             uploadBtn.getStyleClass().add("on-dark");
             uploadBtn.setOnAction(e -> uploadLessonZip());
@@ -804,7 +809,7 @@ public final class HomeScreen extends BorderPane {
         title.setTooltip(new Tooltip(fullTitle));
         HBox.setHgrow(title, Priority.ALWAYS);
 
-        boolean isTeacher = li.role() == Role.TEACHER;
+        boolean isTeacher = li.role().isStaff();
         boolean active = n.path("active").asBoolean(true);
         String lessonId = n.path("id").asText();
 
