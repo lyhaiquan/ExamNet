@@ -25,6 +25,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 
@@ -65,6 +66,10 @@ public final class AddExerciseScreen extends BorderPane {
     private VBox testCard;
     private Label starterCaption;
     private Label solutionCaption;
+    /** Ô soạn dùng chung cho mọi lần phóng to (tô màu, thụt dòng, tự đóng ngoặc). */
+    private final labcast.client.editor.CodeEditor zoomEditor = new labcast.client.editor.CodeEditor();
+
+    private FocusLayer zoom;
     private final Label feedback = new Label();
 
     public AddExerciseScreen() {
@@ -278,8 +283,68 @@ public final class AddExerciseScreen extends BorderPane {
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("exercise-author-scroll");
         setCenter(scroll);
+        zoomable(schema, "Bảng (schema.sql)", () -> "sql", false);
+        zoomable(sampleData, "Dữ liệu mẫu (du_lieu_mau.sql)", () -> "sql", false);
+        zoomable(starter, "Code khởi tạo", this::codeLanguage, true);
+        zoomable(solution, "Lời giải / đáp án", this::codeLanguage, true);
+        zoomable(testInput, "Input mẫu", () -> "plain", false);
+        zoomable(testOutput, "Output mẫu", () -> "plain", false);
+        zoomable(description, "Đề bài (Markdown)", () -> "plain", false);
         updateSubject();
         fillChapters();
+    }
+
+    private String codeLanguage() {
+        return "SQL".equals(subject.getValue()) ? "sql" : "python";
+    }
+
+    /**
+     * Bấm vào ô thì ô nổi lên giữa màn chiếm 70%, nền mờ; soạn bằng ô code có tô màu và thụt dòng. Esc, bấm ra
+     * ngoài hoặc "Xong" thì chữ ghi lại vào ô cũ. {@code formattable}: có nút định dạng câu SQL.
+     */
+    private void zoomable(
+            TextArea area, String caption, java.util.function.Supplier<String> lang, boolean formattable) {
+        area.setEditable(false);
+        area.setCursor(javafx.scene.Cursor.HAND);
+        area.setTooltip(new javafx.scene.control.Tooltip("Bấm để mở rộng ô soạn"));
+        area.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+            e.consume();
+            if (zoom != null && zoom.isOpen()) return;
+            boolean readOnly = area.getProperties().containsKey("readonly");
+            zoomEditor.setEditable(!readOnly);
+            String language = lang.get();
+            zoomEditor.setSyntaxLanguage(language);
+            zoomEditor.setText(area.getText());
+            Label title = new Label(caption);
+            title.getStyleClass().add("focus-title");
+            Label hint = new Label(
+                    readOnly
+                            ? "CSDL dùng chung: chỉ xem. Muốn sửa thì chọn \"Tự nhập bảng\" · Esc để đóng"
+                            : "Esc hoặc bấm ra ngoài để đóng · Tab = 4 dấu cách · tự đóng ngoặc, tự thụt dòng");
+            hint.getStyleClass().add("author-hint");
+            Region gap = new Region();
+            HBox.setHgrow(gap, Priority.ALWAYS);
+            Button done = new Button("Xong");
+            done.getStyleClass().add("dash-primary");
+            HBox head = new HBox(10, new VBox(2, title, hint), gap);
+            head.setAlignment(Pos.CENTER_LEFT);
+            if (formattable && "sql".equals(language)) {
+                Button format = new Button("✨ Định dạng SQL");
+                format.getStyleClass().add("dash-ghost");
+                format.setOnAction(
+                        ev -> zoomEditor.setText(labcast.client.editor.CodeAssist.formatSql(zoomEditor.text())));
+                head.getChildren().add(format);
+            }
+            head.getChildren().add(done);
+            VBox box = new VBox(12, head, zoomEditor.node());
+            VBox.setVgrow(zoomEditor.node(), Priority.ALWAYS);
+            box.getStyleClass().add("focus-panel");
+            zoom = FocusLayer.open(this, box, 0.7, () -> {
+                if (!readOnly) area.setText(zoomEditor.text());
+            });
+            done.setOnAction(ev -> zoom.close());
+            javafx.application.Platform.runLater(zoomEditor::focus);
+        });
     }
 
     static final String QUERY_SELECT = "SELECT: truy vấn, so bảng kết quả";
@@ -319,8 +384,11 @@ public final class AddExerciseScreen extends BorderPane {
     /** Chọn CSDL dùng chung: hiện bảng và dữ liệu để xem, không cho sửa (sửa thì chọn tự nhập). */
     private void loadDatabase() {
         boolean own = OWN_TABLES.equals(database.getValue()) || database.getValue() == null;
-        schema.setEditable(own);
-        sampleData.setEditable(own);
+        // ô luôn mở bằng lớp phóng to; CSDL dùng chung thì phóng to chỉ để xem (đánh dấu readonly)
+        for (TextArea t : List.of(schema, sampleData)) {
+            if (own) t.getProperties().remove("readonly");
+            else t.getProperties().put("readonly", true);
+        }
         if (own) return;
         Path dir = databaseRoot().resolve(database.getValue());
         try {

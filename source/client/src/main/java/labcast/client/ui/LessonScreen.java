@@ -68,6 +68,9 @@ public final class LessonScreen extends BorderPane {
     private final TraceTablePane traceTable = new TraceTablePane();
     private final Tab traceTab = new Tab("Trace Table", traceTable);
     private final RunPanel runPanel;
+    private VBox edCard;
+    private VBox codeColumn;
+    private FocusLayer focus;
     /** Ngôn ngữ đã chọn ở mỗi bài trong phiên làm việc: mở lại bài thì về đúng ngôn ngữ đang viết. */
     private static final Map<String, Language> LAST_LANGUAGE = new ConcurrentHashMap<>();
 
@@ -240,7 +243,7 @@ public final class LessonScreen extends BorderPane {
         HBox edHeader = new HBox(8, edTitle, gap2, saved, fileName, languagePicker, expandEditor);
         edHeader.setAlignment(Pos.CENTER_LEFT);
         edHeader.getStyleClass().add("card-header");
-        VBox edCard = new VBox(edHeader, editor.node());
+        edCard = new VBox(edHeader, editor.node());
         VBox.setVgrow(editor.node(), Priority.ALWAYS);
         edCard.getStyleClass().addAll("card", "editor-card");
         edCard.setMinWidth(0);
@@ -270,20 +273,18 @@ public final class LessonScreen extends BorderPane {
         runPanel.getStyleClass().add("card");
         runPanel.enableLineTrace(!sql);
 
-        VBox codeColumn = new VBox(10, edCard, runPanel);
+        codeColumn = new VBox(10, edCard, runPanel);
         VBox.setVgrow(edCard, Priority.ALWAYS);
         codeColumn.setMinWidth(0);
         SplitPane split = new SplitPane(codeColumn, tabs);
         split.getStyleClass().add("lesson-split");
         split.setDividerPositions(0.55);
         setCenter(split);
-        expandEditor.setOnAction(e -> {
-            if (split.getItems().size() == 1) {
-                split.getItems().add(tabs);
-                split.setDividerPositions(0.55);
-            } else {
-                split.getItems().remove(tabs);
-            }
+        // ⛶ hoặc bấm vào ô code: chế độ tập trung (đề + code nổi lên 90% màn, phần còn lại mờ)
+        expandEditor.setTooltip(new Tooltip("Chế độ tập trung: chỉ đề bài và ô code"));
+        expandEditor.setOnAction(e -> enterFocus());
+        editor.node().addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+            if (focus == null || !focus.isOpen()) Platform.runLater(this::enterFocus);
         });
 
         // Đổi ngôn ngữ: nạp bản code đã lưu của ngôn ngữ đó (CODE_FETCH), từ đó gõ là lưu lên server như Python
@@ -301,6 +302,56 @@ public final class LessonScreen extends BorderPane {
         }
 
         showDemo();
+    }
+
+    /**
+     * Chế độ tập trung: đề bài bên trái, ô code bên phải, nổi lên giữa màn chiếm 90%, nền mờ. "Chạy thử" thì trở
+     * lại giao diện thường rồi chạy; Esc hoặc bấm ra ngoài thì chỉ trở lại.
+     */
+    private void enterFocus() {
+        if (focus != null && focus.isOpen() || getScene() == null) return;
+        Region placeholder = new Region();
+        placeholder.setPrefHeight(edCard.getHeight());
+        VBox.setVgrow(placeholder, Priority.ALWAYS);
+        int at = codeColumn.getChildren().indexOf(edCard);
+        codeColumn.getChildren().set(at, placeholder);
+
+        Label title = new Label(lesson.path("ten").asText());
+        title.getStyleClass().add("focus-title");
+        Label hint = new Label("Chế độ tập trung · Esc để thoát");
+        hint.getStyleClass().add("author-hint");
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        Button exit = new Button("Thoát");
+        exit.getStyleClass().add("dash-ghost");
+        Button run = new Button("▶  Chạy thử");
+        run.getStyleClass().add("dash-primary");
+        HBox head = new HBox(10, new VBox(2, title, hint), gap, exit, run);
+        head.setAlignment(Pos.CENTER_LEFT);
+
+        ScrollPane de = new ScrollPane(MarkdownView.render(lesson.path("de").asText(), true));
+        de.setFitToWidth(true);
+        de.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        de.getStyleClass().add("focus-statement");
+        SplitPane body = new SplitPane(de, edCard);
+        body.setDividerPositions(0.38);
+        body.getStyleClass().add("focus-split");
+        VBox box = new VBox(12, head, body);
+        VBox.setVgrow(body, Priority.ALWAYS);
+        box.getStyleClass().add("focus-panel");
+
+        boolean[] runAfter = {false};
+        focus = FocusLayer.open(this, box, 0.9, () -> {
+            codeColumn.getChildren().set(codeColumn.getChildren().indexOf(placeholder), edCard);
+            VBox.setVgrow(edCard, Priority.ALWAYS);
+            if (runAfter[0]) runPanel.runCode();
+        });
+        exit.setOnAction(e -> focus.close());
+        run.setOnAction(e -> {
+            runAfter[0] = true;
+            focus.close();
+        });
+        Platform.runLater(editor::focus);
     }
 
     /** Ngôn ngữ của code đang soạn. */

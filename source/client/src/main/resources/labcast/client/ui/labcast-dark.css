@@ -2450,3 +2450,21 @@
 /* Thêm bài tập: chọn bộ vẽ cho biến */
 .author-view-row { -fx-padding: 2 0; }
 .author-hint { -fx-text-fill: -lc-muted; -fx-font-size: 11px; }
+
+/* ===== Lớp phóng to / chế độ tập trung (FocusLayer) ===== */
+.focus-backdrop { -fx-background-color: rgba(8, 10, 28, 0.55); }
+.focus-card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 16;
+    -fx-border-color: -lc-primary;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 16;
+    -fx-padding: 18 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 40, 0.15, 0, 12);
+}
+.focus-panel { -fx-background-color: transparent; }
+.focus-title { -fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.focus-statement, .focus-statement > .viewport { -fx-background-color: -lc-surface-2; -fx-background: -lc-surface-2; }
+.focus-statement { -fx-background-radius: 10; -fx-padding: 6 10; }
+.focus-split { -fx-background-color: transparent; -fx-padding: 0; }
+.focus-card .virtualized-scroll-pane, .focus-card .styled-text-area { -fx-font-size: 15px; }

@@ -177,6 +177,32 @@ public final class CodeEditor {
             if (e.getCode() == KeyCode.TAB) {
                 area.replaceSelection("    ");
                 e.consume();
+            } else if (e.getCode() == KeyCode.ENTER && !e.isShiftDown() && area.isEditable()) {
+                // xuống dòng giữ thụt dòng, thụt thêm sau ":" hoặc ngoặc mở (CodeAssist)
+                area.replaceSelection(
+                        CodeAssist.newline(area.getText(0, area.getSelection().getStart())));
+                e.consume();
+            }
+        });
+        // gõ ngoặc mở thì chèn luôn ngoặc đóng; gõ ngoặc đóng ngay trước ngoặc đóng thì chỉ bước qua
+        area.addEventFilter(KeyEvent.KEY_TYPED, e -> {
+            String ch = e.getCharacter();
+            if (!area.isEditable() || ch.length() != 1 || e.isControlDown() || e.isAltDown()) return;
+            char c = ch.charAt(0);
+            int caret = area.getCaretPosition();
+            String after = area.getText(caret, Math.min(area.getLength(), caret + 1));
+            if (area.getSelection().getLength() == 0 && CodeAssist.skipsOver(c, after)) {
+                area.moveTo(caret + 1);
+                e.consume();
+                return;
+            }
+            String close = CodeAssist.closing(c);
+            boolean quote = c == '"' || c == '\'';
+            // nháy chỉ tự đóng khi sau con trỏ là chỗ trống, tránh phá chữ "don't"
+            if (!close.isEmpty() && (!quote || after.isEmpty() || Character.isWhitespace(after.charAt(0)))) {
+                area.replaceSelection(c + close);
+                area.moveTo(area.getCaretPosition() - 1);
+                e.consume();
             }
         });
         // Kéo thả chữ từ app khác vào (trình duyệt, Word…): khi khoá thì bỏ, như dán từ ngoài
@@ -224,6 +250,23 @@ public final class CodeEditor {
         }
         batcher.flush();
         return batcher.lastSeq();
+    }
+
+    /** Thay toàn bộ chữ, không sinh delta (ô soạn không gắn với bài nào, ví dụ màn Thêm bài tập). */
+    public void setText(String text) {
+        loading = true;
+        try {
+            area.replaceText(text);
+            area.moveTo(0);
+            area.getUndoManager().forgetHistory();
+        } finally {
+            loading = false;
+        }
+    }
+
+    /** Đặt con trỏ vào ô soạn. */
+    public void focus() {
+        area.requestFocus();
     }
 
     public String text() {

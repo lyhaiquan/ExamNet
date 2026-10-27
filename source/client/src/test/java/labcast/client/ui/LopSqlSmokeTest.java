@@ -31,6 +31,36 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 @EnabledIfEnvironmentVariable(named = "LABCAST_UI_SMOKE", matches = "1")
 class LopSqlSmokeTest {
 
+    static javafx.scene.input.MouseEvent mouse(javafx.event.EventType<javafx.scene.input.MouseEvent> type) {
+        return new javafx.scene.input.MouseEvent(
+                type,
+                5,
+                5,
+                5,
+                5,
+                javafx.scene.input.MouseButton.PRIMARY,
+                1,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                true,
+                false,
+                true,
+                null);
+    }
+
+    static javafx.scene.input.MouseEvent press() {
+        return mouse(javafx.scene.input.MouseEvent.MOUSE_PRESSED);
+    }
+
+    static javafx.scene.input.MouseEvent click() {
+        return mouse(javafx.scene.input.MouseEvent.MOUSE_CLICKED);
+    }
+
     @Test
     void lopSql_trangChu_khoBai_themBai() throws Exception {
         var cfg = ServerConfig.forTest()
@@ -92,6 +122,27 @@ class LopSqlSmokeTest {
                     return null;
                 });
                 chup(scene, "sql-kho-bai-" + who);
+                if (who.equals("sv")) {
+                    // mở bài đầu bảng rồi vào chế độ tập trung
+                    fx(() -> {
+                        javafx.event.Event.fireEvent(scene.getRoot().lookup(".catalog-row"), click());
+                        return null;
+                    });
+                    until(
+                            () -> {
+                                scene.getRoot().applyCss();
+                                scene.getRoot().layout();
+                                return scene.getRoot().lookup(".editor-expand-button") != null;
+                            },
+                            "màn làm bài");
+                    Thread.sleep(800);
+                    fx(() -> {
+                        ((Button) scene.getRoot().lookup(".editor-expand-button")).fire();
+                        return null;
+                    });
+                    Thread.sleep(600);
+                    chup(scene, "sql-tap-trung-sv");
+                }
                 if (who.equals("gv")) {
                     fx(() -> {
                         ((Button) scene.lookup("#nav-add")).fire();
@@ -99,6 +150,30 @@ class LopSqlSmokeTest {
                     });
                     Thread.sleep(300);
                     chup(scene, "sql-them-bai-gv");
+                    fx(() -> {
+                        var areas = scene.getRoot().lookupAll(".text-area").toArray(new javafx.scene.Node[0]);
+                        // ô đáp án SQL: ô text-area có prompt "SELECT ..."
+                        for (var n : areas) {
+                            var t = (javafx.scene.control.TextArea) n;
+                            if (t.getPromptText().startsWith("SELECT")) {
+                                t.setText("select ho_ten, count(*) as so from khach_hang kh join don_hang dh on"
+                                        + " dh.khach_hang_id = kh.id where thanh_pho = 'Hà Nội' and nam > 2000"
+                                        + " group by ho_ten order by so desc;");
+                                javafx.event.Event.fireEvent(t, press());
+                            }
+                        }
+                        return null;
+                    });
+                    Thread.sleep(600);
+                    chup(scene, "sql-phong-to-gv");
+                    fx(() -> {
+                        for (var n : scene.getRoot().lookupAll(".button")) {
+                            if (n instanceof Button b && b.getText().contains("Định dạng")) b.fire();
+                        }
+                        return null;
+                    });
+                    Thread.sleep(200);
+                    chup(scene, "sql-phong-to-dinh-dang-gv");
                 }
                 li.client().close();
             }

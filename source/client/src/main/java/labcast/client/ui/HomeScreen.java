@@ -190,6 +190,7 @@ public final class HomeScreen extends BorderPane {
         this.cast = cast;
         this.onLogout = onLogout;
         Theme.apply(this);
+        getProperties().put(FocusLayer.HOST, true); // ô phóng to, chế độ tập trung nằm trên màn này
         // Màu nhấn theo vai trò: học viên tím, giáo viên xanh lá, quản trị tím đậm (labcast-*.css).
         getStyleClass().add("role-" + li.role().name().toLowerCase(Locale.ROOT));
         this.journal = journal;
