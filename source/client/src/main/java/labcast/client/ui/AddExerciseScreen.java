@@ -54,6 +54,17 @@ public final class AddExerciseScreen extends BorderPane {
     private final TextArea solution = new TextArea();
     private final TextArea testInput = new TextArea();
     private final TextArea testOutput = new TextArea();
+    // Bài SQL: CSDL dùng chung trong content/sql/_csdl hoặc tự nhập bảng
+    private final ComboBox<String> database = new ComboBox<>();
+    private final ComboBox<String> queryKind = new ComboBox<>();
+    private final javafx.scene.control.CheckBox ordered =
+            new javafx.scene.control.CheckBox("So kết quả theo đúng thứ tự dòng (đề yêu cầu ORDER BY)");
+    private final TextArea schema = new TextArea();
+    private final TextArea sampleData = new TextArea();
+    private VBox sqlCard;
+    private VBox testCard;
+    private Label starterCaption;
+    private Label solutionCaption;
     private final Label feedback = new Label();
 
     public AddExerciseScreen() {
@@ -165,6 +176,8 @@ public final class AddExerciseScreen extends BorderPane {
         HBox codeEditors = new HBox(14);
         VBox starterBox = field("Code khởi tạo", starter);
         VBox solutionBox = field("Lời giải tham khảo", solution);
+        starterCaption = (Label) starterBox.getChildren().get(0);
+        solutionCaption = (Label) solutionBox.getChildren().get(0);
         HBox.setHgrow(starterBox, Priority.ALWAYS);
         HBox.setHgrow(solutionBox, Priority.ALWAYS);
         starterBox.setMaxWidth(Double.MAX_VALUE);
@@ -182,8 +195,35 @@ public final class AddExerciseScreen extends BorderPane {
         GridPane tests = twoColumnGrid();
         addGrid(tests, 0, 0, field("Input mẫu", testInput));
         addGrid(tests, 1, 0, field("Output mẫu", testOutput));
-        VBox testCard =
-                card("05   Dữ liệu kiểm thử", "Input và Output cần khớp với nhau; bài SQL yêu cầu đủ dữ liệu.", tests);
+        testCard = card("05   Dữ liệu kiểm thử", "Input và Output cần khớp với nhau.", tests);
+
+        ordered.getStyleClass().add("catalog-kind");
+        queryKind.getItems().addAll(QUERY_SELECT, QUERY_DML);
+        queryKind.setValue(QUERY_SELECT);
+        database.setOnAction(e -> loadDatabase());
+        root.textProperty().addListener((o, a, b) -> fillDatabases());
+        schema.setPromptText("CREATE TABLE ... (schema.sql)");
+        sampleData.setPromptText("INSERT INTO ... (du_lieu_mau.sql)");
+        schema.setPrefRowCount(8);
+        sampleData.setPrefRowCount(8);
+        GridPane sqlMeta = twoColumnGrid();
+        addGrid(sqlMeta, 0, 0, field("Cơ sở dữ liệu", database));
+        addGrid(sqlMeta, 1, 0, field("Loại câu", queryKind));
+        GridPane sqlTables = twoColumnGrid();
+        addGrid(sqlTables, 0, 0, field("Bảng (schema.sql)", schema));
+        addGrid(sqlTables, 1, 0, field("Dữ liệu mẫu (du_lieu_mau.sql)", sampleData));
+        Label sqlHint =
+                new Label("Chọn CSDL dùng chung thì app chép schema.sql, du_lieu_mau.sql và sinh_du_lieu.py vào "
+                        + "thư mục bài (server sinh thêm CSDL ẩn để chấm). Chọn \"Tự nhập bảng\" để viết bảng riêng.");
+        sqlHint.setWrapText(true);
+        sqlHint.getStyleClass().add("author-hint");
+        sqlCard = card(
+                "03   Cơ sở dữ liệu và kiểu câu",
+                "Bài SQL chạy trên bảng; học viên thấy bảng kết quả.",
+                sqlMeta,
+                ordered,
+                sqlTables,
+                sqlHint);
 
         Label tip = new Label("Bài mới được lưu thành file trong thư mục content. "
                 + "Bạn cần đặt các file trên Server và khởi động lại Server để học viên nhìn thấy bài.");
@@ -200,7 +240,8 @@ public final class AddExerciseScreen extends BorderPane {
         feedback.getStyleClass().add("exercise-author-feedback");
         VBox saveCard = card("Hoàn tất", "Kiểm tra thông tin rồi xuất bài tập.", actions, feedback);
 
-        form.getChildren().addAll(locationCard, metadataCard, viewCard, statementCard, editorCard, testCard, saveCard);
+        form.getChildren()
+                .addAll(locationCard, metadataCard, viewCard, sqlCard, statementCard, editorCard, testCard, saveCard);
         // Cùng chiều cao cho các ô nhập một dòng và cùng chiều cao cho textarea ngang hàng.
         for (TextField input : new TextField[] {root, slug, title, newChapterName, newChapterCode}) {
             input.getStyleClass().add("exercise-author-input");
@@ -208,7 +249,8 @@ public final class AddExerciseScreen extends BorderPane {
             input.setPrefHeight(44);
             input.setMaxHeight(44);
         }
-        for (TextArea input : new TextArea[] {description, starter, solution, testInput, testOutput})
+        for (TextArea input :
+                new TextArea[] {description, starter, solution, testInput, testOutput, schema, sampleData})
             input.getStyleClass().add("exercise-author-input");
         description.setPrefRowCount(6);
         starter.setPrefRowCount(8);
@@ -224,6 +266,11 @@ public final class AddExerciseScreen extends BorderPane {
         chapterBox.setMinHeight(44);
         chapterBox.setPrefHeight(44);
         chapterBox.setMaxHeight(44);
+        for (ComboBox<String> box : List.of(database, queryKind)) {
+            box.setMinHeight(44);
+            box.setPrefHeight(44);
+            box.setMaxHeight(44);
+        }
         choose.setMinHeight(44);
         choose.setPrefHeight(44);
         choose.setMaxHeight(44);
@@ -233,6 +280,55 @@ public final class AddExerciseScreen extends BorderPane {
         setCenter(scroll);
         updateSubject();
         fillChapters();
+    }
+
+    static final String QUERY_SELECT = "SELECT: truy vấn, so bảng kết quả";
+    static final String QUERY_DML = "DML: INSERT / UPDATE / DELETE, so bảng sau khi chạy";
+    private static final String OWN_TABLES = "Tự nhập bảng";
+
+    /** CSDL dùng chung: thư mục con của content/sql/_csdl. */
+    private Path databaseRoot() {
+        try {
+            return Path.of(root.getText().trim()).resolve("sql").resolve("_csdl");
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private void fillDatabases() {
+        String keep = database.getValue();
+        database.getItems().setAll(OWN_TABLES);
+        Path dir = databaseRoot();
+        if (dir != null && Files.isDirectory(dir)) {
+            try (var list = Files.list(dir)) {
+                list.filter(d -> Files.isRegularFile(d.resolve("schema.sql")))
+                        .map(d -> d.getFileName().toString())
+                        .sorted()
+                        .forEach(n -> database.getItems().add(n));
+            } catch (IOException ignored) {
+                // không đọc được thì chỉ còn tự nhập bảng
+            }
+        }
+        database.setValue(
+                keep != null && database.getItems().contains(keep)
+                        ? keep
+                        : database.getItems().get(database.getItems().size() > 1 ? 1 : 0));
+        loadDatabase();
+    }
+
+    /** Chọn CSDL dùng chung: hiện bảng và dữ liệu để xem, không cho sửa (sửa thì chọn tự nhập). */
+    private void loadDatabase() {
+        boolean own = OWN_TABLES.equals(database.getValue()) || database.getValue() == null;
+        schema.setEditable(own);
+        sampleData.setEditable(own);
+        if (own) return;
+        Path dir = databaseRoot().resolve(database.getValue());
+        try {
+            schema.setText(Files.readString(dir.resolve("schema.sql")));
+            sampleData.setText(Files.readString(dir.resolve("du_lieu_mau.sql")));
+        } catch (IOException e) {
+            error("Không đọc được CSDL " + database.getValue() + ": " + e.getMessage());
+        }
     }
 
     static final String TYPE_SAMPLE = "Bài mẫu (có animation)";
@@ -259,6 +355,9 @@ public final class AddExerciseScreen extends BorderPane {
     /** Danh sách bài của lớp để gợi ý chủ đề có sẵn. */
     public void setLessons(List<JsonNode> lessons) {
         knownLessons = List.copyOf(lessons);
+        // lớp chỉ một môn thì chọn sẵn môn đó
+        var subjects = ExerciseCatalog.subjects(knownLessons);
+        if (subjects.size() == 1) subject.setValue(subjects.get(0));
         fillChapters();
     }
 
@@ -368,12 +467,14 @@ public final class AddExerciseScreen extends BorderPane {
         return label;
     }
 
+    /** Thư mục content gần nhất tính từ thư mục chạy app, đi ngược lên các thư mục cha. */
     private static String defaultContentPath() {
         Path here =
                 Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
-        for (Path candidate :
-                new Path[] {here.resolve("content"), here.resolve("../content").normalize()}) {
-            if (Files.isDirectory(candidate)) return candidate.toString();
+        for (Path p = here; p != null; p = p.getParent()) {
+            Path candidate = p.resolve("content");
+            if (Files.isDirectory(candidate.resolve("dsa")) || Files.isDirectory(candidate.resolve("sql")))
+                return candidate.toString();
         }
         return here.resolve("content").toString();
     }
@@ -385,8 +486,18 @@ public final class AddExerciseScreen extends BorderPane {
             viewCard.setVisible(!sql);
             viewCard.setManaged(!sql);
         }
-        testInput.setPromptText(sql ? "SQL tạo bảng (schema.sql)" : "Input kiểm thử mẫu");
-        testOutput.setPromptText(sql ? "SQL thêm dữ liệu mẫu (du_lieu_mau.sql)" : "Output mong đợi");
+        if (sqlCard != null) {
+            sqlCard.setVisible(sql);
+            sqlCard.setManaged(sql);
+            testCard.setVisible(!sql);
+            testCard.setManaged(!sql);
+            starterCaption.setText(sql ? "Câu SQL khởi đầu (khung.sql)" : "Code khởi tạo");
+            solutionCaption.setText(sql ? "Câu SQL đáp án (dap_an.sql)" : "Lời giải tham khảo");
+            if (sql) fillDatabases();
+        }
+        starter.setPromptText(sql ? "-- học viên viết câu SQL ở đây" : "Mã khung để học viên bắt đầu...");
+        solution.setPromptText(
+                sql ? "SELECT ... ; câu đúng để chấm" : "Không bắt buộc với bài tập; bắt buộc với bài mẫu");
     }
 
     private void saveLesson() {
@@ -430,9 +541,9 @@ public final class AddExerciseScreen extends BorderPane {
         }
         if (sql
                 && (solution.getText().isBlank()
-                        || testInput.getText().isBlank()
-                        || testOutput.getText().isBlank())) {
-            error("Bài SQL cần có đáp án, schema.sql và du_lieu_mau.sql.");
+                        || schema.getText().isBlank()
+                        || sampleData.getText().isBlank())) {
+            error("Bài SQL cần câu đáp án, bảng (schema.sql) và dữ liệu mẫu (du_lieu_mau.sql).");
             return;
         }
         if (!sql && testInput.getText().isBlank() != testOutput.getText().isBlank()) {
@@ -452,24 +563,16 @@ public final class AddExerciseScreen extends BorderPane {
                 return;
             }
             String id = mon + "." + chuong + "." + code;
-            // Chuỗi YAML được bao trong nháy kép và thoát ký tự đặc biệt.
-            String yaml = "id: " + id + "\n"
-                    + "mon: " + mon + "\n"
-                    + "chuong: " + chuong + "\n"
-                    + "ten: " + yamlString(ten) + "\n"
-                    + "loai: " + loai + "\n"
-                    + "bac: [xem, code]\n"
-                    + "khung_nhin:" + (views.isEmpty() ? " []" : "") + "\n"
-                    + views.entrySet().stream()
-                            .map(v -> "  - bien: " + v.getKey() + "\n    kieu: " + v.getValue() + "\n")
-                            .reduce("", String::concat)
-                    + "cam_dung: []\n"
-                    + "cam_import: []\n"
-                    + "cam_cu_phap: []\n"
-                    + "gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }\n"
-                    + "test_xem: " + (!sql && !testInput.getText().isEmpty() ? "[mau-1]" : "[]") + "\n"
-                    + "so_test_an: 0\n"
-                    + "mo_khoa: []\n";
+            String yaml = sql
+                    ? LessonYaml.sql(
+                            id,
+                            chuong,
+                            ten,
+                            loai,
+                            QUERY_DML.equals(queryKind.getValue()) ? "dml" : "select",
+                            ordered.isSelected())
+                    : LessonYaml.dsa(
+                            id, chuong, ten, loai, views, !testInput.getText().isEmpty());
             Files.createDirectories(folder);
             Path chapterName = folder.getParent().resolve("ten-chuong.txt");
             if (newChapter && !Files.exists(chapterName))
@@ -479,8 +582,16 @@ public final class AddExerciseScreen extends BorderPane {
             if (sql) {
                 write(folder.resolve("khung.sql"), starter.getText());
                 write(folder.resolve("dap_an.sql"), solution.getText());
-                write(folder.resolve("schema.sql"), testInput.getText());
-                write(folder.resolve("du_lieu_mau.sql"), testOutput.getText());
+                if (OWN_TABLES.equals(database.getValue()) || database.getValue() == null) {
+                    write(folder.resolve("schema.sql"), schema.getText());
+                    write(folder.resolve("du_lieu_mau.sql"), sampleData.getText());
+                } else {
+                    // CSDL dùng chung: chép nguyên bộ để server sinh CSDL ẩn giống các bài có sẵn
+                    Path db = databaseRoot().resolve(database.getValue());
+                    for (String f : List.of("schema.sql", "du_lieu_mau.sql", "sinh_du_lieu.py")) {
+                        if (Files.isRegularFile(db.resolve(f))) Files.copy(db.resolve(f), folder.resolve(f));
+                    }
+                }
             } else {
                 write(folder.resolve("khung.py"), starter.getText());
                 if (!solution.getText().isBlank()) write(folder.resolve("loi_giai.py"), solution.getText());
@@ -506,14 +617,6 @@ public final class AddExerciseScreen extends BorderPane {
 
     private static void write(Path path, String data) throws IOException {
         Files.writeString(path, data, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-    }
-
-    private static String yamlString(String v) {
-        return "\""
-                + v.replace("\\", "\\\\")
-                        .replace("\"", "\\\"")
-                        .replace("\r", " ")
-                        .replace("\n", " ") + "\"";
     }
 
     private void error(String text) {
