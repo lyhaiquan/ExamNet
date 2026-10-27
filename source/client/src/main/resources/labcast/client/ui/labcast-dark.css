@@ -8,18 +8,18 @@
 
 .lc-root {
     /* LabCast Dark: mot bo mau dung chung cho moi man JavaFX */
-    -lc-bg: #0F172A;
-    -lc-surface: #1E293B;
-    -lc-surface-2: #26364D;
-    -lc-border: #334155;
-    -lc-border-strong: #475569;
-    -lc-text: #F1F5F9;
-    -lc-muted: #B6C3D5;
-    -lc-faint: #94A3B8;
-    -lc-primary: #3B82F6;
-    -lc-primary-hover: #2563EB;
-    -lc-primary-soft: #1A3558;
-    -lc-primary-text: #BFDBFE;
+    -lc-bg: #0D1124;
+    -lc-surface: #151A33;
+    -lc-surface-2: #1C2242;
+    -lc-border: #262D52;
+    -lc-border-strong: #3A4370;
+    -lc-text: #EEF0FA;
+    -lc-muted: #A9B0CF;
+    -lc-faint: #7E86AB;
+    -lc-primary: #7C5CFF;
+    -lc-primary-hover: #6A47F5;
+    -lc-primary-soft: #2A2360;
+    -lc-primary-text: #D7CCFF;
     -lc-success: #86EFAC;
     -lc-success-bg: #15803D;
     -lc-success-soft: #163D30;
@@ -27,9 +27,9 @@
     -lc-danger-soft: #4A2631;
     -lc-warning: #FCD34D;
     -lc-warning-soft: #493719;
-    -lc-nav: #0B1220;
-    -lc-nav-2: #1E293B;
-    -lc-console: #080F1E;
+    -lc-nav: #0A0E1E;
+    -lc-nav-2: #151A33;
+    -lc-console: #080B18;
 
     -fx-font-family: "Inter";
     -fx-font-size: 13px;
@@ -2013,3 +2013,187 @@
 .trace-play-button:disabled { -fx-opacity: 0.6; }
 .trace-output-cell { -fx-text-fill: #059669; -fx-font-weight: bold; }
 .trace-table .column-header .label { -fx-font-size: 11px; }
+
+
+/* ===== Bảng màu theo vai trò (ảnh mẫu): giáo viên nhấn xanh lá ===== */
+.lc-root.role-teacher {
+    -lc-primary: #16A34A;
+    -lc-primary-hover: #15803D;
+    -lc-primary-soft: #143524;
+    -lc-primary-text: #BBF7D0;
+    -fx-accent: -lc-primary;
+    -fx-focus-color: -lc-primary;
+}
+
+/* ===== Sidebar: nhóm mục ===== */
+.sidebar-nav-section {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lc-faint;
+    -fx-padding: 12 11 4 11;
+}
+.sidebar-navigation .sidebar-nav-button.sidebar-nav-active {
+    -fx-background-color: -lc-primary;
+    -fx-text-fill: white;
+}
+.sidebar-navigation .sidebar-nav-button.sidebar-nav-active .sidebar-nav-icon { -fx-stroke: white; }
+
+/* ===== Trang chủ (DashboardHome) ===== */
+.dash-scroll, .dash-scroll > .viewport {
+    -fx-background-color: -lc-bg;
+    -fx-background: -lc-bg;
+}
+.dash-page { -fx-padding: 24 28 32 28; }
+.dash-hello { -fx-font-size: 15px; -fx-text-fill: -lc-muted; }
+.dash-name { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.dash-sub { -fx-font-size: 12px; -fx-text-fill: -lc-muted; }
+.dash-primary {
+    -fx-background-color: -lc-primary;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-border-color: transparent;
+    -fx-padding: 9 16;
+    -fx-cursor: hand;
+}
+.dash-primary:hover { -fx-background-color: -lc-primary-hover; }
+.dash-ghost {
+    -fx-background-color: -lc-surface;
+    -fx-text-fill: -lc-text;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+    -fx-padding: 9 16;
+    -fx-cursor: hand;
+}
+.dash-card {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 14;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 14;
+    -fx-padding: 16 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 18, 0, 0, 4);
+}
+.dash-card-title { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.dash-link {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -lc-primary;
+    -fx-font-size: 11px;
+    -fx-padding: 2 4;
+    -fx-cursor: hand;
+}
+.dash-link:hover { -fx-underline: true; }
+.dash-stat { -fx-min-width: 190; -fx-pref-width: 220; -fx-min-height: 104; }
+.dash-stat-title { -fx-font-size: 12px; -fx-text-fill: -lc-muted; }
+.dash-stat-value { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.dash-stat-hint { -fx-font-size: 11px; -fx-text-fill: -lc-success; }
+.dash-stat-icon {
+    -fx-min-width: 38; -fx-min-height: 38; -fx-max-width: 38; -fx-max-height: 38;
+    -fx-background-radius: 10;
+    -fx-background-color: -lc-primary-soft;
+}
+.dash-stat-icon-shape {
+    -fx-fill: transparent;
+    -fx-stroke: -lc-primary;
+    -fx-stroke-width: 1.8;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+.dash-icon-done, .dash-icon-students { -fx-background-color: #123326; }
+.dash-icon-done .dash-stat-icon-shape, .dash-icon-students .dash-stat-icon-shape { -fx-stroke: #22C55E; }
+.dash-icon-xp, .dash-icon-class { -fx-background-color: #3A2C12; }
+.dash-icon-xp .dash-stat-icon-shape, .dash-icon-class .dash-stat-icon-shape { -fx-stroke: #F59E0B; }
+.dash-icon-level, .dash-icon-lessons { -fx-background-color: #3B1730; }
+.dash-icon-level .dash-stat-icon-shape, .dash-icon-lessons .dash-stat-icon-shape { -fx-stroke: #EC4899; }
+.dash-icon-rate { -fx-background-color: #0F3140; }
+.dash-icon-rate .dash-stat-icon-shape { -fx-stroke: #06B6D4; }
+
+.dash-hero {
+    -fx-background-color: linear-gradient(to bottom right, #7C5CFF, #5B2EE0);
+    -fx-border-color: transparent;
+    -fx-padding: 18 20;
+}
+.dash-hero-kicker { -fx-text-fill: rgba(255,255,255,0.75); -fx-font-size: 11px; }
+.dash-hero-title { -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; }
+.dash-hero-meta { -fx-text-fill: rgba(255,255,255,0.85); -fx-font-size: 11px; }
+.dash-hero-bar { -fx-pref-height: 7; }
+.dash-hero-bar > .track { -fx-background-color: rgba(255,255,255,0.25); -fx-background-radius: 4; }
+.dash-hero-bar > .bar { -fx-background-color: white; -fx-background-radius: 4; -fx-background-insets: 0; }
+.dash-hero-button {
+    -fx-background-color: white;
+    -fx-text-fill: #4C2FD1;
+    -fx-font-weight: bold;
+    -fx-background-radius: 9;
+    -fx-border-color: transparent;
+    -fx-padding: 7 14;
+    -fx-cursor: hand;
+}
+
+.dash-bar { -fx-pref-height: 7; }
+.dash-bar > .track { -fx-background-color: -lc-surface-2; -fx-background-radius: 4; -fx-border-color: transparent; }
+.dash-bar > .bar { -fx-background-color: -lc-primary; -fx-background-radius: 4; -fx-background-insets: 0; }
+
+.dash-row { -fx-padding: 7 4; -fx-background-radius: 8; }
+.dash-row:hover { -fx-background-color: -lc-surface-2; }
+.dash-row-title { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.dash-row-meta { -fx-font-size: 11px; -fx-text-fill: -lc-muted; }
+.dash-pill { -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 2 8; -fx-background-radius: 10; }
+.dash-pill-ok { -fx-background-color: #123326; -fx-text-fill: #16A34A; }
+.dash-pill-warn { -fx-background-color: #3A2C12; -fx-text-fill: #D97706; }
+.dash-pill-info { -fx-background-color: -lc-primary-soft; -fx-text-fill: -lc-primary-text; }
+
+.dash-badge {
+    -fx-min-width: 46; -fx-min-height: 46; -fx-max-width: 46; -fx-max-height: 46;
+    -fx-alignment: center;
+    -fx-background-radius: 23;
+    -fx-font-size: 20px;
+    -fx-text-fill: white;
+}
+.dash-badge-text { -fx-font-size: 10px; -fx-text-fill: -lc-muted; -fx-text-alignment: center; }
+.dash-class-icon {
+    -fx-min-width: 34; -fx-min-height: 34; -fx-max-width: 34; -fx-max-height: 34;
+    -fx-alignment: center;
+    -fx-background-radius: 9;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.dash-tone-0 { -fx-background-color: #7C5CFF; }
+.dash-tone-1 { -fx-background-color: #22C55E; }
+.dash-tone-2 { -fx-background-color: #F59E0B; }
+.dash-tone-3 { -fx-background-color: #EC4899; }
+.dash-avatar {
+    -fx-min-width: 32; -fx-min-height: 32; -fx-max-width: 32; -fx-max-height: 32;
+    -fx-alignment: center;
+    -fx-background-radius: 16;
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+    -fx-font-weight: bold;
+}
+.dash-avatar-online { -fx-border-color: #22C55E; -fx-border-width: 2; -fx-border-radius: 16; }
+
+.dash-donut-track { -fx-fill: transparent; -fx-stroke: -lc-surface-2; -fx-stroke-width: 18; }
+.dash-donut-slice { -fx-fill: transparent; -fx-stroke-width: 18; }
+.dash-stroke-0 { -fx-stroke: #7C5CFF; }
+.dash-stroke-1 { -fx-stroke: #3B82F6; }
+.dash-stroke-2 { -fx-stroke: #22C55E; }
+.dash-stroke-3 { -fx-stroke: #F59E0B; }
+.dash-stroke-4 { -fx-stroke: #EC4899; }
+.dash-legend-dot { -fx-min-width: 9; -fx-min-height: 9; -fx-max-width: 9; -fx-max-height: 9; -fx-background-radius: 5; }
+.dash-fill-0 { -fx-background-color: #7C5CFF; }
+.dash-fill-1 { -fx-background-color: #3B82F6; }
+.dash-fill-2 { -fx-background-color: #22C55E; }
+.dash-fill-3 { -fx-background-color: #F59E0B; }
+.dash-fill-4 { -fx-background-color: #EC4899; }
+.dash-donut-total { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+
+/* Giáo viên: thẻ nổi và nút trong thẻ đổi sang xanh lá */
+.role-teacher .dash-hero { -fx-background-color: linear-gradient(to bottom right, #22C55E, #15803D); }
+.role-teacher .dash-hero-button { -fx-text-fill: #166534; }
+
+.sidebar-navigation .sidebar-nav-button {
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+}
+.dash-stat { -fx-min-width: 160; }
