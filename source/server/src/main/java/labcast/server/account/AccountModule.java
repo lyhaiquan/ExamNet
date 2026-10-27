@@ -22,6 +22,8 @@ import labcast.server.session.Session;
 public final class AccountModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(AccountModule.class.getName());
     static final String AUTH_FAIL_MESSAGE = "Sai tên đăng nhập hoặc mật khẩu";
+    public static final int MIN_PASSWORD = 4;
+    public static final int MAX_PASSWORD = 128;
 
     private ServerContext ctx;
     private UserRepository users;
@@ -52,7 +54,65 @@ public final class AccountModule implements ServerModule {
                 .on(MessageType.HELLO, this::hello)
                 .on(MessageType.AUTH, this::auth)
                 .on(MessageType.RESUME_REQ, this::resume)
-                .on(MessageType.ADMIN_ROSTER_IMPORT, Role.STAFF, this::importRoster);
+                .on(MessageType.ADMIN_ROSTER_IMPORT, Role.STAFF, this::importRoster)
+                .on(MessageType.PASSWORD_CHANGE, this::changePassword)
+                .on(MessageType.PASSWORD_RESET, Role.STAFF, this::resetPassword);
+    }
+
+    /** Mật khẩu mới hợp lệ không; {@code null} nếu được, ngược lại là lý do để báo người dùng. */
+    public static String checkNewPassword(String pwd) {
+        if (pwd == null || pwd.isBlank()) return "Mật khẩu mới không được để trống";
+        if (pwd.length() < MIN_PASSWORD) return "Mật khẩu mới cần ít nhất " + MIN_PASSWORD + " ký tự";
+        if (pwd.length() > MAX_PASSWORD) return "Mật khẩu mới dài quá " + MAX_PASSWORD + " ký tự";
+        return null;
+    }
+
+    /** {@code PASSWORD_CHANGE(str cũ, str mới)} → {@code ADMIN_OK(str)}. Phiên đang dùng vẫn giữ nguyên. */
+    private void changePassword(Ctx c, Frame f) throws Exception {
+        PayloadReader r = f.reader();
+        String oldPwd = r.str();
+        String newPwd = r.str();
+        Session s = c.session();
+        User u = users.byId(s.userId())
+                .orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không tìm thấy tài khoản"));
+        if (!PasswordHasher.verify(oldPwd, u.password())) {
+            ctx.audit()
+                    .record(u.username(), "PASSWORD_CHANGE_FAIL", c.connection().remoteAddress());
+            throw new ProtocolException(ErrorCode.FORBIDDEN, "Mật khẩu hiện tại không đúng");
+        }
+        String bad = checkNewPassword(newPwd);
+        if (bad != null) throw new ProtocolException(ErrorCode.BAD_FRAME, bad);
+        users.setPassword(u.id(), newPwd);
+        ctx.audit().record(u.username(), "PASSWORD_CHANGE", c.connection().remoteAddress());
+        c.reply(MessageType.ADMIN_OK, new PayloadWriter().str("Đã đổi mật khẩu").toBytes());
+    }
+
+    /**
+     * {@code PASSWORD_RESET(str username, str mới)} → {@code ADMIN_OK(str)}. Quản trị: mọi tài khoản. Giáo viên: chỉ
+     * học viên ghi danh trong lớp mình dạy (không dựa vào lớp đang chọn của phiên).
+     */
+    private void resetPassword(Ctx c, Frame f) throws Exception {
+        PayloadReader r = f.reader();
+        String username = r.str().strip();
+        String newPwd = r.str();
+        Session s = c.session();
+        User target = users.byUsername(username)
+                .orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không có tài khoản " + username));
+        boolean allowed =
+                s.role() == Role.ADMIN || (target.role() == Role.STUDENT && users.isStudentOf(target.id(), s.userId()));
+        if (!allowed) {
+            throw new ProtocolException(
+                    ErrorCode.FORBIDDEN, "Giáo viên chỉ đặt lại được mật khẩu của học viên trong lớp mình dạy");
+        }
+        String bad = checkNewPassword(newPwd);
+        if (bad != null) throw new ProtocolException(ErrorCode.BAD_FRAME, bad);
+        users.setPassword(target.id(), newPwd);
+        ctx.audit().record(s.username(), "PASSWORD_RESET", "đặt lại mật khẩu cho " + target.username());
+        c.reply(
+                MessageType.ADMIN_OK,
+                new PayloadWriter()
+                        .str("Đã đặt lại mật khẩu cho " + target.fullName() + " (" + target.username() + ")")
+                        .toBytes());
     }
 
     /**

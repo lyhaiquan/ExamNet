@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.logging.Logger;
 import labcast.common.protocol.PayloadWriter;
+import labcast.server.account.PasswordRescue;
 import labcast.server.account.User;
 import labcast.server.account.UserRepository;
 import labcast.server.cast.CastModule;
@@ -39,11 +40,31 @@ public final class ServerMain {
             return;
         }
         ServerConfig cfg;
+        PasswordRescue.Split rescue;
         try {
-            cfg = ServerConfig.parse(args, System.getenv());
+            rescue = PasswordRescue.split(args);
+            if (rescue.spec() != null
+                    && ServerConfig.argsLoseUnicode()
+                    && (rescue.spec().indexOf('?') >= 0 || rescue.spec().indexOf('�') >= 0)) {
+                throw new IllegalArgumentException(PasswordRescue.FLAG + " có dấu '?': Windows làm mất chữ tiếng Việt"
+                        + " trên dòng lệnh. Đặt mật khẩu chỉ gồm chữ không dấu, số và ký hiệu.");
+            }
+            cfg = ServerConfig.parse(rescue.rest(), System.getenv());
         } catch (IllegalArgumentException e) {
             System.err.println(e.getMessage());
             System.exit(2);
+            return;
+        }
+        if (rescue.spec() != null) {
+            // Chế độ cứu tài khoản: sửa mật khẩu trong database rồi thoát, không bật server
+            try (Database db = Database.open(cfg.db())) {
+                System.out.println(PasswordRescue.run(rescue.spec(), db));
+                System.out.println("Database: "
+                        + java.nio.file.Path.of(cfg.db()).toAbsolutePath().normalize());
+            } catch (IllegalArgumentException e) {
+                System.err.println(e.getMessage());
+                System.exit(3);
+            }
             return;
         }
 

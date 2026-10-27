@@ -136,7 +136,14 @@ public enum MessageType {
     /** Số liệu trang chủ theo vai trò, payload rỗng. */
     HOME_REQ(0xA8),
     /** JSON số liệu trang chủ: xem HomeModule. */
-    HOME_DATA(0xA9);
+    HOME_DATA(0xA9),
+    /** Tự đổi mật khẩu: str mật khẩu cũ, str mật khẩu mới → ADMIN_OK(str thông báo) hoặc ERROR. */
+    PASSWORD_CHANGE(0xAA),
+    /**
+     * Giáo viên/quản trị đặt lại mật khẩu người khác: str username, str mật khẩu mới → ADMIN_OK hoặc ERROR. Giáo
+     * viên chỉ đặt lại được cho học viên ghi danh trong lớp mình dạy; quản trị đặt lại được cho mọi người.
+     */
+    PASSWORD_RESET(0xAB);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

@@ -60,6 +60,35 @@ public final class UserRepository {
         });
     }
 
+    /** Đặt mật khẩu mới (băm lại với salt mới). Trả false nếu không có tài khoản này. */
+    public boolean setPassword(long userId, String password) throws SQLException {
+        PasswordHasher.Hashed h = PasswordHasher.hash(password); // băm ngoài khoá database
+        return db.tx(c -> {
+            try (PreparedStatement ps =
+                    c.prepareStatement("UPDATE users SET pwd_hash = ?, salt = ?, iterations = ? WHERE id = ?")) {
+                ps.setBytes(1, h.hash());
+                ps.setBytes(2, h.salt());
+                ps.setInt(3, h.iterations());
+                ps.setLong(4, userId);
+                return ps.executeUpdate() == 1;
+            }
+        });
+    }
+
+    /** Học viên {@code studentId} có ghi danh vào lớp nào do giáo viên {@code teacherId} dạy không. */
+    public boolean isStudentOf(long studentId, long teacherId) throws SQLException {
+        return db.read(c -> {
+            try (PreparedStatement ps = c.prepareStatement("SELECT 1 FROM enrollments e JOIN classes c"
+                    + " ON c.id = e.class_id WHERE e.user_id = ? AND c.teacher_id = ? LIMIT 1")) {
+                ps.setLong(1, studentId);
+                ps.setLong(2, teacherId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        });
+    }
+
     /** Giáo viên tạo sớm nhất (lớp mặc định thuộc về người này). */
     public Optional<User> firstTeacher() throws SQLException {
         return db.read(c -> {
