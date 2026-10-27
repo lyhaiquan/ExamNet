@@ -203,4 +203,17 @@ final class DashboardStats {
                 .reversed());
         return list.subList(0, Math.min(limit, list.size()));
     }
+
+    /**
+     * Số thẻ mỗi hàng khi xếp {@code count} thẻ rộng tối thiểu {@code min} vào khung {@code width}: nhiều nhất vừa
+     * chỗ, rồi chia đều số hàng (6 thẻ thành 3 + 3 chứ không 5 + 1). Độ rộng chưa biết (0) thì để cả hàng.
+     */
+    public static int perRow(int count, double width, double min, double gap) {
+        if (count <= 0) return 1;
+        if (width <= 0) return count;
+        int fit = (int) Math.max(1, Math.floor((width + gap) / (min + gap)));
+        if (fit >= count) return count;
+        int rows = (count + fit - 1) / fit;
+        return (count + rows - 1) / rows;
+    }
 }

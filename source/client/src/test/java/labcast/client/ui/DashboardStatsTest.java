@@ -123,4 +123,15 @@ class DashboardStatsTest {
         assertEquals("+3 trong 30 ngày", DashboardStats.trend(3, 0));
         assertEquals("chưa có thay đổi", DashboardStats.trend(0, 0));
     }
+
+    @Test
+    void theSoLieuXuongHangChiaDeuKhiHep() {
+        // 6 thẻ, mỗi thẻ ≥ 160, cách 14
+        assertEquals(6, DashboardStats.perRow(6, 1100, 160, 14));
+        assertEquals(3, DashboardStats.perRow(6, 900, 160, 14)); // vừa 5 nhưng chia 3 + 3
+        assertEquals(2, DashboardStats.perRow(6, 400, 160, 14));
+        assertEquals(1, DashboardStats.perRow(6, 100, 160, 14));
+        assertEquals(4, DashboardStats.perRow(4, 0, 160, 14)); // chưa đo được độ rộng
+        assertEquals(2, DashboardStats.perRow(4, 600, 160, 14)); // vừa 3 nhưng chia 2 + 2
+    }
 }

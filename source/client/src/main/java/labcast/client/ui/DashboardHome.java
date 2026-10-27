@@ -179,7 +179,7 @@ final class DashboardHome extends ScrollPane {
 
     private Node adminBody(DashboardStats s) {
         JsonNode u = home.path("users");
-        HBox cards = statRow(
+        Node cards = statRow(
                 stat(
                         "Người dùng",
                         u.path("total").asText("—"),
@@ -220,8 +220,28 @@ final class DashboardHome extends ScrollPane {
         Node area = areaChart(home.path("days"));
         VBox.setVgrow(area, Priority.ALWAYS);
         chart.getChildren().add(area);
-        GridPane row =
-                columns(new double[] {46, 24, 30}, chart, distributionCard(s), activityCard(home.path("recent")));
+        Node distribution = distributionCard(s);
+        Node activity = activityCard(home.path("recent"));
+        // rộng thì ba khối một hàng; hẹp thì biểu đồ chiếm cả hàng, hai khối kia chia đôi hàng dưới
+        VBox row = new VBox(18);
+        row.setMinWidth(0);
+        boolean[] wide = {false};
+        Runnable place = () -> {
+            boolean w = row.getWidth() <= 0 || row.getWidth() >= 1000;
+            if (w == wide[0] && !row.getChildren().isEmpty()) return;
+            wide[0] = w;
+            for (GridPane g : row.getChildren().stream()
+                    .filter(GridPane.class::isInstance)
+                    .map(GridPane.class::cast)
+                    .toList()) g.getChildren().clear();
+            row.getChildren()
+                    .setAll(
+                            w
+                                    ? List.of(columns(new double[] {46, 24, 30}, chart, distribution, activity))
+                                    : List.of(chart, columns(new double[] {50, 50}, distribution, activity)));
+        };
+        row.widthProperty().addListener((o, a, b) -> place.run());
+        place.run();
         return new VBox(18, cards, row, classTable());
     }
 
@@ -308,7 +328,7 @@ final class DashboardHome extends ScrollPane {
             completionSum += c.path("completion").asInt();
         }
         int avg = mine.size() == 0 ? 0 : Math.round((float) completionSum / mine.size());
-        HBox cards = statRow(
+        Node cards = statRow(
                 stat("Lớp học", Integer.toString(Math.max(mine.size(), classes.size())), "lớp bạn dạy", "class"),
                 stat(
                         "Học viên",
@@ -381,7 +401,7 @@ final class DashboardHome extends ScrollPane {
 
     private Node studentBody(DashboardStats s) {
         int tried = s.done() + s.wrong();
-        HBox cards = statRow(
+        Node cards = statRow(
                 stat("Bài đúng", Integer.toString(s.done()), s.percentDone() + "% số bài của lớp", "done"),
                 stat("Bài sai", Integer.toString(s.wrong()), "đã nộp nhưng chưa đạt, làm lại nhé", "wrong"),
                 stat("Chưa làm", Integer.toString(s.total() - tried), "trên " + s.total() + " bài", "lessons"),
@@ -798,14 +818,39 @@ final class DashboardHome extends ScrollPane {
         return box;
     }
 
-    private static HBox statRow(Node... cards) {
-        HBox row = new HBox(14, cards);
-        for (Node c : cards) {
-            HBox.setHgrow(c, Priority.ALWAYS);
-            ((Region) c).setMaxWidth(Double.MAX_VALUE);
-        }
-        row.getStyleClass().add("dash-stats");
-        return row;
+    /** Rộng tối thiểu một thẻ số liệu (khớp {@code .dash-stat} trong CSS). */
+    private static final double STAT_MIN = 160;
+
+    private static final double STAT_GAP = 14;
+
+    /**
+     * Hàng thẻ số liệu. Cửa sổ hẹp không đủ chỗ cho cả hàng thì xuống thành nhiều hàng chia đều (6 thẻ thành 3 + 3
+     * chứ không 5 + 1), thay vì đẩy cả trang tràn ra ngoài.
+     */
+    private static GridPane statRow(Node... cards) {
+        GridPane grid = new GridPane();
+        grid.setHgap(STAT_GAP);
+        grid.setVgap(STAT_GAP);
+        grid.setMinWidth(0);
+        grid.getStyleClass().add("dash-stats");
+        for (Node c : cards) ((Region) c).setMaxWidth(Double.MAX_VALUE);
+        int[] laid = {-1};
+        Runnable layout = () -> {
+            int perRow = DashboardStats.perRow(cards.length, grid.getWidth(), STAT_MIN, STAT_GAP);
+            if (perRow == laid[0]) return;
+            laid[0] = perRow;
+            grid.getChildren().clear();
+            grid.getColumnConstraints().clear();
+            for (int i = 0; i < perRow; i++) {
+                ColumnConstraints c = new ColumnConstraints();
+                c.setPercentWidth(100.0 / perRow);
+                grid.getColumnConstraints().add(c);
+            }
+            for (int i = 0; i < cards.length; i++) grid.add(cards[i], i % perRow, i / perRow);
+        };
+        grid.widthProperty().addListener((o, a, b) -> layout.run());
+        layout.run();
+        return grid;
     }
 
     private static VBox stat(String title, String value, String hint, String kind) {
