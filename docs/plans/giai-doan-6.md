@@ -10,7 +10,13 @@ Kế hoạch mở rộng sau khi gộp giao diện mới ([#10](https://github.c
 - **Bật/tắt bài theo chương, theo lớp**; bài tắt thì học viên không thấy.
 - **Thảo luận ở từng bài**, **trang chủ và thành tích** cho học viên, **ô code tự đóng ngoặc và tự thụt dòng**.
 
-Giao diện tham khảo ảnh mẫu (bố cục sidebar + thẻ số liệu + biểu đồ), không lấy tên hay logo của ảnh.
+Giao diện tham khảo ảnh mẫu [`anh/giao-dien-mau.webp`](anh/giao-dien-mau.webp) (bố cục sidebar + thẻ số liệu + biểu đồ), không lấy tên hay logo của ảnh. Ảnh có ba màn:
+
+- **Admin** (nền navy tối, nhấn tím): sidebar nhóm Quản lý (Người dùng, Giáo viên, Lớp học, Bài tập, Chủ đề) · Nội dung (DSA, SQL, Bài viết) · Thống kê & Báo cáo; 6 thẻ số liệu có % so với tháng trước; biểu đồ đường "Lượt làm bài 30 ngày"; biểu đồ vòng "Phân bố theo chủ đề"; "Hoạt động gần đây".
+- **Học viên** (nền sáng, nhấn tím): "Xin chào, <tên>"; thẻ chuỗi ngày học; thẻ tím "Tiếp tục luyện tập" có thanh %; "Thử thách hôm nay"; XP và cấp độ; "Chủ đề phổ biến"; huy hiệu thành tích; "Bài tập gần đây" lọc Tất cả / Đã làm / Chưa làm; "Bạn bè đang học" kèm cấp.
+- **Giáo viên** (nền sáng, nhấn xanh lá): nút "Tạo lớp học", "Tạo bài tập"; 4 thẻ (Lớp học, Sinh viên, Bài tập, Tỷ lệ hoàn thành); "Lớp học của bạn" có thanh tiến độ từng lớp; "Hoạt động gần đây".
+
+Bản đầu (nhánh `feat/client-trang-chu-dashboard`) đã làm trang chủ ba vai trò bằng dữ liệu sẵn có. Còn thiếu vì chưa có dữ liệu: chuỗi ngày, thử thách hôm nay, bạn bè/xếp hạng, biểu đồ lượt làm bài theo ngày, % so với tháng trước (cần 6.E1).
 
 ## Quyết định đã chốt
 
