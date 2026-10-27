@@ -86,6 +86,28 @@ public final class ExerciseCatalogPane extends ScrollPane {
         cardsScroll.setVbarPolicy(ScrollBarPolicy.NEVER);
         cardsScroll.setHbarPolicy(ScrollBarPolicy.AS_NEEDED);
         chapterCards.getStyleClass().add("catalog-cards");
+        // lăn chuột dọc trên hàng thẻ thì trượt ngang; hai nút ‹ › trượt một thẻ
+        cardsScroll.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
+            double w = chapterCards.getWidth() - cardsScroll.getViewportBounds().getWidth();
+            if (w <= 0 || e.getDeltaY() == 0) return;
+            cardsScroll.setHvalue(Math.max(0, Math.min(1, cardsScroll.getHvalue() - e.getDeltaY() / w)));
+            e.consume();
+        });
+        Button prev = slideButton("‹", cardsScroll, -1);
+        Button next = slideButton("›", cardsScroll, 1);
+        javafx.scene.layout.StackPane cardsBox = new javafx.scene.layout.StackPane(cardsScroll, prev, next);
+        javafx.scene.layout.StackPane.setAlignment(prev, Pos.CENTER_LEFT);
+        javafx.scene.layout.StackPane.setAlignment(next, Pos.CENTER_RIGHT);
+        // nút chỉ hiện khi còn thẻ khuất ở phía đó
+        Runnable arrows = () -> {
+            boolean overflow =
+                    chapterCards.getWidth() > cardsScroll.getViewportBounds().getWidth() + 1;
+            prev.setVisible(overflow && cardsScroll.getHvalue() > 0.001);
+            next.setVisible(overflow && cardsScroll.getHvalue() < 0.999);
+        };
+        cardsScroll.hvalueProperty().addListener((o, a, b) -> arrows.run());
+        chapterCards.widthProperty().addListener((o, a, b) -> arrows.run());
+        cardsScroll.viewportBoundsProperty().addListener((o, a, b) -> arrows.run());
 
         Label topicTitle = new Label("CHỦ ĐỀ");
         topicTitle.getStyleClass().add("catalog-side-title");
@@ -126,10 +148,24 @@ public final class ExerciseCatalogPane extends ScrollPane {
         HBox.setHgrow(main, Priority.ALWAYS);
 
         HBox body = new HBox(18, side, main);
-        VBox content = new VBox(18, header, cardsScroll, body);
+        VBox content = new VBox(18, header, cardsBox, body);
         content.getStyleClass().add("dash-page");
         setContent(content);
         update(List.of());
+    }
+
+    /** Nút tròn trượt hàng thẻ chương sang trái ({@code dir} -1) hoặc phải (1) một thẻ. */
+    private Button slideButton(String text, ScrollPane scroll, int dir) {
+        Button b = new Button(text);
+        b.getStyleClass().add("catalog-slide");
+        b.setVisible(false);
+        b.setOnAction(e -> {
+            double w = chapterCards.getWidth() - scroll.getViewportBounds().getWidth();
+            if (w <= 0) return;
+            double step = 254 / w; // một thẻ (240) và khoảng cách
+            scroll.setHvalue(Math.max(0, Math.min(1, scroll.getHvalue() + dir * step)));
+        });
+        return b;
     }
 
     /** Nút tạm ẩn/mở và xoá bài cho giáo viên, quản trị. */
@@ -333,7 +369,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
                 student);
         table.getChildren().clear();
         HBox head = row(
-                th("#"),
+                new javafx.scene.layout.StackPane(th("#")),
                 th("Bài tập"),
                 th("Chủ đề"),
                 th("Loại"),
@@ -392,8 +428,20 @@ public final class ExerciseCatalogPane extends ScrollPane {
         String status = l.path("status").asText("NOT_STARTED");
         boolean active = l.path("active").asBoolean(true);
 
-        Label num = new Label(Integer.toString(index));
-        num.getStyleClass().add("dash-row-meta");
+        Label number = new Label(Integer.toString(index));
+        number.getStyleClass().add("dash-row-meta");
+        // vạch ngắn bo tròn: xanh dương bài mẫu, xanh lá luyện tập; các dòng nối nhau như một sợi dây
+        Region stripe = new Region();
+        stripe.getStyleClass()
+                .addAll(
+                        "catalog-stripe",
+                        ExerciseCatalog.isSample(l) ? "catalog-stripe-sample" : "catalog-stripe-practice");
+        stripe.setMinSize(4, 30);
+        stripe.setMaxSize(4, 30);
+        javafx.scene.layout.StackPane numberCell = new javafx.scene.layout.StackPane(number);
+        HBox.setHgrow(numberCell, Priority.ALWAYS);
+        HBox num = new HBox(0, stripe, numberCell);
+        num.setAlignment(Pos.CENTER_LEFT);
         Label title = new Label(ten);
         title.getStyleClass().add("dash-row-title");
         title.setTextOverrun(OverrunStyle.ELLIPSIS);

@@ -109,9 +109,17 @@ final class DiscussionPane extends VBox {
         scroll.getStyleClass().add("discuss-scroll");
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
-        input.setPromptText(staff ? "Viết bình luận…" : "Viết bình luận… (không dán được chữ, đừng gửi lời giải)");
+        input.setPromptText("Viết bình luận…");
+        input.setTooltip(new Tooltip(
+                staff
+                        ? "Enter để gửi · Shift+Enter xuống dòng"
+                        : "Enter để gửi · Shift+Enter xuống dòng · không dán được chữ, đừng gửi lời giải"));
         input.setWrapText(true);
-        input.setPrefRowCount(2);
+        // mới vào một dòng; gõ nhiều dòng (Shift+Enter) thì cao dần tới 4 dòng
+        input.setPrefRowCount(1);
+        input.textProperty()
+                .addListener((o, a, b) -> input.setPrefRowCount(Math.max(
+                        1, Math.min(4, (int) b.chars().filter(ch -> ch == '\n').count() + 1))));
         input.getStyleClass().add("discuss-input");
         HBox.setHgrow(input, Priority.ALWAYS);
         if (!staff) blockPaste(input);
@@ -134,7 +142,7 @@ final class DiscussionPane extends VBox {
         status.managedProperty().bind(status.visibleProperty());
         status.visibleProperty().bind(status.textProperty().isNotEmpty());
         HBox box = new HBox(8, input, send);
-        box.setAlignment(Pos.CENTER);
+        box.setAlignment(Pos.CENTER_LEFT);
         box.getStyleClass().add("discuss-input-box");
         VBox composer = new VBox(6, replyTo, status, box);
         composer.getStyleClass().add("discuss-composer");
