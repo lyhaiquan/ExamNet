@@ -2652,9 +2652,10 @@
 
 /* hàng thẻ chương: thanh trượt mảnh, nút ‹ › tròn hai bên */
 .catalog-cards-scroll { -fx-padding: 0 0 4 0; }
-.catalog-cards-scroll .scroll-bar:horizontal { -fx-background-color: transparent; -fx-pref-height: 8; }
-.catalog-cards-scroll .scroll-bar:horizontal .track { -fx-background-color: -lc-surface-2; -fx-background-radius: 4; }
-.catalog-cards-scroll .scroll-bar:horizontal .thumb { -fx-background-color: -lc-border-strong; -fx-background-radius: 4; }
+.catalog-cards-scroll .scroll-bar:horizontal { -fx-background-color: transparent; -fx-pref-height: 12; -fx-padding: 3 4; }
+.catalog-cards-scroll .scroll-bar:horizontal > .track { -fx-background-color: -lc-border; -fx-background-radius: 3; }
+.catalog-cards-scroll .scroll-bar:horizontal > .thumb { -fx-background-color: -lc-primary; -fx-opacity: 0.75; -fx-background-radius: 3; }
+.catalog-cards-scroll .scroll-bar:horizontal > .thumb:hover { -fx-opacity: 1; }
 .catalog-cards-scroll .scroll-bar .increment-button, .catalog-cards-scroll .scroll-bar .decrement-button,
 .catalog-cards-scroll .scroll-bar .increment-arrow, .catalog-cards-scroll .scroll-bar .decrement-arrow {
     -fx-padding: 0;

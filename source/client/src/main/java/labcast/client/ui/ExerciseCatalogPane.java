@@ -85,6 +85,9 @@ public final class ExerciseCatalogPane extends ScrollPane {
         cardsScroll.setFitToHeight(true);
         cardsScroll.setVbarPolicy(ScrollBarPolicy.NEVER);
         cardsScroll.setHbarPolicy(ScrollBarPolicy.AS_NEEDED);
+        // không để hàng thẻ đòi rộng bằng tổng các thẻ, nếu không cả trang nở theo và thanh trượt không bao giờ hiện
+        cardsScroll.setMinWidth(0);
+        cardsScroll.setPrefWidth(0);
         chapterCards.getStyleClass().add("catalog-cards");
         // lăn chuột dọc trên hàng thẻ thì trượt ngang; hai nút ‹ › trượt một thẻ
         cardsScroll.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
@@ -96,6 +99,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
         Button prev = slideButton("‹", cardsScroll, -1);
         Button next = slideButton("›", cardsScroll, 1);
         javafx.scene.layout.StackPane cardsBox = new javafx.scene.layout.StackPane(cardsScroll, prev, next);
+        cardsBox.setMinWidth(0);
         javafx.scene.layout.StackPane.setAlignment(prev, Pos.CENTER_LEFT);
         javafx.scene.layout.StackPane.setAlignment(next, Pos.CENTER_RIGHT);
         // nút chỉ hiện khi còn thẻ khuất ở phía đó
@@ -148,6 +152,13 @@ public final class ExerciseCatalogPane extends ScrollPane {
         HBox.setHgrow(main, Priority.ALWAYS);
 
         HBox body = new HBox(18, side, main);
+        main.setMinWidth(0);
+        // cửa sổ hẹp: cất cột chủ đề bên trái (hàng thẻ chương phía trên vẫn chọn được chương)
+        viewportBoundsProperty().addListener((o, a, b) -> {
+            boolean wide = b.getWidth() >= 1000;
+            side.setVisible(wide);
+            side.setManaged(wide);
+        });
         VBox content = new VBox(18, header, cardsBox, body);
         content.getStyleClass().add("dash-page");
         setContent(content);
@@ -346,11 +357,14 @@ public final class ExerciseCatalogPane extends ScrollPane {
             Node c = cells[i];
             if (c instanceof Region reg) {
                 if (i < COLS.length && COLS[i] > 0) {
-                    reg.setMinWidth(COLS[i]);
+                    // cột co lại được khi khung hẹp, chữ trong ô tự cắt thay vì đẩy bảng tràn ra ngoài
+                    reg.setMinWidth(i == 0 ? COLS[i] : COLS[i] * 0.6);
                     reg.setPrefWidth(COLS[i]);
                     reg.setMaxWidth(COLS[i]);
                 } else if (i < COLS.length) {
-                    reg.setMinWidth(160);
+                    // rộng ưa thích cố định để mọi dòng co giãn như nhau, cột thẳng với dòng tiêu đề
+                    reg.setMinWidth(110);
+                    reg.setPrefWidth(110);
                     reg.setMaxWidth(Double.MAX_VALUE);
                     HBox.setHgrow(reg, Priority.ALWAYS);
                 }
