@@ -115,4 +115,12 @@ class DashboardStatsTest {
         assertEquals(
                 "B", DashboardStats.recent(students, 5).get(0).path("fullName").asText());
     }
+
+    @Test
+    void xuHuong_soVoiKyTruoc() {
+        assertEquals("↑ 50% so với 30 ngày trước", DashboardStats.trend(15, 10));
+        assertEquals("↓ 20% so với 30 ngày trước", DashboardStats.trend(8, 10));
+        assertEquals("+3 trong 30 ngày", DashboardStats.trend(3, 0));
+        assertEquals("chưa có thay đổi", DashboardStats.trend(0, 0));
+    }
 }

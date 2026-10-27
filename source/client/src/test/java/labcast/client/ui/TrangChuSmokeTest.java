@@ -18,6 +18,7 @@ import labcast.server.account.AccountModule;
 import labcast.server.account.UserRepository;
 import labcast.server.classroom.ClassRepository;
 import labcast.server.classroom.ClassroomWorkspaceModule;
+import labcast.server.home.HomeModule;
 import labcast.server.lesson.LessonModule;
 import labcast.server.store.Database;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,13 @@ class TrangChuSmokeTest {
                 .withLop("DSA Nâng cao - K23");
         try (Database db = Database.open(":memory:");
                 var server = new LabCastServer(
-                        cfg, db, List.of(new AccountModule(), new LessonModule(), new ClassroomWorkspaceModule()))) {
+                        cfg,
+                        db,
+                        List.of(
+                                new AccountModule(),
+                                new LessonModule(),
+                                new ClassroomWorkspaceModule(),
+                                new HomeModule()))) {
             server.start();
             var users = new UserRepository(db);
             long gv = users.create("gv", "Trần Minh Tâm", Role.TEACHER, "1");
@@ -66,6 +73,21 @@ class TrangChuSmokeTest {
                         ps.setLong(4, now);
                         ps.setInt(5, 6 - k);
                         ps.executeUpdate();
+                    }
+                    // Lượt chạy/nộp rải trên 30 ngày để có biểu đồ; 6 ngày gần nhất ngày nào cũng làm
+                    try (var ps = c.prepareStatement("INSERT INTO submissions (user_id, lesson_id, code_seq, kind,"
+                            + " verdict, score, created_at) SELECT ?, id, 1, ?, ?, 100, ? FROM lessons LIMIT 1")) {
+                        var rnd = new java.util.Random(k);
+                        for (int d = 0; d < 30; d++) {
+                            int n = d < 6 ? 2 + rnd.nextInt(4) : rnd.nextInt(5);
+                            for (int j = 0; j < n; j++) {
+                                ps.setLong(1, id);
+                                ps.setString(2, j % 3 == 0 ? "SUBMIT" : "RUN");
+                                ps.setString(3, j % 4 == 3 ? "WRONG" : "OK");
+                                ps.setLong(4, now - d * 86_400_000L - j * 600_000L);
+                                ps.executeUpdate();
+                            }
+                        }
                     }
                     try (var ps = c.prepareStatement("INSERT INTO student_activity VALUES (?, ?, ?, ?, ?)")) {
                         ps.setLong(1, id);

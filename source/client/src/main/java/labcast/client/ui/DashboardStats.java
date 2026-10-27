@@ -163,6 +163,13 @@ final class DashboardStats {
                 .toList();
     }
 
+    /** Mũi tên tăng/giảm so với 30 ngày trước; kỳ trước bằng 0 thì ghi số mới. */
+    static String trend(long current, long previous) {
+        if (previous <= 0) return current > 0 ? "+" + current + " trong 30 ngày" : "chưa có thay đổi";
+        long pct = Math.round((current - previous) * 100.0 / previous);
+        return (pct >= 0 ? "↑ " : "↓ ") + Math.abs(pct) + "% so với 30 ngày trước";
+    }
+
     /** Tỉ lệ hoàn thành của lớp: tổng bài đạt / (số học viên × số bài). */
     static int classCompletion(JsonNode students, int lessonCount) {
         if (lessonCount <= 0 || students.size() == 0) return 0;

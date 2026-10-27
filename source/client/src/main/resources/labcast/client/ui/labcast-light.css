@@ -2075,3 +2075,99 @@
     -fx-background-insets: 0;
 }
 .dash-stat { -fx-min-width: 160; }
+
+/* ===== Trang chủ v2: khối riêng từng vai trò ===== */
+.dash-range {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 8 14;
+    -fx-text-fill: -lc-text;
+    -fx-font-size: 12px;
+}
+.dash-th { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -lc-faint; }
+.dash-stat-hint-down { -fx-text-fill: -lc-danger; }
+.dash-pill-muted { -fx-background-color: -lc-surface-2; -fx-text-fill: -lc-muted; }
+.dash-streak { -fx-padding: 10 18; }
+.dash-streak-icon { -fx-font-size: 26px; }
+.dash-streak-value { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.dash-reward { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #F59E0B; }
+.dash-level { -fx-text-fill: -lc-primary; }
+.dash-topic {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-padding: 12 14;
+    -fx-pref-width: 128;
+    -fx-cursor: hand;
+}
+.dash-topic:hover { -fx-border-color: -lc-primary; }
+.dash-topic-done { -fx-border-color: #22C55E; }
+.dash-topic-icon {
+    -fx-min-width: 30; -fx-min-height: 30; -fx-max-height: 30;
+    -fx-alignment: center;
+    -fx-background-radius: 8;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 0 6;
+}
+.dash-tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 11px;
+    -fx-background-radius: 8;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+.dash-tab:selected {
+    -fx-background-color: -lc-primary-soft;
+    -fx-text-fill: -lc-primary-text;
+    -fx-font-weight: bold;
+}
+.dash-rank { -fx-min-width: 24; -fx-alignment: center; -fx-font-weight: bold; -fx-text-fill: -lc-muted; }
+.dash-row-me { -fx-background-color: -lc-primary-soft; }
+.dash-event-icon {
+    -fx-min-width: 28; -fx-min-height: 28; -fx-max-width: 28; -fx-max-height: 28;
+    -fx-alignment: center;
+    -fx-background-radius: 14;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.dash-event-submit-ok { -fx-background-color: #22C55E; }
+.dash-event-submit-wrong { -fx-background-color: #F43F5E; }
+.dash-event-user { -fx-background-color: #3B82F6; }
+.dash-event-class { -fx-background-color: #F59E0B; }
+
+/* Biểu đồ */
+.dash-chart { -fx-padding: 0; }
+.dash-chart .chart-plot-background { -fx-background-color: transparent; }
+.dash-chart .chart-vertical-grid-lines { -fx-stroke: transparent; }
+.dash-chart .chart-horizontal-grid-lines { -fx-stroke: -lc-border; -fx-stroke-dash-array: 3 4; }
+.dash-chart .chart-alternative-row-fill { -fx-fill: transparent; }
+.dash-chart .axis { -fx-tick-label-fill: -lc-muted; -fx-tick-label-font-size: 10px; }
+.dash-chart .axis-tick-mark, .dash-chart .axis-minor-tick-mark { -fx-stroke: transparent; }
+.dash-chart .chart-vertical-zero-line, .dash-chart .chart-horizontal-zero-line { -fx-stroke: -lc-border; }
+.dash-chart .chart-legend { -fx-background-color: transparent; }
+.dash-chart .chart-legend-item { -fx-text-fill: -lc-muted; -fx-font-size: 11px; }
+.dash-chart .default-color0.chart-series-area-line { -fx-stroke: #3B82F6; -fx-stroke-width: 2; }
+.dash-chart .default-color0.chart-series-area-fill { -fx-fill: rgba(59,130,246,0.15); }
+.dash-chart .default-color1.chart-series-area-line { -fx-stroke: #8B5CF6; -fx-stroke-width: 2.5; }
+.dash-chart .default-color1.chart-series-area-fill { -fx-fill: rgba(139,92,246,0.28); }
+.dash-chart .default-color0.chart-area-symbol { -fx-background-color: #3B82F6, white; }
+.dash-chart .default-color1.chart-area-symbol { -fx-background-color: #8B5CF6, white; }
+.dash-chart .default-color0.chart-bar { -fx-background-color: -lc-primary; -fx-background-radius: 5 5 0 0; }
+
+.dash-streak-icon {
+    -fx-min-width: 40; -fx-min-height: 40; -fx-max-width: 40; -fx-max-height: 40;
+    -fx-background-radius: 12;
+    -fx-background-color: #FFF1E6;
+}
+.dash-streak-flame { -fx-fill: #F97316; }
+.dash-rank { -fx-min-width: 24; -fx-min-height: 24; -fx-max-height: 24; -fx-background-radius: 12; -fx-font-size: 11px; }
+.dash-rank-1 { -fx-background-color: #FBBF24; -fx-text-fill: white; }
+.dash-rank-2 { -fx-background-color: #94A3B8; -fx-text-fill: white; }
+.dash-rank-3 { -fx-background-color: #D97706; -fx-text-fill: white; }

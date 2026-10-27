@@ -241,7 +241,21 @@ public final class HomeScreen extends BorderPane {
         addExerciseButton.setOnAction(e -> showAddExercise());
         manageStudentsButton.setOnAction(e -> showStudents());
         VBox menu = new VBox(4);
-        if (li.role().isStaff()) {
+        if (li.role() == Role.ADMIN) {
+            homeButton.setText("Tổng quan");
+            manageStudentsButton.setText("Học viên");
+            menu.getChildren()
+                    .addAll(
+                            homeButton,
+                            navSection("Quản lý"),
+                            manageStudentsButton,
+                            practiceButton,
+                            navSection("Nội dung"),
+                            exerciseButton,
+                            addExerciseButton,
+                            navSection("Công cụ"),
+                            playgroundButton);
+        } else if (li.role().isStaff()) {
             menu.getChildren()
                     .addAll(
                             navSection("Giảng dạy"),

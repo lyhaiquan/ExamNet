@@ -121,7 +121,12 @@ public enum MessageType {
     // 0x26, 0x27, 0x2B đã thuộc ADMIN_LESSON_* (bản #7) nên ba mã lớp/phiên này dời về đây
     CLASS_SELECT_RESULT(0x79),
     PRACTICE_LIST_REQ(0x7A),
-    PRACTICE_LIST_DATA(0x7B);
+    PRACTICE_LIST_DATA(0x7B),
+    // 0xA0–0xBF: giai đoạn 6 (docs/plans/giai-doan-6.md); 0x80–0x9F để dành cho đợt 2
+    /** Số liệu trang chủ theo vai trò, payload rỗng. */
+    HOME_REQ(0xA8),
+    /** JSON số liệu trang chủ: xem HomeModule. */
+    HOME_DATA(0xA9);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 
