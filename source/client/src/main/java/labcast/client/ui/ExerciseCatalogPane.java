@@ -109,7 +109,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
                 .addAll(
                         student
                                 ? List.of("Tất cả", "Đã giải", "Bài sai", "Chưa làm")
-                                : List.of("Tất cả", "Đang mở", "Đang ẩn"));
+                                : List.of("Tất cả", "Đang mở", "Đang ẩn", "Có thảo luận mới"));
         statusBox.getSelectionModel().selectFirst();
         statusBox.getStyleClass().add("catalog-select");
         statusBox.setOnAction(e -> {
@@ -402,7 +402,17 @@ public final class ExerciseCatalogPane extends ScrollPane {
                 + (student && wrongSubmits > 0 ? " · nộp sai " + wrongSubmits + " lần" : ""));
         sub.getStyleClass().add("dash-row-meta");
         sub.setTextOverrun(OverrunStyle.ELLIPSIS);
-        VBox name = new VBox(2, title, sub);
+        HBox subLine = new HBox(8, sub);
+        subLine.setAlignment(Pos.CENTER_LEFT);
+        int talk = l.path("discuss").asInt(0);
+        if (talk > 0) {
+            int fresh = l.path("discussNew").asInt(0);
+            Label badge = new Label(talk + " thảo luận" + (fresh > 0 ? " · " + fresh + " mới" : ""));
+            badge.getStyleClass().addAll("catalog-talk", fresh > 0 ? "catalog-talk-new" : "catalog-talk-old");
+            badge.setMinWidth(Region.USE_PREF_SIZE);
+            subLine.getChildren().add(badge);
+        }
+        VBox name = new VBox(2, title, subLine);
         Tooltip.install(name, new Tooltip(ten));
 
         Label topic = new Label(ExerciseCatalog.chapterName(l));

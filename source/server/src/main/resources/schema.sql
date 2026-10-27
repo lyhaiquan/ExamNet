@@ -81,6 +81,19 @@ CREATE TABLE IF NOT EXISTS practice_room_lessons (
     PRIMARY KEY (room_id, lesson_id)
 );
 
+-- Thảo luận ở từng bài, riêng từng lớp (DiscussionModule); trả lời lồng một cấp qua parent_id
+CREATE TABLE IF NOT EXISTS discussions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id      INTEGER NOT NULL REFERENCES classes(id),
+    lesson_id     TEXT    NOT NULL REFERENCES lessons(id),
+    parent_id     INTEGER REFERENCES discussions(id),
+    author_id     INTEGER NOT NULL REFERENCES users(id),
+    text          TEXT    NOT NULL,
+    created_at    INTEGER NOT NULL,
+    hidden        INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_discussions_lesson ON discussions (class_id, lesson_id, id);
+
 CREATE TABLE IF NOT EXISTS student_activity (
     user_id       INTEGER PRIMARY KEY REFERENCES users(id),
     class_id      INTEGER NOT NULL,

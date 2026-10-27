@@ -76,7 +76,8 @@ class LopSqlSmokeTest {
                                 new AccountModule(),
                                 new LessonModule(),
                                 new ClassroomWorkspaceModule(),
-                                new HomeModule()))) {
+                                new HomeModule(),
+                                new labcast.server.discuss.DiscussionModule()))) {
             server.start();
             var users = new UserRepository(db);
             long gv = users.create("gv", "Trần Minh Tâm", Role.TEACHER, "1");
@@ -92,6 +93,25 @@ class LopSqlSmokeTest {
                         .executeUpdate("INSERT INTO progress (user_id, lesson_id, tier, status, wrong_submits,"
                                 + " updated_at) SELECT " + sv + ", id, 'code', 'OPEN', 2, 0 FROM lessons"
                                 + " WHERE chuong='co-ban' ORDER BY id DESC LIMIT 2");
+                return null;
+            });
+            // vài bình luận mẫu ở mọi bài chương Cơ bản: học viên hỏi, giáo viên trả lời
+            long[] authors = {sv, gv};
+            db.tx(c -> {
+                String[] texts = {
+                    "Em chưa hiểu sao phải thêm ORDER BY id khi đã ORDER BY gia rồi ạ?",
+                    "Vì ba sản phẩm cùng giá 16 000 000, thiếu id thì thứ tự giữa chúng không xác định.",
+                    "Dạ em hiểu rồi, cảm ơn cô!"
+                };
+                for (int k = 0; k < texts.length; k++) {
+                    c.createStatement()
+                            .executeUpdate("INSERT INTO discussions (class_id, lesson_id, parent_id, author_id, text,"
+                                    + " created_at, hidden) SELECT " + lop + ", id, "
+                                    + (k == 0 ? "NULL" : "(SELECT min(d.id) FROM discussions d WHERE d.lesson_id=l.id)")
+                                    + ", " + authors[k % 2] + ", '" + texts[k] + "', "
+                                    + (System.currentTimeMillis() - (3 - k) * 600_000L)
+                                    + ", 0 FROM lessons l WHERE chuong='co-ban'");
+                }
                 return null;
             });
             try {
@@ -136,6 +156,14 @@ class LopSqlSmokeTest {
                             },
                             "màn làm bài");
                     Thread.sleep(800);
+                    fx(() -> {
+                        var tabs =
+                                (javafx.scene.control.TabPane) scene.getRoot().lookup(".lesson-tabs");
+                        tabs.getSelectionModel().select(tabs.getTabs().size() - 1);
+                        return null;
+                    });
+                    Thread.sleep(600);
+                    chup(scene, "sql-thao-luan-sv");
                     fx(() -> {
                         ((Button) scene.getRoot().lookup(".editor-expand-button")).fire();
                         return null;

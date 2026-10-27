@@ -101,7 +101,14 @@ public final class LessonModule implements ServerModule {
     private void list(Ctx c, Frame f) throws SQLException {
         boolean isTeacher = c.session() != null && c.session().role().isStaff();
         Map<String, Map<String, Object>> progress = new HashMap<>();
+        Map<String, int[]> discuss = new HashMap<>();
+        long classId = c.session().classId();
         ctx.db().read(dbConn -> {
+            // số bình luận của lớp đang chọn ở từng bài; "mới" là trong 24 giờ qua
+            if (classId > 0) {
+                discuss.putAll(labcast.server.discuss.DiscussionModule.counts(
+                        dbConn, classId, System.currentTimeMillis() - 86_400_000L));
+            }
             try (PreparedStatement ps = dbConn.prepareStatement(
                     "SELECT lesson_id, status, score, wrong_submits FROM progress WHERE user_id = ?")) {
                 ps.setLong(1, c.session().userId());
@@ -133,6 +140,11 @@ public final class LessonModule implements ServerModule {
             m.put("status", !active && !isTeacher ? "LOCKED" : (state == null ? "NOT_STARTED" : state.get("status")));
             if (state != null && state.containsKey("score")) m.put("score", state.get("score"));
             if (state != null) m.put("wrongSubmits", state.get("wrongSubmits"));
+            int[] talk = discuss.get(l.id());
+            if (talk != null) {
+                m.put("discuss", talk[0]);
+                m.put("discussNew", talk[1]);
+            }
             String chuongTen = chapterNames.computeIfAbsent(l.dir().getParent(), LessonModule::chapterName);
             if (!chuongTen.isEmpty()) m.put("chuongTen", chuongTen);
             items.add(m);

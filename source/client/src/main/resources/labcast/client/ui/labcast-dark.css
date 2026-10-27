@@ -2468,3 +2468,39 @@
 .focus-statement { -fx-background-radius: 10; -fx-padding: 6 10; }
 .focus-split { -fx-background-color: transparent; -fx-padding: 0; }
 .focus-card .virtualized-scroll-pane, .focus-card .styled-text-area { -fx-font-size: 15px; }
+
+/* ===== Thảo luận ở từng bài (DiscussionPane) ===== */
+.discuss-pane { -fx-padding: 12; -fx-background-color: -lc-surface; }
+.discuss-scroll, .discuss-scroll > .viewport { -fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent; }
+.discuss-list { -fx-padding: 2 4 8 2; }
+.discuss-thread { -fx-padding: 0 0 4 0; }
+.discuss-bubble {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-padding: 10 12;
+}
+.discuss-bubble-teacher { -fx-border-color: #22C55E; -fx-border-width: 1 1 1 4; }
+.discuss-bubble-student { -fx-border-color: -lc-border -lc-border -lc-border -lc-primary; -fx-border-width: 1 1 1 4; }
+.discuss-bubble-hidden { -fx-opacity: 0.5; }
+.discuss-reply { -fx-padding: 0 0 0 28; }
+.discuss-text { -fx-text-fill: -lc-text; -fx-font-size: 13px; }
+.discuss-avatar-teacher { -fx-background-color: #DCFCE7; -fx-text-fill: #166534; }
+.discuss-avatar-student { -fx-background-color: -lc-primary-soft; -fx-text-fill: -lc-primary-text; }
+.discuss-composer {
+    -fx-padding: 10 0 0 0;
+    -fx-border-color: -lc-border transparent transparent transparent;
+}
+.discuss-input { -fx-background-radius: 10; -fx-border-radius: 10; }
+.discuss-reply-to {
+    -fx-text-fill: -lc-primary-text;
+    -fx-background-color: -lc-primary-soft;
+    -fx-background-radius: 8;
+    -fx-padding: 4 10;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+.catalog-talk { -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 1 7; -fx-background-radius: 8; }
+.catalog-talk-old { -fx-background-color: -lc-surface-2; -fx-text-fill: -lc-muted; }
+.catalog-talk-new { -fx-background-color: #F59E0B; -fx-text-fill: white; }

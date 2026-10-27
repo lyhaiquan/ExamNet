@@ -123,6 +123,14 @@ public enum MessageType {
     PRACTICE_LIST_REQ(0x7A),
     PRACTICE_LIST_DATA(0x7B),
     // 0xA0–0xBF: giai đoạn 6 (docs/plans/giai-doan-6.md); 0x80–0x9F để dành cho đợt 2
+    /** Thảo luận ở từng bài (DiscussionModule): str lessonId → DISCUSS_DATA. */
+    DISCUSS_REQ(0xA0),
+    DISCUSS_DATA(0xA1),
+    /** JSON{lessonId, parentId?, text} → DISCUSS_NEW cho người gửi và cả lớp. */
+    DISCUSS_POST(0xA2),
+    /** Giáo viên/quản trị: i64 id, bool hidden. */
+    DISCUSS_HIDE(0xA3),
+    DISCUSS_NEW(0xA4),
     /** Số liệu trang chủ theo vai trò, payload rỗng. */
     HOME_REQ(0xA8),
     /** JSON số liệu trang chủ: xem HomeModule. */

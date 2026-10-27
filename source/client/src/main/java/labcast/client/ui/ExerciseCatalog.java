@@ -58,6 +58,7 @@ final class ExerciseCatalog {
                         case "Đã giải" -> "MASTERED".equals(st);
                         case "Đang làm" -> "OPEN".equals(st);
                         case "Bài sai" -> isWrong(l);
+                        case "Có thảo luận mới" -> l.path("discussNew").asInt(0) > 0;
                         case "Chưa làm" -> !isDone(l) && !isWrong(l);
                         case "Đang mở" -> active;
                         case "Đang ẩn" -> !active;

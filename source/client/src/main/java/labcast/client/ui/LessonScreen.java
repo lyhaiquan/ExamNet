@@ -71,6 +71,7 @@ public final class LessonScreen extends BorderPane {
     private VBox edCard;
     private VBox codeColumn;
     private FocusLayer focus;
+    private DiscussionPane discussion;
     /** Ngôn ngữ đã chọn ở mỗi bài trong phiên làm việc: mở lại bài thì về đúng ngôn ngữ đang viết. */
     private static final Map<String, Language> LAST_LANGUAGE = new ConcurrentHashMap<>();
 
@@ -195,6 +196,12 @@ public final class LessonScreen extends BorderPane {
         animTab = new Tab("Animation", anim);
         Tab deTab = new Tab("Đề bài", de);
         tabs.getTabs().addAll(animTab, deTab, traceTab);
+        // Thảo luận của lớp ở bài này (cả DSA và SQL); số bình luận hiện trên tên thẻ
+        Tab talkTab = new Tab("Thảo luận");
+        discussion = new DiscussionPane(
+                client, lessonId, !studentMode, n -> talkTab.setText(n == 0 ? "Thảo luận" : "Thảo luận (" + n + ")"));
+        talkTab.setContent(discussion);
+        tabs.getTabs().add(talkTab);
         if (lesson.path("loiGiai").size() > 0) {
             tabs.getTabs().add(new Tab("Lời giải", solutionPane(lesson.path("loiGiai"))));
         }
@@ -438,6 +445,7 @@ public final class LessonScreen extends BorderPane {
     }
 
     public void dispose() {
+        discussion.dispose();
         editor.flush();
         runPanel.dispose();
         if (presenter.casting()) {
