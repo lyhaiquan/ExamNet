@@ -102,8 +102,8 @@ public final class LessonModule implements ServerModule {
         boolean isTeacher = c.session() != null && c.session().role().isStaff();
         Map<String, Map<String, Object>> progress = new HashMap<>();
         ctx.db().read(dbConn -> {
-            try (PreparedStatement ps =
-                    dbConn.prepareStatement("SELECT lesson_id, status, score FROM progress WHERE user_id = ?")) {
+            try (PreparedStatement ps = dbConn.prepareStatement(
+                    "SELECT lesson_id, status, score, wrong_submits FROM progress WHERE user_id = ?")) {
                 ps.setLong(1, c.session().userId());
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
@@ -111,6 +111,7 @@ public final class LessonModule implements ServerModule {
                         data.put("status", rs.getString("status"));
                         int score = rs.getInt("score");
                         if (!rs.wasNull()) data.put("score", score);
+                        data.put("wrongSubmits", rs.getInt("wrong_submits"));
                         progress.put(rs.getString("lesson_id"), data);
                     }
                 }
@@ -118,6 +119,7 @@ public final class LessonModule implements ServerModule {
             return null;
         });
         List<Map<String, Object>> items = new ArrayList<>();
+        Map<Path, String> chapterNames = new HashMap<>();
         for (Lesson l : repo.all()) {
             boolean active = !inactiveLessons.contains(l.id());
             Map<String, Object> m = new LinkedHashMap<>();
@@ -130,10 +132,29 @@ public final class LessonModule implements ServerModule {
             Map<String, Object> state = progress.get(l.id());
             m.put("status", !active && !isTeacher ? "LOCKED" : (state == null ? "NOT_STARTED" : state.get("status")));
             if (state != null && state.containsKey("score")) m.put("score", state.get("score"));
+            if (state != null) m.put("wrongSubmits", state.get("wrongSubmits"));
+            String chuongTen = chapterNames.computeIfAbsent(l.dir().getParent(), LessonModule::chapterName);
+            if (!chuongTen.isEmpty()) m.put("chuongTen", chuongTen);
             items.add(m);
         }
         c.reply(JsonPayload.frame(MessageType.LESSON_DATA, Map.of("kind", "list", "lessons", items)), Priority.NORMAL);
     }
+
+    /**
+     * Tên hiện của chương do giáo viên tạo, đọc từ {@code content/<mon>/<chuong>/ten-chuong.txt}; chương có
+     * sẵn không cần file này (app có bảng tên). Không có file thì rỗng.
+     */
+    static String chapterName(Path chapterDir) {
+        Path f = chapterDir == null ? null : chapterDir.resolve(TEN_CHUONG);
+        try {
+            return f != null && Files.isRegularFile(f) ? Files.readString(f).strip() : "";
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    /** File tên chương nằm cạnh các thư mục bài. */
+    public static final String TEN_CHUONG = "ten-chuong.txt";
 
     /**
      * {@code LESSON_FETCH(str lessonId)} → {@code LESSON_DATA JSON{kind: "lesson", id, ten, loai, de, khung,

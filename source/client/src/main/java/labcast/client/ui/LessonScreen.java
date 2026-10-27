@@ -502,7 +502,7 @@ public final class LessonScreen extends BorderPane {
 
     static String loaiLabel(String loai) {
         return switch (loai) {
-            case "giang-giai" -> "Giảng giải";
+            case "giang-giai" -> "Bài mẫu";
             case "bai-tap" -> "Bài tập";
             case "luyen-tap" -> "Luyện tập";
             default -> loai;

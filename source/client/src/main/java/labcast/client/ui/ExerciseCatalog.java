@@ -57,7 +57,8 @@ final class ExerciseCatalog {
                     switch (q.status()) {
                         case "Đã giải" -> "MASTERED".equals(st);
                         case "Đang làm" -> "OPEN".equals(st);
-                        case "Chưa làm" -> !"MASTERED".equals(st) && !"OPEN".equals(st);
+                        case "Bài sai" -> isWrong(l);
+                        case "Chưa làm" -> !isDone(l) && !isWrong(l);
                         case "Đang mở" -> active;
                         case "Đang ẩn" -> !active;
                         default -> true;
@@ -72,5 +73,32 @@ final class ExerciseCatalog {
             out.add(l);
         }
         return out;
+    }
+
+    /** Tên chương: tên giáo viên đặt ({@code chuongTen}) nếu có, không thì bảng tên sẵn. */
+    static String chapterName(JsonNode l) {
+        String own = l.path("chuongTen").asText("");
+        return own.isBlank() ? LessonScreen.chapterLabel(l.path("chuong").asText()) : own;
+    }
+
+    /** Mã chương/bài từ tên tiếng Việt: bỏ dấu, chữ thường, nối bằng '-'. */
+    static String slug(String name) {
+        return normalize(name).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-+|-+$)", "");
+    }
+
+    /** Bài mẫu (giảng giải có animation) hay bài luyện (bài tập, luyện tập). */
+    static boolean isSample(JsonNode l) {
+        return "giang-giai".equals(l.path("loai").asText());
+    }
+
+    /** Đã nộp nhưng chưa đạt: server ghi OPEN sau lần nộp sai đầu tiên. */
+    static boolean isWrong(JsonNode l) {
+        return "OPEN".equals(l.path("status").asText())
+                || (!"MASTERED".equals(l.path("status").asText())
+                        && l.path("wrongSubmits").asInt(0) > 0);
+    }
+
+    static boolean isDone(JsonNode l) {
+        return "MASTERED".equals(l.path("status").asText());
     }
 }

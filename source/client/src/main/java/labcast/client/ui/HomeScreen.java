@@ -231,6 +231,7 @@ public final class HomeScreen extends BorderPane {
         homeButton.setOnAction(e -> showHome());
         homeButton.setId("nav-home");
         exerciseButton.setId("nav-exercises");
+        addExerciseButton.setId("nav-add");
         configureNavButton(exerciseButton, "M6 5 H19 V19 H6 Z M9 9 H16 M9 13 H16", "Lọc danh sách bài tập");
         practiceButton.setText(li.role().isStaff() ? "Lớp thực hành" : "Tham gia thực hành");
         configureNavButton(
@@ -607,6 +608,7 @@ public final class HomeScreen extends BorderPane {
             return;
         }
         if (addExerciseScreen == null) addExerciseScreen = new AddExerciseScreen();
+        addExerciseScreen.setLessons(allLessons);
         leaveActiveScreen();
         activeNav = Nav.ADD_EXERCISE;
         refreshNavigation();

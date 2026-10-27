@@ -1,11 +1,16 @@
 package labcast.client.ui;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -30,7 +35,16 @@ import javafx.stage.DirectoryChooser;
  */
 public final class AddExerciseScreen extends BorderPane {
     private final TextField root = new TextField();
-    private final TextField chapter = new TextField("co-ban");
+    /** Chủ đề có sẵn (tên hiện → mã chương) theo môn, lấy từ danh sách bài của server. */
+    private final ComboBox<String> chapterBox = new ComboBox<>();
+
+    private final Map<String, String> chapterCodes = new LinkedHashMap<>();
+    private List<JsonNode> knownLessons = List.of();
+    private final TextField newChapterName = new TextField();
+    private final TextField newChapterCode = new TextField();
+    private final VBox newChapterBox = new VBox(10);
+    private final VBox viewRows = new VBox(8);
+    private final VBox viewCard;
     private final TextField slug = new TextField();
     private final TextField title = new TextField();
     private final ComboBox<String> subject = new ComboBox<>();
@@ -56,10 +70,26 @@ public final class AddExerciseScreen extends BorderPane {
         subject.getItems().addAll("DSA", "SQL");
         subject.getSelectionModel().selectFirst();
         subject.setMaxWidth(Double.MAX_VALUE);
-        type.getItems().addAll("Bài tập", "Thực hành");
-        type.getSelectionModel().selectFirst();
+        type.getItems().addAll(TYPE_SAMPLE, TYPE_EXERCISE, TYPE_PRACTICE);
+        type.setValue(TYPE_EXERCISE);
         type.setMaxWidth(Double.MAX_VALUE);
-        subject.valueProperty().addListener((obs, old, value) -> updateSubject());
+        subject.valueProperty().addListener((obs, old, value) -> {
+            updateSubject();
+            fillChapters();
+        });
+        chapterBox.setMaxWidth(Double.MAX_VALUE);
+        chapterBox.setOnAction(e -> {
+            boolean adding = NEW_CHAPTER.equals(chapterBox.getValue());
+            newChapterBox.setVisible(adding);
+            newChapterBox.setManaged(adding);
+        });
+        newChapterName.setPromptText("VD: Hàng đợi ưu tiên");
+        newChapterCode.setPromptText("tự sinh từ tên, VD: hang-doi-uu-tien");
+        newChapterName.textProperty().addListener((o, a, b) -> newChapterCode.setText(ExerciseCatalog.slug(b)));
+        title.textProperty().addListener((o, a, b) -> {
+            if (slug.getText().isBlank() || slug.getText().equals(ExerciseCatalog.slug(a)))
+                slug.setText(ExerciseCatalog.slug(b));
+        });
         root.setPromptText("Chọn thư mục content trên máy giáo viên/server...");
         root.setText(defaultContentPath());
         Button choose = new Button("Chọn thư mục...");
@@ -77,7 +107,6 @@ public final class AddExerciseScreen extends BorderPane {
         });
         HBox folder = new HBox(8, root, choose);
         HBox.setHgrow(root, Priority.ALWAYS);
-        chapter.setPromptText("VD: bam, mang, truy-van");
         slug.setPromptText("VD: tim-kiem-nhi-phan");
         title.setPromptText("Tên bài hiển thị cho học viên");
         description.setPromptText("Nội dung đề bài (Markdown)");
@@ -104,13 +133,31 @@ public final class AddExerciseScreen extends BorderPane {
         GridPane meta = twoColumnGrid();
         addGrid(meta, 0, 0, field("Môn học", subject));
         addGrid(meta, 1, 0, field("Loại bài", type));
-        addGrid(meta, 0, 1, field("Mã chương", chapter));
+        addGrid(meta, 0, 1, field("Chủ đề (chương)", chapterBox));
         addGrid(meta, 1, 1, field("Mã bài", slug));
+        GridPane newChapter = twoColumnGrid();
+        addGrid(newChapter, 0, 0, field("Tên chủ đề mới", newChapterName));
+        addGrid(newChapter, 1, 0, field("Mã chủ đề", newChapterCode));
+        Label newHint = new Label("Chủ đề mới được tạo cùng bài này; các bài sau chọn lại được trong danh sách.");
+        newHint.getStyleClass().add("author-hint");
+        newChapterBox.getChildren().addAll(newChapter, newHint);
+        newChapterBox.setVisible(false);
+        newChapterBox.setManaged(false);
         VBox metadataCard = card(
                 "02   Thông tin bài tập",
-                "Nhập thông tin nhận diện và tên hiển thị của bài.",
+                "Chọn môn, loại bài và chủ đề. Bài mẫu có animation, xếp đầu chương; bài tập, luyện tập xếp sau.",
                 meta,
+                newChapterBox,
                 field("Tên bài tập", title));
+
+        Button addView = new Button("+ Thêm biến");
+        addView.setOnAction(e -> addViewRow("", "mang"));
+        Label viewHint = new Label("Mỗi biến trong lời giải được vẽ bằng một bộ vẽ, VD biến a vẽ dạng Mảng. "
+                + "Bài mẫu cần ít nhất một biến để sinh animation từ lời giải tham khảo.");
+        viewHint.setWrapText(true);
+        viewHint.getStyleClass().add("author-hint");
+        viewCard = card("03   Animation (khung nhìn)", "Chọn bộ vẽ cho từng biến.", viewRows, addView, viewHint);
+        addViewRow("a", "mang");
 
         VBox statementCard =
                 card("03   Nội dung đề bài", "Hỗ trợ văn bản Markdown (de.md).", field("Đề bài", description));
@@ -153,9 +200,9 @@ public final class AddExerciseScreen extends BorderPane {
         feedback.getStyleClass().add("exercise-author-feedback");
         VBox saveCard = card("Hoàn tất", "Kiểm tra thông tin rồi xuất bài tập.", actions, feedback);
 
-        form.getChildren().addAll(locationCard, metadataCard, statementCard, editorCard, testCard, saveCard);
+        form.getChildren().addAll(locationCard, metadataCard, viewCard, statementCard, editorCard, testCard, saveCard);
         // Cùng chiều cao cho các ô nhập một dòng và cùng chiều cao cho textarea ngang hàng.
-        for (TextField input : new TextField[] {root, chapter, slug, title}) {
+        for (TextField input : new TextField[] {root, slug, title, newChapterName, newChapterCode}) {
             input.getStyleClass().add("exercise-author-input");
             input.setMinHeight(44);
             input.setPrefHeight(44);
@@ -174,6 +221,9 @@ public final class AddExerciseScreen extends BorderPane {
         type.setMinHeight(44);
         type.setPrefHeight(44);
         type.setMaxHeight(44);
+        chapterBox.setMinHeight(44);
+        chapterBox.setPrefHeight(44);
+        chapterBox.setMaxHeight(44);
         choose.setMinHeight(44);
         choose.setPrefHeight(44);
         choose.setMaxHeight(44);
@@ -182,6 +232,90 @@ public final class AddExerciseScreen extends BorderPane {
         scroll.getStyleClass().add("exercise-author-scroll");
         setCenter(scroll);
         updateSubject();
+        fillChapters();
+    }
+
+    static final String TYPE_SAMPLE = "Bài mẫu (có animation)";
+    static final String TYPE_EXERCISE = "Bài tập";
+    static final String TYPE_PRACTICE = "Luyện tập";
+    private static final String NEW_CHAPTER = "+ Thêm chủ đề mới…";
+    /** Bộ vẽ hỗ trợ: mã trong lesson.yaml → tên hiện. */
+    private static final Map<String, String> VIEWS = new LinkedHashMap<>();
+
+    static {
+        VIEWS.put("mang", "Mảng");
+        VIEWS.put("ngan-xep", "Ngăn xếp");
+        VIEWS.put("hang-doi", "Hàng đợi");
+        VIEWS.put("dslk", "Danh sách liên kết");
+        VIEWS.put("cay", "Cây");
+        VIEWS.put("heap", "Heap");
+        VIEWS.put("cay-goi", "Cây gọi đệ quy");
+        VIEWS.put("do-thi", "Đồ thị");
+        VIEWS.put("luoi", "Lưới 2 chiều");
+        VIEWS.put("bam", "Bảng băm");
+        VIEWS.put("code-bien", "Code và biến (chỉ bài mẫu)");
+    }
+
+    /** Danh sách bài của lớp để gợi ý chủ đề có sẵn. */
+    public void setLessons(List<JsonNode> lessons) {
+        knownLessons = List.copyOf(lessons);
+        fillChapters();
+    }
+
+    private void fillChapters() {
+        String mon = "SQL".equals(subject.getValue()) ? "sql" : "dsa";
+        String keep = chapterBox.getValue();
+        chapterCodes.clear();
+        List<JsonNode> sorted = new ArrayList<>(knownLessons);
+        sorted.sort(ExerciseCatalog.ORDER);
+        for (JsonNode l : sorted) {
+            if (!mon.equals(l.path("mon").asText())) continue;
+            chapterCodes.putIfAbsent(
+                    ExerciseCatalog.chapterName(l), l.path("chuong").asText());
+        }
+        // chưa tải được bài thì gợi ý theo bảng chương chuẩn của môn
+        if (chapterCodes.isEmpty()) {
+            List<String> std = LessonScreen.CHAPTERS;
+            int split = std.indexOf("co-ban");
+            for (String c : mon.equals("sql") ? std.subList(split, std.size()) : std.subList(0, split))
+                chapterCodes.put(LessonScreen.chapterLabel(c), c);
+        }
+        chapterBox.getItems().setAll(chapterCodes.keySet());
+        chapterBox.getItems().add(NEW_CHAPTER);
+        if (keep != null && chapterBox.getItems().contains(keep)) chapterBox.setValue(keep);
+        else chapterBox.getSelectionModel().selectFirst();
+    }
+
+    private void addViewRow(String bien, String kieu) {
+        TextField name = new TextField(bien);
+        name.setPromptText("tên biến, VD: a");
+        name.setPrefWidth(160);
+        ComboBox<String> kind = new ComboBox<>();
+        kind.getItems().addAll(VIEWS.values());
+        kind.setValue(VIEWS.getOrDefault(kieu, "Mảng"));
+        Button remove = new Button("✕");
+        HBox row = new HBox(8, name, kind, remove);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("author-view-row");
+        row.setUserData(new Object[] {name, kind});
+        remove.setOnAction(e -> viewRows.getChildren().remove(row));
+        viewRows.getChildren().add(row);
+    }
+
+    /** Các dòng khung nhìn đã nhập: biến → mã bộ vẽ. */
+    @SuppressWarnings("unchecked")
+    private Map<String, String> views() {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (Node n : viewRows.getChildren()) {
+            Object[] parts = (Object[]) n.getUserData();
+            String bien = ((TextField) parts[0]).getText().trim();
+            String shown = ((ComboBox<String>) parts[1]).getValue();
+            if (bien.isEmpty() || shown == null) continue;
+            VIEWS.forEach((code, label) -> {
+                if (label.equals(shown)) out.put(bien, code);
+            });
+        }
+        return out;
     }
 
     private static GridPane twoColumnGrid() {
@@ -246,6 +380,11 @@ public final class AddExerciseScreen extends BorderPane {
 
     private void updateSubject() {
         boolean sql = "SQL".equals(subject.getValue());
+        if (viewCard != null) {
+            // SQL luôn vẽ bằng bảng, không cần chọn bộ vẽ
+            viewCard.setVisible(!sql);
+            viewCard.setManaged(!sql);
+        }
         testInput.setPromptText(sql ? "SQL tạo bảng (schema.sql)" : "Input kiểm thử mẫu");
         testOutput.setPromptText(sql ? "SQL thêm dữ liệu mẫu (du_lieu_mau.sql)" : "Output mong đợi");
     }
@@ -253,8 +392,20 @@ public final class AddExerciseScreen extends BorderPane {
     private void saveLesson() {
         feedback.setText("");
         String mon = "SQL".equals(subject.getValue()) ? "sql" : "dsa";
-        String loai = "Thực hành".equals(type.getValue()) ? "luyen-tap" : "bai-tap";
-        String chuong = chapter.getText().trim().toLowerCase(Locale.ROOT);
+        String loai =
+                switch (type.getValue()) {
+                    case TYPE_SAMPLE -> "giang-giai";
+                    case TYPE_PRACTICE -> "luyen-tap";
+                    default -> "bai-tap";
+                };
+        boolean newChapter = NEW_CHAPTER.equals(chapterBox.getValue());
+        String chuong = (newChapter ? newChapterCode.getText() : chapterCodes.getOrDefault(chapterBox.getValue(), ""))
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        if (newChapter && newChapterName.getText().isBlank()) {
+            error("Nhập tên chủ đề mới.");
+            return;
+        }
         String code = slug.getText().trim().toLowerCase(Locale.ROOT);
         String ten = title.getText().trim();
         if (!chuong.matches("[a-z0-9]+(?:-[a-z0-9]+)*") || !code.matches("[a-z0-9]+(?:-[a-z0-9]+)*")) {
@@ -266,6 +417,17 @@ public final class AddExerciseScreen extends BorderPane {
             return;
         }
         boolean sql = "sql".equals(mon);
+        Map<String, String> views = sql ? Map.of() : views();
+        if ("giang-giai".equals(loai)
+                && !sql
+                && (views.isEmpty() || solution.getText().isBlank())) {
+            error("Bài mẫu cần lời giải tham khảo và ít nhất một biến có bộ vẽ để sinh animation.");
+            return;
+        }
+        if (!"giang-giai".equals(loai) && views.containsValue("code-bien")) {
+            error("Bộ vẽ Code và biến hiện nguyên lời giải nên chỉ dùng cho bài mẫu.");
+            return;
+        }
         if (sql
                 && (solution.getText().isBlank()
                         || testInput.getText().isBlank()
@@ -297,7 +459,10 @@ public final class AddExerciseScreen extends BorderPane {
                     + "ten: " + yamlString(ten) + "\n"
                     + "loai: " + loai + "\n"
                     + "bac: [xem, code]\n"
-                    + "khung_nhin: []\n"
+                    + "khung_nhin:" + (views.isEmpty() ? " []" : "") + "\n"
+                    + views.entrySet().stream()
+                            .map(v -> "  - bien: " + v.getKey() + "\n    kieu: " + v.getValue() + "\n")
+                            .reduce("", String::concat)
                     + "cam_dung: []\n"
                     + "cam_import: []\n"
                     + "cam_cu_phap: []\n"
@@ -306,6 +471,9 @@ public final class AddExerciseScreen extends BorderPane {
                     + "so_test_an: 0\n"
                     + "mo_khoa: []\n";
             Files.createDirectories(folder);
+            Path chapterName = folder.getParent().resolve("ten-chuong.txt");
+            if (newChapter && !Files.exists(chapterName))
+                write(chapterName, newChapterName.getText().trim());
             write(folder.resolve("lesson.yaml"), yaml);
             write(folder.resolve("de.md"), description.getText());
             if (sql) {

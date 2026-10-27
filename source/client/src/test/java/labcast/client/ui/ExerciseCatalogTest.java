@@ -57,4 +57,19 @@ class ExerciseCatalogTest {
         var baiTap = new ExerciseCatalog.Query("", null, Set.of("bai-tap"), "Tất cả", "");
         assertEquals(5, ExerciseCatalog.select(KHO, baiTap, false).size());
     }
+
+    @Test
+    void maTuTenTiengViet() {
+        assertEquals("hang-doi-uu-tien", ExerciseCatalog.slug("Hàng đợi ưu tiên"));
+        assertEquals("cay-nhi-phan-2", ExerciseCatalog.slug("  Cây nhị phân (2) "));
+    }
+
+    @Test
+    void tenChuong_uuTienTenGiaoVienDat_vaBaiSai() {
+        var moi = DashboardStatsTest.bai("dsa.hang-doi-uu-tien.a", "OPEN", true).put("chuongTen", "Hàng đợi ưu tiên");
+        assertEquals("Hàng đợi ưu tiên", ExerciseCatalog.chapterName(moi));
+        assertEquals("Ngăn xếp", ExerciseCatalog.chapterName(DashboardStatsTest.bai("dsa.ngan-xep.a", "OPEN", true)));
+        assertEquals(true, ExerciseCatalog.isWrong(moi));
+        assertEquals(false, ExerciseCatalog.isWrong(KHO.get(0)));
+    }
 }

@@ -380,12 +380,22 @@ final class DashboardHome extends ScrollPane {
     // ================= Học viên =================
 
     private Node studentBody(DashboardStats s) {
+        int tried = s.done() + s.wrong();
+        HBox cards = statRow(
+                stat("Bài đúng", Integer.toString(s.done()), s.percentDone() + "% số bài của lớp", "done"),
+                stat("Bài sai", Integer.toString(s.wrong()), "đã nộp nhưng chưa đạt, làm lại nhé", "wrong"),
+                stat("Chưa làm", Integer.toString(s.total() - tried), "trên " + s.total() + " bài", "lessons"),
+                stat(
+                        "Tỉ lệ đúng",
+                        (tried == 0 ? 0 : Math.round(s.done() * 100f / tried)) + "%",
+                        "số bài đúng / số bài đã nộp",
+                        "rate"));
         GridPane top = columns(new double[] {40, 30, 30}, continueCard(s), dailyCard(s), levelCard(s));
         Node topics = topicsCard(s);
         VBox left = new VBox(18, topics, lessonsCard(s));
         VBox right = new VBox(18, badgesCard(s), leaderboardCard(), weekCard());
         GridPane bottom = columns(new double[] {64, 36}, left, right);
-        return new VBox(18, top, bottom);
+        return new VBox(18, cards, top, bottom);
     }
 
     private Node streakCard() {
@@ -423,7 +433,7 @@ final class DashboardHome extends ScrollPane {
         title.getStyleClass().add("dash-hero-title");
         title.setWrapText(true);
         Label chapter = new Label(l.path("mon").asText().toUpperCase() + " · "
-                + LessonScreen.chapterLabel(l.path("chuong").asText()) + " · "
+                + ExerciseCatalog.chapterName(l) + " · "
                 + LessonScreen.loaiLabel(l.path("loai").asText()));
         chapter.getStyleClass().add("dash-hero-meta");
         ProgressBar bar = new ProgressBar(s.total() == 0 ? 0 : (double) s.done() / s.total());
@@ -464,7 +474,7 @@ final class DashboardHome extends ScrollPane {
         Label name = new Label(pick.path("ten").asText());
         name.getStyleClass().add("dash-row-title");
         name.setWrapText(true);
-        Label level = new Label(LessonScreen.chapterLabel(pick.path("chuong").asText()));
+        Label level = new Label(ExerciseCatalog.chapterName(pick));
         level.getStyleClass().addAll("dash-pill", "dash-pill-ok");
         Button start = primary("Bắt đầu", () -> {});
         String id = pick.path("id").asText();
@@ -516,7 +526,7 @@ final class DashboardHome extends ScrollPane {
             icon.getStyleClass().addAll("dash-topic-icon", "dash-tone-" + (i++ % 4));
             Label name = new Label(c.label());
             name.getStyleClass().add("dash-row-title");
-            Label count = meta(c.done() + "/" + c.total() + " bài");
+            Label count = meta("✓ " + c.done() + " · ✗ " + c.wrong() + " / " + c.total() + " bài");
             VBox tile = new VBox(5, icon, name, count);
             tile.getStyleClass().add("dash-topic");
             if (c.total() > 0 && c.done() == c.total()) tile.getStyleClass().add("dash-topic-done");
@@ -533,7 +543,7 @@ final class DashboardHome extends ScrollPane {
         VBox card = card("Bài tập", null, null);
         HBox head = (HBox) card.getChildren().get(0);
         ToggleGroup group = new ToggleGroup();
-        for (String name : List.of("Tất cả", "Đã đạt", "Đang làm", "Chưa làm")) {
+        for (String name : List.of("Tất cả", "Đã đạt", "Bài sai", "Chưa làm")) {
             ToggleButton t = new ToggleButton(name);
             t.getStyleClass().add("dash-tab");
             t.setToggleGroup(group);
@@ -547,9 +557,8 @@ final class DashboardHome extends ScrollPane {
         Predicate<JsonNode> keep =
                 switch (lessonFilter) {
                     case "Đã đạt" -> l -> "MASTERED".equals(l.path("status").asText());
-                    case "Đang làm" -> l -> "OPEN".equals(l.path("status").asText());
-                    case "Chưa làm" -> l ->
-                            "NOT_STARTED".equals(l.path("status").asText("NOT_STARTED"));
+                    case "Bài sai" -> ExerciseCatalog::isWrong;
+                    case "Chưa làm" -> l -> !ExerciseCatalog.isDone(l) && !ExerciseCatalog.isWrong(l);
                     default -> l -> true;
                 };
         int shown = 0;
@@ -562,27 +571,30 @@ final class DashboardHome extends ScrollPane {
             name.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(name, Priority.ALWAYS);
             Label type = new Label(LessonScreen.loaiLabel(l.path("loai").asText()));
-            type.getStyleClass().addAll("dash-pill", "dash-pill-info");
-            Label chapter = meta(LessonScreen.chapterLabel(l.path("chuong").asText()));
+            type.getStyleClass()
+                    .addAll(
+                            "catalog-kind-pill",
+                            "catalog-kind-pill-" + l.path("loai").asText());
+            Label chapter = meta(ExerciseCatalog.chapterName(l));
             chapter.setMinWidth(110);
             Label state = new Label(
                     switch (status) {
                         case "MASTERED" -> "Đạt " + l.path("score").asText("");
-                        case "OPEN" -> "Đang làm";
-                        default -> "Chưa làm";
+                        default -> ExerciseCatalog.isWrong(l) ? "Sai" : "Chưa làm";
                     });
             state.getStyleClass()
                     .addAll(
                             "dash-pill",
                             switch (status) {
                                 case "MASTERED" -> "dash-pill-ok";
-                                case "OPEN" -> "dash-pill-warn";
-                                default -> "dash-pill-muted";
+                                default -> ExerciseCatalog.isWrong(l) ? "dash-pill-bad" : "dash-pill-muted";
                             });
             state.setMinWidth(70);
             HBox row = new HBox(10, name, type, chapter, state);
             row.setAlignment(Pos.CENTER_LEFT);
             row.getStyleClass().add("dash-row");
+            if (ExerciseCatalog.isDone(l)) row.getStyleClass().add("catalog-row-done");
+            else if (ExerciseCatalog.isWrong(l)) row.getStyleClass().add("catalog-row-wrong");
             String id = l.path("id").asText();
             row.setOnMouseClicked(e -> actions.openLesson().accept(id));
             card.getChildren().add(row);
@@ -808,6 +820,7 @@ final class DashboardHome extends ScrollPane {
         icon.setContent(
                 switch (kind) {
                     case "done", "rate" -> "M5 12 L10 17 L19 7";
+                    case "wrong" -> "M6 6 L18 18 M18 6 L6 18";
                     case "users" -> "M3 19 V17 C3 14.5 5.5 13.5 8 13.5 C10.5 13.5 13 14.5 13 17 V19 M11 8 A3 3 0 1 0 5 8 A3 3 0 0 0 11 8 M15 13.5 C18 13.5 21 14.5 21 17 V19 M15 5 A3 3 0 0 1 15 11";
                     case "teacher" -> "M4 19 V17 C4 14 7 13 10 13 C13 13 16 14 16 17 V19 M13 8 A3 3 0 1 0 7 8 A3 3 0 0 0 13 8 M18 7 V12 M15.5 9.5 H20.5";
                     case "class" -> "M4 7 H20 V18 H4 Z M8 7 V5 H16 V7";

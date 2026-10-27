@@ -2290,3 +2290,41 @@
     -fx-cursor: hand;
 }
 .catalog-page-active { -fx-background-color: -lc-primary; -fx-border-color: -lc-primary; -fx-text-fill: white; }
+
+/* ===== Kho bài v2: bài mẫu xanh dương, luyện tập xanh lá, dòng đạt/sai tô màu ===== */
+.catalog-kind-pill-giang-giai { -fx-background-color: rgba(59,130,246,0.16); -fx-text-fill: #2563EB; }
+.catalog-kind-pill-bai-tap, .catalog-kind-pill-luyen-tap { -fx-background-color: rgba(34,197,94,0.16); -fx-text-fill: #16A34A; }
+.catalog-row-sample { -fx-border-color: transparent transparent -lc-border #3B82F6; -fx-border-width: 0 0 1 4; }
+.catalog-row-practice { -fx-border-color: transparent transparent -lc-border #22C55E; -fx-border-width: 0 0 1 4; }
+.catalog-row-done, .catalog-row-done:hover {
+    -fx-background-color: -lc-success-soft;
+    -fx-border-color: -lc-success;
+    -fx-border-width: 1 1 1 4;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+}
+.catalog-row-wrong, .catalog-row-wrong:hover {
+    -fx-background-color: -lc-danger-soft;
+    -fx-border-color: -lc-danger;
+    -fx-border-width: 1 1 1 4;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+}
+.catalog-row-done .dash-row-title, .catalog-row-wrong .dash-row-title { -fx-text-fill: -lc-text; }
+.catalog-state-wrong { -fx-background-color: #EF4444; -fx-text-fill: white; }
+.catalog-state-done { -fx-background-color: #16A34A; -fx-text-fill: white; }
+.catalog-group {
+    -fx-padding: 14 10 6 6;
+}
+.catalog-group-title { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: -lc-primary-text; }
+.catalog-chip { -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 3 10; -fx-background-radius: 10; }
+.catalog-chip-done { -fx-background-color: -lc-success-soft; -fx-text-fill: -lc-success; }
+.catalog-chip-wrong { -fx-background-color: -lc-danger-soft; -fx-text-fill: -lc-danger; }
+.catalog-chip-new { -fx-background-color: -lc-surface-2; -fx-text-fill: -lc-muted; }
+.dash-pill-bad { -fx-background-color: -lc-danger-soft; -fx-text-fill: -lc-danger; }
+.dash-icon-wrong { -fx-background-color: -lc-danger-soft; }
+.dash-icon-wrong .dash-stat-icon-shape { -fx-stroke: #EF4444; }
+
+/* Thêm bài tập: chọn bộ vẽ cho biến */
+.author-view-row { -fx-padding: 2 0; }
+.author-hint { -fx-text-fill: -lc-muted; -fx-font-size: 11px; }

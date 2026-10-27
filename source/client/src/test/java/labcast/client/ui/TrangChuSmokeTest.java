@@ -104,6 +104,11 @@ class TrangChuSmokeTest {
                     .executeUpdate("UPDATE progress SET status='OPEN', score=NULL WHERE user_id=(SELECT id FROM"
                             + " users WHERE username='sv0') AND lesson_id=(SELECT max(lesson_id) FROM progress"
                             + " WHERE user_id=(SELECT id FROM users WHERE username='sv0'))"));
+            // sv0 nộp sai hai bài chương Băm/Tìm kiếm: hiện màu đỏ trong kho bài
+            db.tx(c -> c.createStatement()
+                    .executeUpdate("INSERT OR REPLACE INTO progress (user_id, lesson_id, tier, status, wrong_submits,"
+                            + " updated_at) SELECT u.id, l.id, 'code', 'OPEN', 2, 0 FROM users u, lessons l"
+                            + " WHERE u.username='sv0' AND l.id IN ('dsa.tim-kiem.nhi-phan','dsa.sap-xep.noi-bot')"));
             try {
                 Platform.startup(() -> {});
             } catch (IllegalStateException alreadyStarted) {
@@ -133,6 +138,13 @@ class TrangChuSmokeTest {
                         return null;
                     });
                     chup(scene, "kho-bai-" + who[1] + (dark ? "-toi" : "-sang"));
+                    if (who[0].equals("gv") && !dark) {
+                        fx(() -> {
+                            ((javafx.scene.control.Button) scene.lookup("#nav-add")).fire();
+                            return null;
+                        });
+                        chup(scene, "them-bai-giao-vien");
+                    }
                 }
                 li.client().close();
             }

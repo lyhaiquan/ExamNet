@@ -52,6 +52,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
     private final VBox table = new VBox();
     private final HBox pager = new HBox(6);
     private final Label subtitle = new Label();
+    private final HBox summary = new HBox(8);
 
     private String chapter;
     private final Set<String> kinds = new HashSet<>();
@@ -67,7 +68,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
         Label heading = new Label("Kho bài tập");
         heading.getStyleClass().add("dash-name");
         subtitle.getStyleClass().add("dash-sub");
-        VBox title = new VBox(4, heading, subtitle);
+        VBox title = new VBox(6, heading, subtitle, summary);
         Region gap = new Region();
         HBox.setHgrow(gap, Priority.ALWAYS);
         subjectBox.getStyleClass().add("catalog-select");
@@ -107,7 +108,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
                 .getItems()
                 .addAll(
                         student
-                                ? List.of("Tất cả", "Đã giải", "Đang làm", "Chưa làm")
+                                ? List.of("Tất cả", "Đã giải", "Bài sai", "Chưa làm")
                                 : List.of("Tất cả", "Đang mở", "Đang ẩn"));
         statusBox.getSelectionModel().selectFirst();
         statusBox.getStyleClass().add("catalog-select");
@@ -178,9 +179,36 @@ public final class ExerciseCatalogPane extends ScrollPane {
                         ? String.join(", ", ExerciseCatalog.subjects(lessons))
                         : subj.toUpperCase(Locale.ROOT))
                 + " · " + scope.size() + " bài");
+        summary.getChildren().clear();
+        if (student) {
+            long done = scope.stream().filter(ExerciseCatalog::isDone).count();
+            long wrong = scope.stream().filter(ExerciseCatalog::isWrong).count();
+            summary.getChildren()
+                    .addAll(
+                            chip("✓ " + done + " bài đúng", "catalog-chip-done"),
+                            chip("✗ " + wrong + " bài sai", "catalog-chip-wrong"),
+                            chip("○ " + (scope.size() - done - wrong) + " chưa làm", "catalog-chip-new"));
+        }
         renderChapters(scope);
         renderKinds(scope);
         renderTable();
+    }
+
+    private static Label chip(String text, String style) {
+        Label l = new Label(text);
+        l.getStyleClass().addAll("catalog-chip", style);
+        return l;
+    }
+
+    /** "3 bài mẫu · 4 luyện tập", kèm số đúng/sai với học viên. */
+    private String chapterCounts(List<JsonNode> list) {
+        long samples = list.stream().filter(ExerciseCatalog::isSample).count();
+        String text = samples + " bài mẫu · " + (list.size() - samples) + " luyện tập";
+        if (student) {
+            text += " · ✓ " + list.stream().filter(ExerciseCatalog::isDone).count() + " đúng · ✗ "
+                    + list.stream().filter(ExerciseCatalog::isWrong).count() + " sai";
+        }
+        return text;
     }
 
     private Map<String, List<JsonNode>> byChapter(List<JsonNode> scope) {
@@ -203,18 +231,24 @@ public final class ExerciseCatalogPane extends ScrollPane {
             long done = list.stream()
                     .filter(l -> "MASTERED".equals(l.path("status").asText()))
                     .count();
-            chapterList.getChildren().add(chapterButton(key, LessonScreen.chapterLabel(key), list.size()));
+            String chapterTitle = ExerciseCatalog.chapterName(list.get(0));
+            chapterList.getChildren().add(chapterButton(key, chapterTitle, list.size()));
 
             Label icon = new Label(list.get(0).path("mon").asText().equals("sql") ? "SQL" : "{ }");
             icon.getStyleClass().addAll("catalog-card-icon", "dash-tone-" + (i++ % 4));
-            Label name = new Label(LessonScreen.chapterLabel(key));
+            Label name = new Label(chapterTitle);
             name.getStyleClass().add("dash-row-title");
-            Label count = new Label(list.size() + " bài tập");
+            long samples = list.stream().filter(ExerciseCatalog::isSample).count();
+            Label count = new Label(samples + " bài mẫu · " + (list.size() - samples) + " luyện tập");
             count.getStyleClass().add("dash-row-meta");
             HBox top = new HBox(12, icon, new VBox(2, name, count));
             top.setAlignment(Pos.CENTER_LEFT);
             int pct = Math.round(done * 100f / list.size());
-            Label pctLabel = new Label("● " + pct + "% đã hoàn thành");
+            long wrongs = list.stream().filter(ExerciseCatalog::isWrong).count();
+            Label pctLabel = new Label(
+                    student
+                            ? "✓ " + done + " đúng · ✗ " + wrongs + " sai · " + pct + "%"
+                            : "● " + pct + "% đã hoàn thành");
             pctLabel.getStyleClass().add("dash-row-meta");
             ProgressBar bar = new ProgressBar(pct / 100.0);
             bar.getStyleClass().add("dash-bar");
@@ -313,7 +347,19 @@ public final class ExerciseCatalogPane extends ScrollPane {
         page = Math.min(page, pages - 1);
         int from = page * PAGE;
         int to = Math.min(rows.size(), from + PAGE);
-        for (int i = from; i < to; i++) table.getChildren().add(lessonRow(i + 1, rows.get(i)));
+        // Nhóm theo chương: mỗi lần đổi chương thì chèn một dòng tiêu đề chương
+        Map<String, List<JsonNode>> groups = byChapter(rows);
+        String last = null;
+        for (int i = from; i < to; i++) {
+            JsonNode l = rows.get(i);
+            String key = l.path("mon").asText() + "/" + l.path("chuong").asText();
+            if (!key.equals(last)) {
+                table.getChildren()
+                        .add(groupHeader(l, groups.get(l.path("chuong").asText())));
+                last = key;
+            }
+            table.getChildren().add(lessonRow(i + 1, l));
+        }
         if (rows.isEmpty()) {
             Label empty = new Label("Không có bài nào khớp bộ lọc.");
             empty.getStyleClass().add("dash-row-meta");
@@ -321,6 +367,17 @@ public final class ExerciseCatalogPane extends ScrollPane {
             table.getChildren().add(empty);
         }
         renderPager(rows.size(), pages, from, to);
+    }
+
+    private Node groupHeader(JsonNode first, List<JsonNode> list) {
+        Label name = new Label(ExerciseCatalog.chapterName(first));
+        name.getStyleClass().add("catalog-group-title");
+        Label counts = new Label(chapterCounts(list));
+        counts.getStyleClass().add("dash-row-meta");
+        HBox h = new HBox(12, name, counts);
+        h.setAlignment(Pos.CENTER_LEFT);
+        h.getStyleClass().add("catalog-group");
+        return h;
     }
 
     private static Label th(String text) {
@@ -340,13 +397,15 @@ public final class ExerciseCatalogPane extends ScrollPane {
         Label title = new Label(ten);
         title.getStyleClass().add("dash-row-title");
         title.setTextOverrun(OverrunStyle.ELLIPSIS);
-        Label sub = new Label(l.path("mon").asText().toUpperCase(Locale.ROOT) + " · " + id);
+        int wrongSubmits = l.path("wrongSubmits").asInt(0);
+        Label sub = new Label(l.path("mon").asText().toUpperCase(Locale.ROOT) + " · " + id
+                + (student && wrongSubmits > 0 ? " · nộp sai " + wrongSubmits + " lần" : ""));
         sub.getStyleClass().add("dash-row-meta");
         sub.setTextOverrun(OverrunStyle.ELLIPSIS);
         VBox name = new VBox(2, title, sub);
         Tooltip.install(name, new Tooltip(ten));
 
-        Label topic = new Label(LessonScreen.chapterLabel(l.path("chuong").asText()));
+        Label topic = new Label(ExerciseCatalog.chapterName(l));
         topic.getStyleClass().add("catalog-tag");
         StackPane topicCell = left(topic);
 
@@ -388,9 +447,9 @@ public final class ExerciseCatalogPane extends ScrollPane {
         } else if ("MASTERED".equals(status)) {
             state = new Label("✓ Đã giải");
             state.getStyleClass().addAll("catalog-state", "catalog-state-done");
-        } else if ("OPEN".equals(status)) {
-            state = new Label("◷ Làm tiếp");
-            state.getStyleClass().addAll("catalog-state", "catalog-state-open");
+        } else if (ExerciseCatalog.isWrong(l)) {
+            state = new Label("✗ Sai · làm lại");
+            state.getStyleClass().addAll("catalog-state", "catalog-state-wrong");
         } else {
             state = new Label("○ Chưa làm");
             state.getStyleClass().addAll("catalog-state", "catalog-state-new");
@@ -407,7 +466,12 @@ public final class ExerciseCatalogPane extends ScrollPane {
             del.setOnAction(e -> onDelete.accept(id, ten));
             r.getChildren().add(del);
         }
-        r.getStyleClass().add("catalog-row");
+        r.getStyleClass()
+                .addAll("catalog-row", ExerciseCatalog.isSample(l) ? "catalog-row-sample" : "catalog-row-practice");
+        // tô cả dòng: đạt màu xanh, nộp sai màu đỏ; chữ vẫn đọc được trên nền nhạt
+        if (student && active && ExerciseCatalog.isDone(l)) r.getStyleClass().add("catalog-row-done");
+        else if (student && active && ExerciseCatalog.isWrong(l))
+            r.getStyleClass().add("catalog-row-wrong");
         r.setOnMouseClicked(e -> onOpen.accept(id));
         return r;
     }

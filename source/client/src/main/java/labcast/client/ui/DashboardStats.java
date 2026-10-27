@@ -15,10 +15,7 @@ import java.util.Optional;
  * DashboardHome} để test được không cần JavaFX.
  */
 final class DashboardStats {
-    record ChapterProgress(String mon, String chuong, int done, int total) {
-        String label() {
-            return LessonScreen.chapterLabel(chuong);
-        }
+    record ChapterProgress(String mon, String chuong, int done, int total, int wrong, String label) {
 
         double ratio() {
             return total == 0 ? 0 : (double) done / total;
@@ -30,6 +27,7 @@ final class DashboardStats {
     private final List<JsonNode> lessons;
     private final int done;
     private final int inProgress;
+    private final int wrong;
     private final int hidden;
     private final int xp;
     private final List<ChapterProgress> chapters;
@@ -40,12 +38,19 @@ final class DashboardStats {
         int d = 0;
         int p = 0;
         int x = 0;
+        int w = 0;
         Map<String, int[]> byChapter = new LinkedHashMap<>();
+        Map<String, String> names = new LinkedHashMap<>();
         for (JsonNode l : lessons) {
             String status = l.path("status").asText("NOT_STARTED");
             int[] c = byChapter.computeIfAbsent(
-                    l.path("mon").asText() + "|" + l.path("chuong").asText(), k -> new int[2]);
+                    l.path("mon").asText() + "|" + l.path("chuong").asText(), k -> new int[3]);
+            names.putIfAbsent(l.path("mon").asText() + "|" + l.path("chuong").asText(), ExerciseCatalog.chapterName(l));
             c[1]++;
+            if (ExerciseCatalog.isWrong(l)) {
+                w++;
+                c[2]++;
+            }
             if ("MASTERED".equals(status)) {
                 d++;
                 c[0]++;
@@ -56,11 +61,12 @@ final class DashboardStats {
         }
         this.done = d;
         this.inProgress = p;
+        this.wrong = w;
         this.xp = x;
         List<ChapterProgress> list = new ArrayList<>();
         byChapter.forEach((key, c) -> {
             String[] k = key.split("\\|", 2);
-            list.add(new ChapterProgress(k[0], k[1], c[0], c[1]));
+            list.add(new ChapterProgress(k[0], k[1], c[0], c[1], c[2], names.get(key)));
         });
         this.chapters = List.copyOf(list);
     }
@@ -97,6 +103,11 @@ final class DashboardStats {
 
     int inProgress() {
         return inProgress;
+    }
+
+    /** Bài đã nộp nhưng chưa đạt. */
+    int wrong() {
+        return wrong;
     }
 
     int hidden() {
