@@ -26,6 +26,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
@@ -867,12 +869,30 @@ public final class HomeScreen extends BorderPane {
             importBtn.setOnAction(e -> importRoster());
             bar.getChildren().addAll(uploadBtn, importBtn);
         }
-        bar.getChildren().addAll(avatar, who);
+        // Bấm vào tên mình: menu mật khẩu (ai cũng tự đổi được; giáo viên, quản trị đặt lại cho người khác)
+        HBox userChip = new HBox(10, avatar, who);
+        userChip.setAlignment(Pos.CENTER_LEFT);
+        MenuButton userMenu = new MenuButton();
+        userMenu.setId("user-menu");
+        userMenu.setGraphic(userChip);
+        userMenu.getStyleClass().add("user-menu");
+        userMenu.setTooltip(new Tooltip("Tài khoản: đổi mật khẩu"));
+        MenuItem changePwd = new MenuItem("Đổi mật khẩu của tôi…");
+        changePwd.setOnAction(e -> PasswordDialogs.change(getScene().getWindow(), li.client()));
+        userMenu.getItems().add(changePwd);
+        if (li.role().isStaff()) {
+            MenuItem resetPwd = new MenuItem(
+                    li.role() == Role.ADMIN ? "Đặt lại mật khẩu cho người khác…" : "Đặt lại mật khẩu cho học viên…");
+            resetPwd.setOnAction(e -> PasswordDialogs.reset(getScene().getWindow(), li.client(), null, null));
+            userMenu.getItems().add(resetPwd);
+        }
+        bar.getChildren().add(userMenu);
 
         Button logoutBtn = new Button("Đăng xuất");
         logoutBtn.setId("logout-btn");
         logoutBtn.getStyleClass().addAll("on-dark", "logout");
         logoutBtn.setOnAction(e -> logout());
+        logoutBtn.setMinWidth(Region.USE_PREF_SIZE); // thanh trên chật thì co chỗ khác, không cắt chữ "Đăng xuất"
         bar.getChildren().add(logoutBtn);
 
         bar.setAlignment(Pos.CENTER_LEFT);

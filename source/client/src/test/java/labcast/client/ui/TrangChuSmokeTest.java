@@ -114,6 +114,8 @@ class TrangChuSmokeTest {
             } catch (IllegalStateException alreadyStarted) {
                 // đã chạy UiSmokeTest trong cùng JVM
             }
+            // hộp thoại mật khẩu là cửa sổ thật duy nhất: đóng nó thì JavaFX tự tắt nếu không chặn
+            Platform.setImplicitExit(false);
             for (String[] who : new String[][] {{"sv0", "hoc-vien"}, {"gv", "giao-vien"}, {"ad", "quan-tri"}}) {
                 var li = LoginController.login("127.0.0.1", server.port(), who[0], "1");
                 for (boolean dark : new boolean[] {false, true}) {
@@ -144,6 +146,26 @@ class TrangChuSmokeTest {
                             return null;
                         });
                         chup(scene, "them-bai-giao-vien");
+                        var reset = fx(() -> PasswordDialogs.reset(null, li.client(), "sv01", "Hoàng Nam"));
+                        fx(() -> {
+                            reset.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
+                            return null;
+                        });
+                        chup(reset.getDialogPane().getScene(), "dat-lai-mat-khau");
+                        fx(() -> {
+                            reset.close();
+                            return null;
+                        });
+                        var change = fx(() -> PasswordDialogs.change(null, li.client()));
+                        fx(() -> {
+                            change.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
+                            return null;
+                        });
+                        chup(change.getDialogPane().getScene(), "doi-mat-khau");
+                        fx(() -> {
+                            change.close();
+                            return null;
+                        });
                     }
                 }
                 li.client().close();
