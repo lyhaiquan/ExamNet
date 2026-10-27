@@ -171,6 +171,7 @@ public final class HomeScreen extends BorderPane {
         this.selectedClassId = li.classId();
         this.exerciseCatalog = new ExerciseCatalogPane(li.role() == Role.STUDENT, this::open);
         exerciseWorkspace.setCenter(exerciseCatalog);
+        if (li.role().isStaff()) exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
         this.dashboard = new DashboardHome(
                 li,
                 new DashboardHome.Actions(
@@ -179,6 +180,10 @@ public final class HomeScreen extends BorderPane {
                             open(id);
                         },
                         () -> showLessonCategory(Nav.EXERCISES),
+                        chuong -> {
+                            showLessonCategory(Nav.EXERCISES);
+                            exerciseCatalog.showChapter(chuong);
+                        },
                         this::showPracticeRooms,
                         this::showStudents,
                         this::showAddExercise));
@@ -224,6 +229,8 @@ public final class HomeScreen extends BorderPane {
         configureNavButton(
                 homeButton, "M4 11 L12 4 L20 11 V20 H14 V14 H10 V20 H4 Z", "Tổng quan, tiến độ và hoạt động");
         homeButton.setOnAction(e -> showHome());
+        homeButton.setId("nav-home");
+        exerciseButton.setId("nav-exercises");
         configureNavButton(exerciseButton, "M6 5 H19 V19 H6 Z M9 9 H16 M9 13 H16", "Lọc danh sách bài tập");
         practiceButton.setText(li.role().isStaff() ? "Lớp thực hành" : "Tham gia thực hành");
         configureNavButton(

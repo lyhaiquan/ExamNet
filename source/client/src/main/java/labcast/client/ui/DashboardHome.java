@@ -58,6 +58,7 @@ final class DashboardHome extends ScrollPane {
     record Actions(
             Consumer<String> openLesson,
             Runnable showExercises,
+            Consumer<String> showChapter,
             Runnable showPractice,
             Runnable showStudents,
             Runnable showAddExercise) {}
@@ -519,7 +520,8 @@ final class DashboardHome extends ScrollPane {
             VBox tile = new VBox(5, icon, name, count);
             tile.getStyleClass().add("dash-topic");
             if (c.total() > 0 && c.done() == c.total()) tile.getStyleClass().add("dash-topic-done");
-            tile.setOnMouseClicked(e -> actions.showExercises().run());
+            String key = c.chuong();
+            tile.setOnMouseClicked(e -> actions.showChapter().accept(key));
             tiles.getChildren().add(tile);
         }
         if (tiles.getChildren().isEmpty()) card.getChildren().add(muted("Chưa có bài nào."));

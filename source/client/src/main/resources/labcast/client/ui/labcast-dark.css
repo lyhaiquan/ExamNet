@@ -2293,3 +2293,122 @@
 .dash-rank-1 { -fx-background-color: #FBBF24; -fx-text-fill: white; }
 .dash-rank-2 { -fx-background-color: #94A3B8; -fx-text-fill: white; }
 .dash-rank-3 { -fx-background-color: #D97706; -fx-text-fill: white; }
+
+/* ===== Kho bài tập (ExerciseCatalogPane) ===== */
+.catalog-select {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-pref-height: 38;
+    -fx-min-width: 140;
+}
+.catalog-cards-scroll, .catalog-cards-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+.catalog-cards { -fx-padding: 2 2 8 2; }
+.catalog-card {
+    -fx-min-width: 230;
+    -fx-pref-width: 240;
+    -fx-cursor: hand;
+}
+.catalog-card:hover { -fx-border-color: -lc-primary; }
+.catalog-card-active { -fx-border-color: -lc-primary; -fx-border-width: 2; }
+.catalog-card-icon {
+    -fx-min-width: 42; -fx-min-height: 42; -fx-max-height: 42;
+    -fx-alignment: center;
+    -fx-background-radius: 11;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-padding: 0 6;
+}
+.catalog-side { -fx-padding: 16 12; }
+.catalog-side-title { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -lc-faint; -fx-padding: 0 6; }
+.catalog-topic {
+    -fx-padding: 8 10;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+.catalog-topic .label { -fx-text-fill: -lc-text; -fx-font-size: 12px; }
+.catalog-topic:hover { -fx-background-color: -lc-surface-2; }
+.catalog-topic-active { -fx-background-color: -lc-primary-soft; }
+.catalog-topic-active .label { -fx-text-fill: -lc-primary-text; -fx-font-weight: bold; }
+.catalog-count {
+    -fx-font-size: 11px;
+    -fx-text-fill: -lc-muted;
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 1 7;
+}
+.catalog-kind { -fx-text-fill: -lc-text; -fx-font-size: 12px; }
+.catalog-search {
+    -fx-background-color: -lc-surface-2;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-pref-height: 38;
+    -fx-prompt-text-fill: -lc-faint;
+}
+.catalog-main { -fx-padding: 16 18; }
+.catalog-head {
+    -fx-padding: 8 10;
+    -fx-border-color: transparent transparent -lc-border transparent;
+}
+.catalog-row {
+    -fx-padding: 12 10;
+    -fx-border-color: transparent transparent -lc-border transparent;
+    -fx-cursor: hand;
+}
+.catalog-row:hover { -fx-background-color: -lc-surface-2; }
+.catalog-tag {
+    -fx-font-size: 11px;
+    -fx-text-fill: -lc-text;
+    -fx-background-color: -lc-surface-2;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 3 8;
+}
+.catalog-kind-pill { -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 6; }
+.catalog-kind-pill-giang-giai { -fx-background-color: rgba(34,197,94,0.15); -fx-text-fill: #16A34A; }
+.catalog-kind-pill-bai-tap { -fx-background-color: rgba(245,158,11,0.16); -fx-text-fill: #D97706; }
+.catalog-kind-pill-luyen-tap { -fx-background-color: rgba(244,63,94,0.15); -fx-text-fill: #E11D48; }
+.catalog-bar-good > .bar { -fx-background-color: #22C55E; }
+.catalog-bar-mid > .bar { -fx-background-color: #F59E0B; }
+.catalog-bar-low > .bar { -fx-background-color: #F43F5E; }
+.catalog-state {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 10;
+    -fx-background-radius: 7;
+    -fx-border-radius: 7;
+}
+.catalog-state-done { -fx-background-color: rgba(34,197,94,0.15); -fx-text-fill: #16A34A; }
+.catalog-state-open { -fx-background-color: -lc-primary; -fx-text-fill: white; }
+.catalog-state-new { -fx-border-color: -lc-border-strong; -fx-text-fill: -lc-muted; }
+.catalog-state-hidden { -fx-background-color: -lc-surface-2; -fx-text-fill: -lc-faint; }
+.catalog-toggle { -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 9; -fx-background-radius: 7; -fx-cursor: hand; }
+.catalog-toggle-on { -fx-background-color: rgba(34,197,94,0.15); -fx-text-fill: #16A34A; }
+.catalog-toggle-off { -fx-background-color: -lc-surface-2; -fx-text-fill: -lc-muted; }
+.catalog-delete {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4;
+    -fx-cursor: hand;
+}
+.catalog-delete:hover { -fx-background-color: -lc-danger-soft; }
+.catalog-delete-icon { -fx-fill: transparent; -fx-stroke: -lc-muted; -fx-stroke-width: 1.6; }
+.catalog-delete:hover .catalog-delete-icon { -fx-stroke: -lc-danger; }
+.catalog-page {
+    -fx-min-width: 34; -fx-min-height: 32;
+    -fx-background-color: transparent;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: -lc-text;
+    -fx-cursor: hand;
+}
+.catalog-page-active { -fx-background-color: -lc-primary; -fx-border-color: -lc-primary; -fx-text-fill: white; }

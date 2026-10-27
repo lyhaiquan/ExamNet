@@ -2,226 +2,454 @@ package labcast.client.ui;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.SVGPath;
 
-/** Trang thư viện bài tập dạng card toàn chiều rộng. Dữ liệu tiến độ là kết quả thật của LESSON_LIST. */
-public final class ExerciseCatalogPane extends VBox {
+/**
+ * Kho bài tập: thẻ chương ở trên; bên trái danh sách chương và loại bài; bên phải bảng bài có tìm
+ * kiếm, lọc trạng thái và chia trang. Chỉ hiện môn có trong danh sách bài của lớp. Giáo viên tạm
+ * ẩn/mở và xoá bài ngay trong bảng.
+ */
+public final class ExerciseCatalogPane extends ScrollPane {
+    private static final int PAGE = 10;
+    private static final List<String> KINDS = List.of("giang-giai", "bai-tap", "luyen-tap");
+
     private final List<JsonNode> lessons = new ArrayList<>();
     private final Consumer<String> onOpen;
     private final boolean student;
-    private final VBox rows = new VBox(8);
+    private BiConsumer<String, Boolean> onToggle = (id, on) -> {};
+    private BiConsumer<String, String> onDelete = (id, name) -> {};
+
+    private final ComboBox<String> subjectBox = new ComboBox<>();
     private final TextField search = new TextField();
-    private final ComboBox<String> filter = new ComboBox<>();
-    private final Label stats = new Label();
-    private final Label secondaryStats = new Label();
-    private final Label thirdStats = new Label();
-    private final Label fourthStats = new Label();
-    private final ProgressBar progress = new ProgressBar(0);
+    private final ComboBox<String> statusBox = new ComboBox<>();
+    private final HBox chapterCards = new HBox(14);
+    private final VBox chapterList = new VBox(2);
+    private final VBox kindList = new VBox(8);
+    private final VBox table = new VBox();
+    private final HBox pager = new HBox(6);
+    private final Label subtitle = new Label();
+
+    private String chapter;
+    private final Set<String> kinds = new HashSet<>();
+    private int page;
 
     public ExerciseCatalogPane(boolean student, Consumer<String> onOpen) {
         this.student = student;
         this.onOpen = onOpen;
-        getStyleClass().add("exercise-library");
-        setSpacing(13);
-        setPadding(new Insets(22, 28, 20, 28));
+        getStyleClass().addAll("dash-scroll", "catalog");
+        setFitToWidth(true);
+        setHbarPolicy(ScrollBarPolicy.NEVER);
 
-        Label heading = new Label("Bài tập");
-        heading.getStyleClass().add("exercise-library-heading");
-        Label intro = new Label(
-                student
-                        ? "Chọn bài để bắt đầu lập trình. Bài đã hoàn thành được đánh dấu màu xanh."
-                        : "Duyệt toàn bộ bài tập hiện có và mở trình soạn thảo cho từng bài.");
-        intro.getStyleClass().add("muted");
-        intro.setWrapText(true);
-
-        stats.getStyleClass().add("exercise-library-stat-value");
-        secondaryStats.getStyleClass().add("exercise-library-stat-value");
-        Label statTitle = new Label(student ? "ĐÃ HOÀN THÀNH" : "TỔNG BÀI TẬP");
-        statTitle.getStyleClass().add("exercise-library-stat-label");
-        Label stat2Title = new Label(student ? "TIẾN ĐỘ CỦA BẠN" : "CÁC MÔN HỌC");
-        stat2Title.getStyleClass().add("exercise-library-stat-label");
-        Label thirdTitle = new Label(student ? "CHƯA HOÀN THÀNH" : "SỐ BÀI DSA");
-        Label fourthTitle = new Label(student ? "TỔNG BÀI" : "SỐ BÀI SQL");
-        for (Label caption : new Label[] {thirdTitle, fourthTitle})
-            caption.getStyleClass().add("exercise-library-stat-label");
-        for (Label num : new Label[] {thirdStats, fourthStats})
-            num.getStyleClass().add("exercise-library-stat-value");
-        VBox first = new VBox(6, statTitle, stats);
-        VBox second = new VBox(6, stat2Title, secondaryStats);
-        VBox third = new VBox(6, thirdTitle, thirdStats);
-        VBox fourth = new VBox(6, fourthTitle, fourthStats);
-        HBox summary = new HBox(24, first, second, third, fourth);
-        for (VBox card : new VBox[] {first, second, third, fourth}) HBox.setHgrow(card, Priority.ALWAYS);
-        summary.getStyleClass().add("exercise-library-summary");
-        progress.setMaxWidth(Double.MAX_VALUE);
-        progress.getStyleClass().add("exercise-library-progress");
-        VBox summaryCard = new VBox(13, summary, progress);
-        summaryCard.getStyleClass().add("exercise-library-summary-card");
-
-        search.setPromptText("Tìm theo tên, mã bài hoặc chương...");
-        search.getStyleClass().add("exercise-library-search");
-        search.setMinHeight(48);
-        search.setPrefHeight(48);
-        search.setMaxHeight(48);
-        search.textProperty().addListener((o, before, after) -> render());
-        filter.getItems().addAll("Tất cả", "DSA", "SQL", "Bài giảng", "Bài tập");
-        if (student) filter.getItems().addAll("Đã hoàn thành", "Chưa hoàn thành");
-        filter.getSelectionModel().selectFirst();
-        filter.setMinWidth(190);
-        filter.setPrefHeight(48);
-        filter.setMinHeight(48);
-        filter.setMaxHeight(48);
-        filter.getStyleClass().add("exercise-library-filter");
-        filter.setOnAction(e -> render());
-        Button reset = new Button("↻");
-        reset.getStyleClass().add("exercise-library-refresh");
-        reset.setMinSize(48, 48);
-        reset.setPrefSize(48, 48);
-        reset.setMaxSize(48, 48);
-        reset.setOnAction(e -> {
-            search.clear();
-            filter.getSelectionModel().selectFirst();
+        Label heading = new Label("Kho bài tập");
+        heading.getStyleClass().add("dash-name");
+        subtitle.getStyleClass().add("dash-sub");
+        VBox title = new VBox(4, heading, subtitle);
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        subjectBox.getStyleClass().add("catalog-select");
+        subjectBox.setOnAction(e -> {
+            chapter = null;
+            page = 0;
+            render();
         });
-        HBox toolbar = new HBox(10, search, filter, reset);
-        toolbar.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(search, Priority.ALWAYS);
+        HBox header = new HBox(12, title, gap, subjectBox);
+        header.setAlignment(Pos.CENTER_LEFT);
 
-        rows.setFillWidth(true);
-        rows.setPadding(new Insets(0, 3, 18, 0));
-        ScrollPane scroll = new ScrollPane(rows);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scroll.setPannable(true);
-        scroll.getStyleClass().add("exercise-library-scroll");
-        VBox.setVgrow(scroll, Priority.ALWAYS);
-        getChildren().addAll(heading, intro, summaryCard, toolbar, scroll);
+        ScrollPane cardsScroll = new ScrollPane(chapterCards);
+        cardsScroll.getStyleClass().add("catalog-cards-scroll");
+        cardsScroll.setFitToHeight(true);
+        cardsScroll.setVbarPolicy(ScrollBarPolicy.NEVER);
+        cardsScroll.setHbarPolicy(ScrollBarPolicy.AS_NEEDED);
+        chapterCards.getStyleClass().add("catalog-cards");
+
+        Label topicTitle = new Label("CHỦ ĐỀ");
+        topicTitle.getStyleClass().add("catalog-side-title");
+        Label kindTitle = new Label("LOẠI BÀI");
+        kindTitle.getStyleClass().add("catalog-side-title");
+        VBox side = new VBox(8, topicTitle, chapterList, new Region(), kindTitle, kindList);
+        side.getStyleClass().addAll("dash-card", "catalog-side");
+        side.setMinWidth(230);
+        side.setPrefWidth(250);
+        side.setMaxWidth(260);
+
+        search.setPromptText("Tìm kiếm bài tập...");
+        search.getStyleClass().add("catalog-search");
+        search.textProperty().addListener((o, a, b) -> {
+            page = 0;
+            render();
+        });
+        HBox.setHgrow(search, Priority.ALWAYS);
+        statusBox
+                .getItems()
+                .addAll(
+                        student
+                                ? List.of("Tất cả", "Đã giải", "Đang làm", "Chưa làm")
+                                : List.of("Tất cả", "Đang mở", "Đang ẩn"));
+        statusBox.getSelectionModel().selectFirst();
+        statusBox.getStyleClass().add("catalog-select");
+        statusBox.setOnAction(e -> {
+            page = 0;
+            render();
+        });
+        Label statusLabel = new Label("Trạng thái");
+        statusLabel.getStyleClass().add("dash-row-meta");
+        HBox toolbar = new HBox(10, search, statusLabel, statusBox);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        pager.setAlignment(Pos.CENTER_LEFT);
+        VBox main = new VBox(12, toolbar, table, pager);
+        main.getStyleClass().addAll("dash-card", "catalog-main");
+        HBox.setHgrow(main, Priority.ALWAYS);
+
+        HBox body = new HBox(18, side, main);
+        VBox content = new VBox(18, header, cardsScroll, body);
+        content.getStyleClass().add("dash-page");
+        setContent(content);
         update(List.of());
+    }
+
+    /** Nút tạm ẩn/mở và xoá bài cho giáo viên, quản trị. */
+    public void onTeacherActions(BiConsumer<String, Boolean> toggle, BiConsumer<String, String> delete) {
+        onToggle = toggle;
+        onDelete = delete;
     }
 
     public void update(List<JsonNode> items) {
         lessons.clear();
-        // Đủ mọi loại bài: bài giảng giải (nơi giáo viên chiếu cho lớp), luyện tập và bài tập
         lessons.addAll(items);
-        lessons.sort(Comparator.comparing((JsonNode l) -> l.path("mon").asText())
-                .thenComparingInt(l -> {
-                    int i = LessonScreen.CHAPTERS.indexOf(l.path("chuong").asText());
-                    return i < 0 ? Integer.MAX_VALUE : i;
-                })
-                .thenComparingInt(l -> LessonScreen.loaiRank(l.path("loai").asText()))
-                .thenComparing(l -> l.path("ten").asText()));
-        long completed = lessons.stream()
-                .filter(l -> "MASTERED".equals(l.path("status").asText()))
-                .count();
-        int total = lessons.size();
-        stats.setText(student ? completed + " / " + total : Integer.toString(total));
-        secondaryStats.setText(
-                student
-                        ? (total == 0 ? "0%" : Math.round(completed * 100.0 / total) + "%")
-                        : lessons.stream()
-                                        .map(l -> l.path("mon").asText())
-                                        .distinct()
-                                        .count() + " môn");
-        thirdStats.setText(
-                student
-                        ? Long.toString(total - completed)
-                        : Long.toString(lessons.stream()
-                                .filter(l ->
-                                        "dsa".equalsIgnoreCase(l.path("mon").asText()))
-                                .count()));
-        fourthStats.setText(
-                student
-                        ? Integer.toString(total)
-                        : Long.toString(lessons.stream()
-                                .filter(l ->
-                                        "sql".equalsIgnoreCase(l.path("mon").asText()))
-                                .count()));
-        progress.setProgress(total == 0 ? 0 : (double) completed / total);
-        if (!student) progress.setVisible(false);
-        progress.setManaged(student);
+        lessons.sort(ExerciseCatalog.ORDER);
+        List<String> subjects = ExerciseCatalog.subjects(lessons);
+        String keep = subjectBox.getValue();
+        subjectBox.getItems().setAll(subjects);
+        if (subjects.size() > 1) subjectBox.getItems().add(0, "Tất cả môn");
+        if (keep != null && subjectBox.getItems().contains(keep)) subjectBox.setValue(keep);
+        else if (!subjectBox.getItems().isEmpty())
+            // mặc định môn đầu (DSA), không trộn hai môn trong một bảng
+            subjectBox.setValue(subjects.get(0));
+        // một môn thì không cần ô chọn môn để lọc nhầm ra bảng trống
+        subjectBox.setDisable(subjects.size() <= 1);
         render();
     }
 
     /** Giữ API của màn cũ để các nơi gọi không bị lỗi, trang thư viện không tô chọn. */
     public void select(String id) {}
 
-    private void render() {
-        rows.getChildren().clear();
-        String query = search.getText() == null ? "" : search.getText().strip().toLowerCase(Locale.ROOT);
-        String option = filter.getValue() == null ? "Tất cả" : filter.getValue();
-        int count = 0;
-        for (JsonNode lesson : lessons) {
-            String id = lesson.path("id").asText();
-            String title = lesson.path("ten").asText();
-            String subject = lesson.path("mon").asText("dsa").toUpperCase(Locale.ROOT);
-            String chapter = LessonScreen.chapterLabel(lesson.path("chuong").asText());
-            boolean done = student && "MASTERED".equals(lesson.path("status").asText());
-            if (!query.isEmpty()
-                    && !(id + " " + title + " " + subject + " " + chapter)
-                            .toLowerCase(Locale.ROOT)
-                            .contains(query)) continue;
-            if (("DSA".equals(option) || "SQL".equals(option)) && !option.equals(subject)) continue;
-            String kind = lesson.path("loai").asText();
-            if ("Bài giảng".equals(option) && !"giang-giai".equals(kind)) continue;
-            if ("Bài tập".equals(option) && "giang-giai".equals(kind)) continue;
-            if ("Đã hoàn thành".equals(option) && !done) continue;
-            if ("Chưa hoàn thành".equals(option) && done) continue;
+    /** Mở thẳng một chương (bấm thẻ chủ đề ở trang chủ). */
+    public void showChapter(String chuong) {
+        chapter = chuong;
+        page = 0;
+        render();
+    }
 
-            // Danh sách gọn: không hiện mã dsa.xxx/sql.xxx trước tên bài.
-            // Nhãn môn/chương có cùng chiều rộng nên tên các bài thẳng cột.
-            Label subjectLabel = new Label(subject + "  ·  " + chapter);
-            subjectLabel.getStyleClass().add("exercise-library-tag");
-            subjectLabel.setMinWidth(154);
-            subjectLabel.setPrefWidth(154);
-            subjectLabel.setMaxWidth(154);
-            subjectLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
-            Label titleLabel = new Label(title);
-            titleLabel.getStyleClass().add("exercise-library-row-title");
-            titleLabel.setWrapText(false);
-            titleLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
-            titleLabel.setMinWidth(90);
-            titleLabel.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(titleLabel, Priority.ALWAYS);
-            Label indicator = new Label(done ? "✓" : "›");
-            indicator.getStyleClass().add("exercise-library-indicator");
-            indicator.setMinWidth(28);
-            indicator.setAlignment(Pos.CENTER_RIGHT);
-            HBox line = new HBox(14, subjectLabel, titleLabel, indicator);
-            line.setAlignment(Pos.CENTER_LEFT);
-            line.setMinHeight(40);
-            line.setPrefHeight(40);
-            Button item = new Button();
-            item.setGraphic(line);
-            line.prefWidthProperty().bind(item.widthProperty().subtract(40));
-            item.setMaxWidth(Double.MAX_VALUE);
-            item.setMinHeight(66);
-            item.setPrefHeight(66);
-            item.setMaxHeight(66);
-            item.getStyleClass().add("exercise-library-item");
-            if (done) item.getStyleClass().add("exercise-library-completed");
-            item.setTooltip(new javafx.scene.control.Tooltip("Mở bài: " + title + " (" + id + ")"));
-            item.setOnAction(e -> onOpen.accept(id));
-            rows.getChildren().add(item);
-            count++;
+    private String subject() {
+        String v = subjectBox.getValue();
+        return v == null || v.startsWith("Tất cả") ? "" : v.toLowerCase(Locale.ROOT);
+    }
+
+    private void render() {
+        String subj = subject();
+        List<JsonNode> scope =
+                ExerciseCatalog.select(lessons, new ExerciseCatalog.Query(subj, null, Set.of(), "Tất cả", ""), student);
+        subtitle.setText("Luyện tập theo chủ đề để nâng cao kỹ năng "
+                + (subj.isEmpty()
+                        ? String.join(", ", ExerciseCatalog.subjects(lessons))
+                        : subj.toUpperCase(Locale.ROOT))
+                + " · " + scope.size() + " bài");
+        renderChapters(scope);
+        renderKinds(scope);
+        renderTable();
+    }
+
+    private Map<String, List<JsonNode>> byChapter(List<JsonNode> scope) {
+        Map<String, List<JsonNode>> map = new LinkedHashMap<>();
+        for (JsonNode l : scope)
+            map.computeIfAbsent(l.path("chuong").asText(), k -> new ArrayList<>())
+                    .add(l);
+        return map;
+    }
+
+    private void renderChapters(List<JsonNode> scope) {
+        Map<String, List<JsonNode>> groups = byChapter(scope);
+        chapterCards.getChildren().clear();
+        chapterList.getChildren().clear();
+        chapterList.getChildren().add(chapterButton(null, "Tất cả chủ đề", scope.size()));
+        int i = 0;
+        for (var e : groups.entrySet()) {
+            String key = e.getKey();
+            List<JsonNode> list = e.getValue();
+            long done = list.stream()
+                    .filter(l -> "MASTERED".equals(l.path("status").asText()))
+                    .count();
+            chapterList.getChildren().add(chapterButton(key, LessonScreen.chapterLabel(key), list.size()));
+
+            Label icon = new Label(list.get(0).path("mon").asText().equals("sql") ? "SQL" : "{ }");
+            icon.getStyleClass().addAll("catalog-card-icon", "dash-tone-" + (i++ % 4));
+            Label name = new Label(LessonScreen.chapterLabel(key));
+            name.getStyleClass().add("dash-row-title");
+            Label count = new Label(list.size() + " bài tập");
+            count.getStyleClass().add("dash-row-meta");
+            HBox top = new HBox(12, icon, new VBox(2, name, count));
+            top.setAlignment(Pos.CENTER_LEFT);
+            int pct = Math.round(done * 100f / list.size());
+            Label pctLabel = new Label("● " + pct + "% đã hoàn thành");
+            pctLabel.getStyleClass().add("dash-row-meta");
+            ProgressBar bar = new ProgressBar(pct / 100.0);
+            bar.getStyleClass().add("dash-bar");
+            bar.setMaxWidth(Double.MAX_VALUE);
+            VBox card = new VBox(10, top, pctLabel, bar);
+            card.getStyleClass().addAll("dash-card", "catalog-card");
+            if (key.equals(chapter)) card.getStyleClass().add("catalog-card-active");
+            card.setOnMouseClicked(ev -> showChapter(key.equals(chapter) ? null : key));
+            chapterCards.getChildren().add(card);
         }
-        if (count == 0) {
-            Label empty = new Label("Chưa có bài tập phù hợp với bộ lọc.");
-            empty.getStyleClass().add("exercise-library-empty");
-            rows.getChildren().add(empty);
+    }
+
+    private Node chapterButton(String key, String label, int count) {
+        Label name = new Label(label);
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        Label n = new Label(Integer.toString(count));
+        n.getStyleClass().add("catalog-count");
+        HBox row = new HBox(8, name, gap, n);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("catalog-topic");
+        boolean on = key == null ? chapter == null : key.equals(chapter);
+        if (on) row.getStyleClass().add("catalog-topic-active");
+        row.setOnMouseClicked(e -> showChapter(key));
+        return row;
+    }
+
+    private void renderKinds(List<JsonNode> scope) {
+        kindList.getChildren().clear();
+        for (String k : KINDS) {
+            long n = scope.stream()
+                    .filter(l -> k.equals(l.path("loai").asText()))
+                    .count();
+            if (n == 0) continue;
+            CheckBox box = new CheckBox(LessonScreen.loaiLabel(k));
+            box.getStyleClass().addAll("catalog-kind", "catalog-kind-" + k);
+            box.setSelected(kinds.contains(k));
+            box.setOnAction(e -> {
+                if (box.isSelected()) kinds.add(k);
+                else kinds.remove(k);
+                page = 0;
+                renderTable();
+            });
+            Region gap = new Region();
+            HBox.setHgrow(gap, Priority.ALWAYS);
+            Label count = new Label(Long.toString(n));
+            count.getStyleClass().add("catalog-count");
+            HBox row = new HBox(8, box, gap, count);
+            row.setAlignment(Pos.CENTER_LEFT);
+            kindList.getChildren().add(row);
         }
+    }
+
+    private static final double[] COLS = {44, -1, 150, 100, 130, 120};
+
+    private static HBox row(Node... cells) {
+        HBox r = new HBox(12);
+        for (int i = 0; i < cells.length; i++) {
+            Node c = cells[i];
+            if (c instanceof Region reg) {
+                if (i < COLS.length && COLS[i] > 0) {
+                    reg.setMinWidth(COLS[i]);
+                    reg.setPrefWidth(COLS[i]);
+                    reg.setMaxWidth(COLS[i]);
+                } else if (i < COLS.length) {
+                    reg.setMinWidth(160);
+                    reg.setMaxWidth(Double.MAX_VALUE);
+                    HBox.setHgrow(reg, Priority.ALWAYS);
+                }
+            }
+            r.getChildren().add(c);
+        }
+        r.setAlignment(Pos.CENTER_LEFT);
+        return r;
+    }
+
+    private void renderTable() {
+        List<JsonNode> rows = ExerciseCatalog.select(
+                lessons,
+                new ExerciseCatalog.Query(
+                        subject(), chapter, Set.copyOf(kinds), statusBox.getValue(), search.getText()),
+                student);
+        table.getChildren().clear();
+        HBox head = row(
+                th("#"),
+                th("Bài tập"),
+                th("Chủ đề"),
+                th("Loại"),
+                th(student ? "Điểm" : "Hiển thị"),
+                th(student ? "Trạng thái" : ""));
+        if (!student) head.getChildren().add(th(""));
+        head.getStyleClass().add("catalog-head");
+        table.getChildren().add(head);
+
+        int pages = Math.max(1, (rows.size() + PAGE - 1) / PAGE);
+        page = Math.min(page, pages - 1);
+        int from = page * PAGE;
+        int to = Math.min(rows.size(), from + PAGE);
+        for (int i = from; i < to; i++) table.getChildren().add(lessonRow(i + 1, rows.get(i)));
+        if (rows.isEmpty()) {
+            Label empty = new Label("Không có bài nào khớp bộ lọc.");
+            empty.getStyleClass().add("dash-row-meta");
+            empty.setPadding(new javafx.geometry.Insets(18, 8, 18, 8));
+            table.getChildren().add(empty);
+        }
+        renderPager(rows.size(), pages, from, to);
+    }
+
+    private static Label th(String text) {
+        Label l = new Label(text);
+        l.getStyleClass().add("dash-th");
+        return l;
+    }
+
+    private Node lessonRow(int index, JsonNode l) {
+        String id = l.path("id").asText();
+        String ten = l.path("ten").asText();
+        String status = l.path("status").asText("NOT_STARTED");
+        boolean active = l.path("active").asBoolean(true);
+
+        Label num = new Label(Integer.toString(index));
+        num.getStyleClass().add("dash-row-meta");
+        Label title = new Label(ten);
+        title.getStyleClass().add("dash-row-title");
+        title.setTextOverrun(OverrunStyle.ELLIPSIS);
+        Label sub = new Label(l.path("mon").asText().toUpperCase(Locale.ROOT) + " · " + id);
+        sub.getStyleClass().add("dash-row-meta");
+        sub.setTextOverrun(OverrunStyle.ELLIPSIS);
+        VBox name = new VBox(2, title, sub);
+        Tooltip.install(name, new Tooltip(ten));
+
+        Label topic = new Label(LessonScreen.chapterLabel(l.path("chuong").asText()));
+        topic.getStyleClass().add("catalog-tag");
+        StackPane topicCell = left(topic);
+
+        String loai = l.path("loai").asText();
+        Label kind = new Label(LessonScreen.loaiLabel(loai));
+        kind.getStyleClass().addAll("catalog-kind-pill", "catalog-kind-pill-" + loai);
+        StackPane kindCell = left(kind);
+
+        Node scoreCell;
+        if (student) {
+            int score = l.path("score").asInt(0);
+            Label v = new Label("MASTERED".equals(status) || l.has("score") ? score + "%" : "—");
+            v.getStyleClass().add("dash-row-meta");
+            ProgressBar bar = new ProgressBar(score / 100.0);
+            bar.getStyleClass()
+                    .addAll(
+                            "dash-bar",
+                            score >= 80 ? "catalog-bar-good" : score >= 50 ? "catalog-bar-mid" : "catalog-bar-low");
+            bar.setMaxWidth(Double.MAX_VALUE);
+            scoreCell = new VBox(4, v, bar);
+        } else {
+            Label t = new Label(active ? "● Đang mở" : "○ Tạm ẩn");
+            t.getStyleClass().addAll("catalog-toggle", active ? "catalog-toggle-on" : "catalog-toggle-off");
+            t.setTooltip(new Tooltip(active ? "Bấm để tạm ẩn bài với học viên" : "Bấm để mở bài cho học viên"));
+            t.setOnMouseClicked(e -> {
+                e.consume();
+                onToggle.accept(id, !active);
+            });
+            scoreCell = left(t);
+        }
+
+        Label state;
+        if (!student) {
+            state = new Label("Xem bài  →");
+            state.getStyleClass().addAll("catalog-state", "catalog-state-new");
+        } else if (!active) {
+            state = new Label("Đang ẩn");
+            state.getStyleClass().addAll("catalog-state", "catalog-state-hidden");
+        } else if ("MASTERED".equals(status)) {
+            state = new Label("✓ Đã giải");
+            state.getStyleClass().addAll("catalog-state", "catalog-state-done");
+        } else if ("OPEN".equals(status)) {
+            state = new Label("◷ Làm tiếp");
+            state.getStyleClass().addAll("catalog-state", "catalog-state-open");
+        } else {
+            state = new Label("○ Chưa làm");
+            state.getStyleClass().addAll("catalog-state", "catalog-state-new");
+        }
+        HBox r = row(num, name, topicCell, kindCell, (Region) scoreCell, left(state));
+        if (!student) {
+            SVGPath bin = new SVGPath();
+            bin.setContent("M5 7 H19 M10 7 V5 H14 V7 M7 7 L8 19 H16 L17 7");
+            bin.getStyleClass().add("catalog-delete-icon");
+            Button del = new Button();
+            del.setGraphic(bin);
+            del.getStyleClass().add("catalog-delete");
+            del.setTooltip(new Tooltip("Xoá bài khỏi hệ thống"));
+            del.setOnAction(e -> onDelete.accept(id, ten));
+            r.getChildren().add(del);
+        }
+        r.getStyleClass().add("catalog-row");
+        r.setOnMouseClicked(e -> onOpen.accept(id));
+        return r;
+    }
+
+    private static StackPane left(Node n) {
+        StackPane p = new StackPane(n);
+        p.setAlignment(Pos.CENTER_LEFT);
+        return p;
+    }
+
+    private void renderPager(int total, int pages, int from, int to) {
+        pager.getChildren().clear();
+        Button prev = pageButton("←", page > 0, page - 1);
+        pager.getChildren().add(prev);
+        for (int p = 0; p < pages; p++) {
+            // trang đầu, cuối và quanh trang đang xem; chỗ khác gộp thành "…"
+            if (p == 0 || p == pages - 1 || Math.abs(p - page) <= 1) {
+                Button b = pageButton(Integer.toString(p + 1), true, p);
+                if (p == page) b.getStyleClass().add("catalog-page-active");
+                pager.getChildren().add(b);
+            } else if (p == page - 2 || p == page + 2) {
+                Label dots = new Label("…");
+                dots.getStyleClass().add("dash-row-meta");
+                pager.getChildren().add(dots);
+            }
+        }
+        pager.getChildren().add(pageButton("→", page < pages - 1, page + 1));
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        Label info = new Label(total == 0 ? "" : "Hiển thị " + (from + 1) + "–" + to + " trong " + total + " bài tập");
+        info.getStyleClass().add("dash-row-meta");
+        pager.getChildren().addAll(gap, info);
+    }
+
+    private Button pageButton(String text, boolean enabled, int target) {
+        Button b = new Button(text);
+        b.getStyleClass().add("catalog-page");
+        b.setDisable(!enabled);
+        b.setOnAction(e -> {
+            page = target;
+            renderTable();
+        });
+        return b;
     }
 }

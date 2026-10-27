@@ -128,6 +128,11 @@ class TrangChuSmokeTest {
                             "số liệu trang chủ " + who[0]);
                     Thread.sleep(700); // chờ danh sách học viên
                     chup(scene, "trang-chu-" + who[1] + (dark ? "-toi" : "-sang"));
+                    fx(() -> {
+                        ((javafx.scene.control.Button) scene.lookup("#nav-exercises")).fire();
+                        return null;
+                    });
+                    chup(scene, "kho-bai-" + who[1] + (dark ? "-toi" : "-sang"));
                 }
                 li.client().close();
             }
