@@ -72,6 +72,8 @@ public final class LessonScreen extends BorderPane {
     private VBox codeColumn;
     private FocusLayer focus;
     private DiscussionPane discussion;
+    private final SplitPane split = new SplitPane();
+    private final Button talkButton = new Button("Thảo luận");
     /** Ngôn ngữ đã chọn ở mỗi bài trong phiên làm việc: mở lại bài thì về đúng ngôn ngữ đang viết. */
     private static final Map<String, Language> LAST_LANGUAGE = new ConcurrentHashMap<>();
 
@@ -197,11 +199,23 @@ public final class LessonScreen extends BorderPane {
         Tab deTab = new Tab("Đề bài", de);
         tabs.getTabs().addAll(animTab, deTab, traceTab);
         // Thảo luận của lớp ở bài này (cả DSA và SQL); số bình luận hiện trên tên thẻ
-        Tab talkTab = new Tab("Thảo luận");
-        discussion = new DiscussionPane(
-                client, lessonId, !studentMode, n -> talkTab.setText(n == 0 ? "Thảo luận" : "Thảo luận (" + n + ")"));
-        talkTab.setContent(discussion);
-        tabs.getTabs().add(talkTab);
+        // Thảo luận: khung trượt bên phải, mở/đóng bằng nút 💬 trên tiêu đề; nút đếm bình luận chưa đọc
+        Label unreadBadge = new Label();
+        unreadBadge.getStyleClass().add("discuss-badge");
+        unreadBadge.setVisible(false);
+        unreadBadge.setMouseTransparent(true);
+        discussion = new DiscussionPane(client, lessonId, !studentMode, () -> toggleDiscussion(false), n -> {
+            unreadBadge.setText(n > 99 ? "99+" : Integer.toString(n));
+            unreadBadge.setVisible(n > 0);
+        });
+        talkButton.getStyleClass().add("discuss-toggle");
+        talkButton.setGraphic(DiscussionPane.icon(DiscussionPane.CHAT, "discuss-icon"));
+        talkButton.setTooltip(new Tooltip("Mở / đóng thảo luận của lớp ở bài này"));
+        talkButton.setOnAction(e -> toggleDiscussion(!split.getItems().contains(discussion)));
+        javafx.scene.layout.StackPane talk = new javafx.scene.layout.StackPane(talkButton, unreadBadge);
+        javafx.scene.layout.StackPane.setAlignment(unreadBadge, Pos.TOP_RIGHT);
+        talk.setMinWidth(Region.USE_PREF_SIZE);
+        headerLine.getChildren().add(headerLine.getChildren().indexOf(closeBtn), talk);
         if (lesson.path("loiGiai").size() > 0) {
             tabs.getTabs().add(new Tab("Lời giải", solutionPane(lesson.path("loiGiai"))));
         }
@@ -283,9 +297,10 @@ public final class LessonScreen extends BorderPane {
         codeColumn = new VBox(10, edCard, runPanel);
         VBox.setVgrow(edCard, Priority.ALWAYS);
         codeColumn.setMinWidth(0);
-        SplitPane split = new SplitPane(codeColumn, tabs);
+        // Đề bài / Animation / Trace bên trái, ô code ở giữa, thảo luận (khi mở) bên phải
+        split.getItems().setAll(tabs, codeColumn);
         split.getStyleClass().add("lesson-split");
-        split.setDividerPositions(0.55);
+        split.setDividerPositions(0.42);
         setCenter(split);
         // ⛶ hoặc bấm vào ô code: chế độ tập trung (đề + code nổi lên 90% màn, phần còn lại mờ)
         expandEditor.setTooltip(new Tooltip("Chế độ tập trung: chỉ đề bài và ô code"));
@@ -359,6 +374,21 @@ public final class LessonScreen extends BorderPane {
             focus.close();
         });
         Platform.runLater(editor::focus);
+    }
+
+    private void toggleDiscussion(boolean show) {
+        boolean shown = split.getItems().contains(discussion);
+        if (show == shown) return;
+        if (show) {
+            split.getItems().add(discussion);
+            split.setDividerPositions(0.28, 0.72);
+        } else {
+            split.getItems().remove(discussion);
+            split.setDividerPositions(0.42);
+        }
+        discussion.setOpen(show);
+        talkButton.getStyleClass().remove("discuss-toggle-on");
+        if (show) talkButton.getStyleClass().add("discuss-toggle-on");
     }
 
     /** Ngôn ngữ của code đang soạn. */

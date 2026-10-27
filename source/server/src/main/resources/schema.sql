@@ -93,6 +93,11 @@ CREATE TABLE IF NOT EXISTS discussions (
     hidden        INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_discussions_lesson ON discussions (class_id, lesson_id, id);
+CREATE TABLE IF NOT EXISTS discussion_likes (
+    discussion_id INTEGER NOT NULL REFERENCES discussions(id),
+    user_id       INTEGER NOT NULL REFERENCES users(id),
+    PRIMARY KEY (discussion_id, user_id)
+);
 
 CREATE TABLE IF NOT EXISTS student_activity (
     user_id       INTEGER PRIMARY KEY REFERENCES users(id),

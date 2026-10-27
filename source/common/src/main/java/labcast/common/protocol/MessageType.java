@@ -131,6 +131,8 @@ public enum MessageType {
     /** Giáo viên/quản trị: i64 id, bool hidden. */
     DISCUSS_HIDE(0xA3),
     DISCUSS_NEW(0xA4),
+    /** Thích / bỏ thích một bình luận: i64 id, bool like → DISCUSS_NEW (cập nhật số thích). */
+    DISCUSS_LIKE(0xA5),
     /** Số liệu trang chủ theo vai trò, payload rỗng. */
     HOME_REQ(0xA8),
     /** JSON số liệu trang chủ: xem HomeModule. */

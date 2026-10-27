@@ -2504,3 +2504,119 @@
 .catalog-talk { -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 1 7; -fx-background-radius: 8; }
 .catalog-talk-old { -fx-background-color: -lc-surface-2; -fx-text-fill: -lc-muted; }
 .catalog-talk-new { -fx-background-color: #F59E0B; -fx-text-fill: white; }
+
+/* ===== Thảo luận v2: khung trượt bên phải ===== */
+.discuss-pane {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: transparent transparent transparent -lc-border;
+    -fx-padding: 14 14 12 14;
+}
+.discuss-title { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.discuss-close {
+    -fx-background-color: transparent;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: -lc-muted;
+    -fx-padding: 3 9;
+    -fx-cursor: hand;
+}
+.discuss-close:hover { -fx-background-color: -lc-surface-2; }
+.discuss-filters { -fx-padding: 0 0 6 0; -fx-border-color: transparent transparent -lc-border transparent; }
+.discuss-tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 12px;
+    -fx-padding: 6 12;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+.discuss-tab:selected { -fx-background-color: -lc-primary-soft; -fx-text-fill: -lc-primary-text; -fx-font-weight: bold; }
+.discuss-sort { -fx-font-size: 11px; -fx-pref-height: 30; }
+.discuss-thread {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-padding: 12;
+}
+.discuss-comment { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; }
+.discuss-replies {
+    -fx-padding: 4 0 0 14;
+    -fx-border-color: transparent transparent transparent -lc-border-strong;
+    -fx-border-width: 0 0 0 2;
+}
+.discuss-reply-item {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 10;
+    -fx-padding: 8 10;
+}
+.discuss-hidden { -fx-opacity: 0.45; }
+.discuss-name { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.discuss-time { -fx-font-size: 10px; -fx-text-fill: -lc-faint; }
+.discuss-tag { -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 1 6; -fx-background-radius: 6; }
+.discuss-tag-teacher { -fx-background-color: rgba(34,197,94,0.16); -fx-text-fill: #16A34A; }
+.discuss-tag-author { -fx-background-color: -lc-primary-soft; -fx-text-fill: -lc-primary-text; }
+.discuss-action {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 11px;
+    -fx-padding: 2 6;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+.discuss-action:hover { -fx-background-color: -lc-surface; }
+.discuss-liked { -fx-text-fill: #F59E0B; -fx-font-weight: bold; }
+.discuss-input-box {
+    -fx-background-color: -lc-surface-2;
+    -fx-background-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 12;
+    -fx-padding: 6 6 6 10;
+}
+.discuss-input-box .discuss-input, .discuss-input-box .discuss-input .content {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.discuss-send {
+    -fx-background-color: -lc-primary;
+    -fx-text-fill: white;
+    -fx-background-radius: 9;
+    -fx-border-color: transparent;
+    -fx-min-width: 36; -fx-min-height: 36;
+    -fx-cursor: hand;
+}
+.discuss-toggle {
+    -fx-background-color: -lc-surface;
+    -fx-border-color: -lc-border;
+    -fx-border-radius: 9;
+    -fx-background-radius: 9;
+    -fx-text-fill: -lc-text;
+    -fx-padding: 6 12;
+    -fx-cursor: hand;
+}
+.discuss-toggle-on { -fx-border-color: #F59E0B; -fx-border-width: 2; }
+.discuss-badge {
+    -fx-background-color: #EF4444;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 5;
+    -fx-background-radius: 9;
+    -fx-translate-x: 6;
+    -fx-translate-y: -7;
+}
+
+.discuss-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -lc-muted;
+    -fx-stroke-width: 1.6;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.75;
+    -fx-scale-y: 0.75;
+}
+.discuss-liked .discuss-icon { -fx-stroke: #F59E0B; -fx-fill: rgba(245,158,11,0.25); }
+.discuss-toggle-on .discuss-icon { -fx-stroke: #F59E0B; }
+.discuss-icon-send { -fx-fill: white; -fx-scale-x: 0.8; -fx-scale-y: 0.8; }

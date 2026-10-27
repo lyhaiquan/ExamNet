@@ -150,4 +150,49 @@ class DiscussionTest {
             assertEquals(ErrorCode.RATE_LIMITED, ErrorMessage.from(don).code());
         }
     }
+
+    @Test
+    void thich_demSoNguoi_vaBoThich() throws Exception {
+        try (var an = TestClient.connect(server.port());
+                var binh = TestClient.connect(server.port())) {
+            an.login("an", "1");
+            binh.login("binh", "1");
+            long id = JsonPayload.tree(post(an, "Câu hỏi hay", 0))
+                    .path("item")
+                    .path("id")
+                    .asLong();
+            binh.readUntil(MessageType.DISCUSS_NEW);
+            binh.send(
+                    MessageType.DISCUSS_LIKE,
+                    new PayloadWriter().i64(id).bool(true).toBytes());
+            JsonNode liked =
+                    JsonPayload.tree(binh.readUntil(MessageType.DISCUSS_NEW)).path("item");
+            assertEquals(1, liked.path("likes").asInt());
+            assertTrue(liked.path("liked").asBoolean());
+            // An nhận bản phát: 1 thích nhưng không phải An thích
+            JsonNode seen =
+                    JsonPayload.tree(an.readUntil(MessageType.DISCUSS_NEW)).path("item");
+            assertEquals(1, seen.path("likes").asInt());
+            assertFalse(seen.path("liked").asBoolean());
+            binh.send(
+                    MessageType.DISCUSS_LIKE,
+                    new PayloadWriter().i64(id).bool(true).toBytes());
+            assertEquals(
+                    1,
+                    JsonPayload.tree(binh.readUntil(MessageType.DISCUSS_NEW))
+                            .path("item")
+                            .path("likes")
+                            .asInt(),
+                    "thích hai lần vẫn tính một");
+            binh.send(
+                    MessageType.DISCUSS_LIKE,
+                    new PayloadWriter().i64(id).bool(false).toBytes());
+            assertEquals(
+                    0,
+                    JsonPayload.tree(binh.readUntil(MessageType.DISCUSS_NEW))
+                            .path("item")
+                            .path("likes")
+                            .asInt());
+        }
+    }
 }

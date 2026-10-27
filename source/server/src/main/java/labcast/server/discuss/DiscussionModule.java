@@ -73,6 +73,7 @@ public final class DiscussionModule implements ServerModule {
         c.router()
                 .on(MessageType.DISCUSS_REQ, run(this::list))
                 .on(MessageType.DISCUSS_POST, run(this::post))
+                .on(MessageType.DISCUSS_LIKE, run(this::like))
                 .on(MessageType.DISCUSS_HIDE, Role.STAFF, run(this::hide));
     }
 
@@ -104,8 +105,9 @@ public final class DiscussionModule implements ServerModule {
             List<Map<String, Object>> out = new ArrayList<>();
             try (PreparedStatement ps = db.prepareStatement(SELECT + " WHERE d.class_id=? AND d.lesson_id=?"
                     + (s.role().isStaff() ? "" : " AND d.hidden=0") + " ORDER BY d.id")) {
-                ps.setLong(1, classId);
-                ps.setString(2, lessonId);
+                ps.setLong(1, s.userId());
+                ps.setLong(2, classId);
+                ps.setString(3, lessonId);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) out.add(item(rs, s.userId()));
                 }
@@ -117,8 +119,12 @@ public final class DiscussionModule implements ServerModule {
                 Priority.NORMAL);
     }
 
+    /** Tham số đầu là người xem (để biết đã thích chưa). */
     private static final String SELECT = "SELECT d.id, d.parent_id, u.full_name, u.role, d.text, d.created_at,"
-            + " d.hidden, d.author_id, d.lesson_id FROM discussions d JOIN users u ON u.id=d.author_id";
+            + " d.hidden, d.author_id, d.lesson_id,"
+            + " (SELECT COUNT(*) FROM discussion_likes k WHERE k.discussion_id=d.id),"
+            + " EXISTS (SELECT 1 FROM discussion_likes k WHERE k.discussion_id=d.id AND k.user_id=?)"
+            + " FROM discussions d JOIN users u ON u.id=d.author_id";
 
     private static Map<String, Object> item(ResultSet rs, long me) throws SQLException {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -131,6 +137,9 @@ public final class DiscussionModule implements ServerModule {
         m.put("at", rs.getLong(6));
         m.put("hidden", rs.getInt(7) == 1);
         m.put("mine", rs.getLong(8) == me);
+        m.put("authorId", rs.getLong(8));
+        m.put("likes", rs.getInt(10));
+        m.put("liked", rs.getInt(11) == 1);
         return m;
     }
 
@@ -203,7 +212,8 @@ public final class DiscussionModule implements ServerModule {
 
     private static Map<String, Object> load(Connection db, long id, long me) throws SQLException {
         try (PreparedStatement ps = db.prepareStatement(SELECT + " WHERE d.id=?")) {
-            ps.setLong(1, id);
+            ps.setLong(1, me);
+            ps.setLong(2, id);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? item(rs, me) : Map.of();
             }
@@ -243,6 +253,40 @@ public final class DiscussionModule implements ServerModule {
                 new labcast.common.protocol.PayloadWriter()
                         .str(hidden ? "Đã ẩn" : "Đã hiện")
                         .toBytes());
+    }
+
+    private void like(Ctx c, Frame f) throws Exception {
+        Session s = c.session();
+        var r = f.reader();
+        long id = r.i64();
+        boolean like = r.bool();
+        Object[] where = new Object[2];
+        Map<String, Object> item = ctx.db().tx(db -> {
+            long cls = classOf(db, s);
+            try (PreparedStatement ps =
+                    db.prepareStatement("SELECT lesson_id FROM discussions WHERE id=? AND class_id=? AND hidden=0")) {
+                ps.setLong(1, id);
+                ps.setLong(2, cls);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) throw refuse(ErrorCode.NOT_FOUND, "Không có bình luận");
+                    where[0] = rs.getString(1);
+                }
+            }
+            try (PreparedStatement ps = db.prepareStatement(
+                    like
+                            ? "INSERT OR IGNORE INTO discussion_likes (discussion_id, user_id) VALUES (?, ?)"
+                            : "DELETE FROM discussion_likes WHERE discussion_id=? AND user_id=?")) {
+                ps.setLong(1, id);
+                ps.setLong(2, s.userId());
+                ps.executeUpdate();
+            }
+            where[1] = cls;
+            return load(db, id, s.userId());
+        });
+        broadcast((Long) where[1], (String) where[0], id, s);
+        c.reply(
+                JsonPayload.frame(MessageType.DISCUSS_NEW, Map.of("lessonId", where[0], "item", item)),
+                Priority.NORMAL);
     }
 
     /**

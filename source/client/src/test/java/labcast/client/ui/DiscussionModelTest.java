@@ -43,4 +43,24 @@ class DiscussionModelTest {
         gv.upsert(muc(1, 0, true));
         assertEquals(1, gv.threads().size());
     }
+
+    @Test
+    void theoDoi_vaSapXep() {
+        var m = new DiscussionModel(false);
+        m.upsert(muc(1, 0, false).put("likes", 5));
+        m.upsert(muc(2, 0, false).put("mine", true));
+        m.upsert(muc(3, 0, false));
+        m.upsert(muc(4, 3, false).put("mine", true));
+        var newest = m.threads(false, DiscussionModel.Sort.NEWEST);
+        assertEquals(3, newest.get(0).root().path("id").asLong(), "luồng 3 có trả lời mới nhất");
+        assertEquals(
+                1,
+                m.threads(false, DiscussionModel.Sort.USEFUL)
+                        .get(0)
+                        .root()
+                        .path("id")
+                        .asLong());
+        var following = m.threads(true, DiscussionModel.Sort.NEWEST);
+        assertEquals(2, following.size(), "luồng mình hỏi và luồng mình trả lời");
+    }
 }

@@ -156,10 +156,9 @@ class LopSqlSmokeTest {
                             },
                             "màn làm bài");
                     Thread.sleep(800);
+                    chup(scene, "sql-thao-luan-dong-sv");
                     fx(() -> {
-                        var tabs =
-                                (javafx.scene.control.TabPane) scene.getRoot().lookup(".lesson-tabs");
-                        tabs.getSelectionModel().select(tabs.getTabs().size() - 1);
+                        ((Button) scene.getRoot().lookup(".discuss-toggle")).fire();
                         return null;
                     });
                     Thread.sleep(600);
