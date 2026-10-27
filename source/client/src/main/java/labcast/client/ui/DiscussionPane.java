@@ -109,7 +109,7 @@ final class DiscussionPane extends VBox {
         scroll.getStyleClass().add("discuss-scroll");
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
-        input.setPromptText("Viết bình luận…");
+        input.setPromptText("Bình luận");
         input.setTooltip(new Tooltip(
                 staff
                         ? "Enter để gửi · Shift+Enter xuống dòng"

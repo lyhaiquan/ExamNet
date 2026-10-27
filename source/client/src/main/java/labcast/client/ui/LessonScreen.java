@@ -141,6 +141,7 @@ public final class LessonScreen extends BorderPane {
         Label title = new Label(lesson.path("ten").asText());
         title.getStyleClass().addAll("h1", "lesson-main-title");
         title.setMinWidth(0);
+        Marquee.install(title);
         Label typeBadge = badge(
                 loaiLabel(lesson.path("loai").asText()),
                 "badge-" + lesson.path("loai").asText());
@@ -189,6 +190,10 @@ public final class LessonScreen extends BorderPane {
         playerBar.setAlignment(Pos.CENTER_LEFT);
         playerBar.getStyleClass().add("player-bar");
         VBox anim = new VBox(playerBar, player);
+        // cho khung trái co hẹp được: chú thích màu tự xuống dòng thay vì bị cắt mất chữ
+        anim.setMinWidth(0);
+        player.setMinWidth(0);
+        tabs.setMinWidth(0);
         VBox.setVgrow(player, Priority.ALWAYS);
 
         ScrollPane de = new ScrollPane(MarkdownView.render(lesson.path("de").asText(), true));
@@ -261,6 +266,11 @@ public final class LessonScreen extends BorderPane {
         Button expandEditor = new Button("⛶");
         expandEditor.getStyleClass().add("editor-expand-button");
         expandEditor.setTooltip(new Tooltip("Mở rộng / khôi phục Code Editor"));
+        // khung hẹp: các nhãn chạy chữ thay vì cắt "…"
+        for (Label l : new Label[] {edTitle, saved, fileName}) {
+            l.setMinWidth(40);
+            Marquee.install(l);
+        }
         HBox edHeader = new HBox(8, edTitle, gap2, saved, fileName, languagePicker, expandEditor);
         edHeader.setAlignment(Pos.CENTER_LEFT);
         edHeader.getStyleClass().add("card-header");

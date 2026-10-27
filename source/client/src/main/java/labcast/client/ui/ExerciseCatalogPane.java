@@ -445,6 +445,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
         Label title = new Label(ten);
         title.getStyleClass().add("dash-row-title");
         title.setTextOverrun(OverrunStyle.ELLIPSIS);
+        Marquee.installOnHover(title); // tên dài bị cắt thì rê chuột vào để chữ chạy
         int wrongSubmits = l.path("wrongSubmits").asInt(0);
         Label sub = new Label(l.path("mon").asText().toUpperCase(Locale.ROOT) + " · " + id
                 + (student && wrongSubmits > 0 ? " · nộp sai " + wrongSubmits + " lần" : ""));

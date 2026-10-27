@@ -219,6 +219,8 @@ public final class HomeScreen extends BorderPane {
         });
 
         sidebarHeading.getStyleClass().add("section-title");
+        Marquee.install(sidebarHeading);
+        lessonCount.setMinWidth(Region.USE_PREF_SIZE);
         lessonCount.getStyleClass().add("muted");
         HBox.setHgrow(sidebarHeaderGap, Priority.ALWAYS);
         lessonCount.getStyleClass().add("lesson-count");
@@ -490,6 +492,7 @@ public final class HomeScreen extends BorderPane {
 
     private void configureNavButton(Button b, String svgData, String hint) {
         b.getStyleClass().add("sidebar-nav-button");
+        Marquee.install(b); // sidebar hẹp thì tên mục chạy ngang thay vì cắt "…"
         b.setAlignment(Pos.CENTER_LEFT);
         b.setGraphicTextGap(10);
         b.setTooltip(new Tooltip(hint));
