@@ -2728,3 +2728,171 @@
 /* Cột số thứ tự ở bảng Tài khoản, Học viên */
 .order-column { -fx-alignment: CENTER; }
 .table-view .order-column .table-cell, .order-column.table-cell { -fx-alignment: CENTER; }
+
+/* ===== Màn đăng nhập v2: lời chào | chọn lớp | đăng nhập, màu theo thẻ vai trò ===== */
+.lc-root.login-role-admin {
+    -lc-primary: #7C5CFF;
+    -lc-primary-hover: #6A47F5;
+    -fx-accent: -lc-primary;
+    -fx-focus-color: -lc-primary;
+}
+.lc-root.login-role-teacher {
+    -lc-primary: #16A34A;
+    -lc-primary-hover: #15803D;
+    -fx-accent: -lc-primary;
+    -fx-focus-color: -lc-primary;
+}
+.lc-root.login-role-student {
+    -lc-primary: #3B82F6;
+    -lc-primary-hover: #2563EB;
+    -fx-accent: -lc-primary;
+    -fx-focus-color: -lc-primary;
+}
+.login-scroll, .login-scroll > .viewport, .login-page { -fx-background-color: transparent; }
+.login-scroll { -fx-padding: 0; -fx-background-insets: 0; }
+.login-brand { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.login-brand-sub { -fx-font-size: 11px; -fx-text-fill: -lc-muted; }
+.login-hero-hello { -fx-font-size: 20px; -fx-text-fill: -lc-muted; }
+.login-hero-title { -fx-font-size: 27px; -fx-font-weight: bold; -fx-fill: -lc-text; }
+.login-hero-title.accent { -fx-fill: -lc-primary; }
+.login-hero-desc { -fx-font-size: 14px; -fx-text-fill: -lc-muted; -fx-line-spacing: 3; }
+.login-footer { -fx-font-size: 12px; -fx-text-fill: -lc-faint; }
+.login-shell {
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-color: -lc-border;
+}
+.login-classes { -fx-padding: 32 30 30 34; -fx-spacing: 14; }
+.login-form {
+    -fx-padding: 30 34 26 34;
+    -fx-background-radius: 0 18 18 0;
+    -fx-border-color: -lc-border;
+    -fx-border-width: 0 0 0 1;
+}
+.login-pane-title { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.login-pane-sub { -fx-text-fill: -lc-muted; -fx-font-size: 13px; }
+
+.login-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -lc-muted;
+    -fx-stroke-width: 1.8;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+.login-title-icon { -fx-stroke: -lc-primary; -fx-stroke-width: 2.2; -fx-scale-x: 1.15; -fx-scale-y: 1.15; }
+.login-input-icon { -fx-scale-x: 0.8; -fx-scale-y: 0.8; -fx-stroke: -lc-faint; }
+.login-meta-icon { -fx-scale-x: 0.6; -fx-scale-y: 0.6; -fx-stroke: -lc-faint; }
+.login-chevron { -fx-scale-x: 0.8; -fx-scale-y: 0.8; -fx-stroke: -lc-faint; }
+.login-tip-icon { -fx-scale-x: 0.8; -fx-scale-y: 0.8; -fx-stroke: #F59E0B; }
+.login-go-icon { -fx-scale-x: 0.8; -fx-scale-y: 0.8; -fx-stroke: white; -fx-stroke-width: 2.2; }
+.login-eye-icon { -fx-scale-x: 0.8; -fx-scale-y: 0.8; -fx-stroke: -lc-faint; }
+.login-class-icon { -fx-scale-x: 0.85; -fx-scale-y: 0.85; -fx-stroke: white; -fx-stroke-width: 2; }
+.login-role-tab-icon { -fx-scale-x: 0.7; -fx-scale-y: 0.7; }
+.login-role-badge-icon { -fx-scale-x: 1.15; -fx-scale-y: 1.15; -fx-stroke: white; -fx-stroke-width: 2; }
+
+.login-servers, .login-servers:focused {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+.login-servers > .virtual-flow > .clipped-container > .sheet > .list-cell,
+.login-servers > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 8 0;
+}
+.login-class-card {
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: -lc-border;
+    -fx-padding: 0 16 0 16;
+    -fx-cursor: hand;
+}
+.login-servers .list-cell:filled:hover .login-class-card { -fx-border-color: -lc-border-strong; }
+.login-servers .list-cell:filled:selected .login-class-card {
+    -fx-border-color: -lc-primary;
+    -fx-border-width: 1.5;
+}
+.login-servers .list-cell:filled:selected .login-chevron { -fx-stroke: -lc-primary; }
+.login-servers .placeholder { -fx-text-fill: -lc-muted; -fx-text-alignment: center; }
+.login-class-avatar {
+    -fx-min-width: 44; -fx-min-height: 44; -fx-max-width: 44; -fx-max-height: 44;
+    -fx-background-radius: 22;
+}
+.login-class-avatar.dsa { -fx-background-color: linear-gradient(to bottom right, #A78BFA, #6D28D9); }
+.login-class-avatar.sql { -fx-background-color: linear-gradient(to bottom right, #4ADE80, #15803D); }
+.login-class-card .server-name { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.login-class-card .server-meta { -fx-font-size: 12.5px; -fx-text-fill: -lc-muted; }
+
+.login-input {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-padding: 0 44 0 46;
+    -fx-pref-height: 48;
+    -fx-min-height: 48;
+    -fx-font-size: 14px;
+    -fx-text-fill: -lc-text;
+    -fx-prompt-text-fill: -lc-faint;
+}
+.login-input:focused { -fx-border-color: -lc-primary; -fx-border-width: 1.5; }
+.login-go {
+    -fx-background-color: -lc-primary;
+    -fx-background-radius: 10;
+    -fx-min-width: 44; -fx-min-height: 44; -fx-max-width: 44; -fx-max-height: 44;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+.login-go:hover { -fx-background-color: -lc-primary-hover; }
+.login-tip { -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: -lc-border; -fx-padding: 14 16; }
+.login-tip-title { -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.login-tip-text { -fx-text-fill: -lc-muted; -fx-font-size: 13px; }
+
+.login-role-tabs { -fx-background-radius: 12; -fx-padding: 4; }
+.login-role-tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 9;
+    -fx-text-fill: -lc-muted;
+    -fx-font-weight: bold;
+    -fx-padding: 8 6;
+    -fx-graphic-text-gap: 6;
+    -fx-cursor: hand;
+}
+.login-role-tab:hover { -fx-text-fill: -lc-text; }
+.login-role-tab:selected { -fx-background-color: -lc-primary; -fx-text-fill: white; }
+.login-role-tab:selected .login-icon { -fx-stroke: white; }
+.login-role-badge {
+    -fx-background-color: -lc-primary;
+    -fx-shape: "M 50 0 L 93 25 L 93 75 L 50 100 L 7 75 L 7 25 Z";
+    -fx-min-width: 56; -fx-min-height: 60; -fx-max-width: 56; -fx-max-height: 60;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 14, 0, 0, 4);
+}
+.login-form-title { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -lc-primary; }
+.login-form-sub { -fx-font-size: 13.5px; -fx-text-fill: -lc-muted; }
+.login-eye { -fx-background-color: transparent; -fx-padding: 6; -fx-cursor: hand; }
+.login-remember { -fx-text-fill: -lc-muted; }
+.button.login-submit { -fx-pref-height: 48; -fx-font-size: 15px; -fx-background-radius: 10; }
+.login-no-account { -fx-text-fill: -lc-faint; -fx-font-size: 12.5px; -fx-text-alignment: center; -fx-alignment: center; }
+.hyperlink.login-forgot { -fx-text-fill: -lc-primary; -fx-font-size: 13px; }
+.login-bg { -fx-background-color: linear-gradient(to bottom right, #090A1F 0%, #111339 50%, #1A1446 100%); }
+.login-shell {
+    -fx-background-color: rgba(21, 24, 56, 0.92);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 50, 0, 0, 16);
+}
+.login-form { -fx-background-color: rgba(255, 255, 255, 0.025); }
+.login-class-card, .login-tip, .login-input { -fx-background-color: rgba(255, 255, 255, 0.04); }
+.login-servers .list-cell:filled:selected .login-class-card { -fx-background-color: rgba(124, 92, 255, 0.16); }
+.login-role-student .login-servers .list-cell:filled:selected .login-class-card { -fx-background-color: rgba(59, 130, 246, 0.16); }
+.login-role-teacher .login-servers .list-cell:filled:selected .login-class-card { -fx-background-color: rgba(22, 163, 74, 0.16); }
+.login-role-tabs { -fx-background-color: rgba(255, 255, 255, 0.05); }
+/* Thẻ Quản trị: không có cột chọn lớp, chỉ một khung đăng nhập; dòng máy chủ sẽ nối tới */
+.login-shell.solo .login-form { -fx-background-radius: 18; -fx-border-width: 0; }
+.login-server-line {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: -lc-border;
+    -fx-padding: 10 14;
+}
+.login-server-info { -fx-text-fill: -lc-text; -fx-font-size: 13px; }
+.login-server-line { -fx-background-color: rgba(255, 255, 255, 0.04); }
