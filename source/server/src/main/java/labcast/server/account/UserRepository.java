@@ -77,6 +77,51 @@ public final class UserRepository {
         });
     }
 
+    /** Đã có tên đăng nhập này chưa, không phân biệt hoa thường ({@code SV01} và {@code sv01} là một). */
+    public boolean existsIgnoreCase(String username) throws SQLException {
+        return db.read(c -> {
+            try (PreparedStatement ps =
+                    c.prepareStatement("SELECT 1 FROM users WHERE lower(username) = lower(?) LIMIT 1")) {
+                ps.setString(1, username);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        });
+    }
+
+    public void setFullName(long userId, String fullName) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement ps = c.prepareStatement("UPDATE users SET full_name = ? WHERE id = ?")) {
+                ps.setString(1, fullName);
+                ps.setLong(2, userId);
+                return ps.executeUpdate();
+            }
+        });
+    }
+
+    /** Bị quản trị khoá: không đăng nhập được. */
+    public boolean isDisabled(long userId) throws SQLException {
+        return db.read(c -> {
+            try (PreparedStatement ps = c.prepareStatement("SELECT disabled FROM users WHERE id = ?")) {
+                ps.setLong(1, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() && rs.getInt(1) != 0;
+                }
+            }
+        });
+    }
+
+    public void setDisabled(long userId, boolean disabled) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement ps = c.prepareStatement("UPDATE users SET disabled = ? WHERE id = ?")) {
+                ps.setInt(1, disabled ? 1 : 0);
+                ps.setLong(2, userId);
+                return ps.executeUpdate();
+            }
+        });
+    }
+
     /** Lần đăng nhập sau phải tự đặt mật khẩu mới không (đang dùng mật khẩu tạm). */
     public boolean mustChangePassword(long userId) throws SQLException {
         return db.read(c -> {

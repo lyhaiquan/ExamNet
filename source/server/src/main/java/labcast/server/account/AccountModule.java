@@ -26,6 +26,7 @@ import labcast.server.session.Session;
 public final class AccountModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(AccountModule.class.getName());
     static final String AUTH_FAIL_MESSAGE = "Sai tên đăng nhập hoặc mật khẩu";
+    static final String LOCKED_MESSAGE = "Tài khoản đã bị khoá. Liên hệ quản trị để mở lại.";
     public static final int MIN_PASSWORD = 4;
     public static final int MAX_PASSWORD = 128;
 
@@ -58,7 +59,8 @@ public final class AccountModule implements ServerModule {
                 .on(MessageType.HELLO, this::hello)
                 .on(MessageType.AUTH, this::auth)
                 .on(MessageType.RESUME_REQ, this::resume)
-                .on(MessageType.ADMIN_ROSTER_IMPORT, Role.STAFF, this::importRoster)
+                // tài khoản giáo viên, học viên do quản trị tạo (AccountAdminModule, nhập CSV)
+                .on(MessageType.ADMIN_ROSTER_IMPORT, java.util.Set.of(Role.ADMIN), this::importRoster)
                 .on(MessageType.PASSWORD_CHANGE, this::changePassword)
                 .on(MessageType.PASSWORD_RESET, Role.STAFF, this::resetPassword)
                 .on(MessageType.PASSWORD_FORGOT, this::forgotPassword)
@@ -189,6 +191,14 @@ public final class AccountModule implements ServerModule {
             return;
         }
         User u = found.get();
+        if (users.isDisabled(u.id())) {
+            // chỉ báo khoá khi đã đúng mật khẩu: không để lộ tài khoản nào có thật
+            ctx.audit().record(username, "AUTH_LOCKED", c.connection().remoteAddress());
+            c.reply(
+                    MessageType.AUTH_FAIL,
+                    new PayloadWriter().str(LOCKED_MESSAGE).toBytes());
+            return;
+        }
         long classId = classes.classOf(u.id());
         if (classId == 0 && u.role() == Role.TEACHER) {
             classId = classes.ensure(ctx.config().lop(), u.id());

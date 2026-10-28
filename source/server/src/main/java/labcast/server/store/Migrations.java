@@ -19,14 +19,15 @@ import java.util.List;
 public final class Migrations {
 
     /** Phiên bản lược đồ của bản này. 0: DB tạo trước khi có migration (trước giai đoạn 6). */
-    public static final int LATEST = 2;
+    public static final int LATEST = 3;
 
     /** Một bước nâng từ {@code version - 1} lên {@code version}. */
     private record Step(int version, String name, boolean foreignKeysOff, Database.SqlWork<Void> work) {}
 
     private static final List<Step> STEPS = List.of(
             new Step(1, "users nhận vai trò ADMIN", true, Migrations::usersWithAdminRole),
-            new Step(2, "users có cờ phải đổi mật khẩu", false, Migrations::usersMustChangePassword));
+            new Step(2, "users có cờ phải đổi mật khẩu", false, Migrations::usersMustChangePassword),
+            new Step(3, "users có cờ bị khoá", false, Migrations::usersDisabled));
 
     private Migrations() {}
 
@@ -100,6 +101,14 @@ public final class Migrations {
     private static Void usersMustChangePassword(Connection c) throws SQLException {
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE users ADD COLUMN must_change_pwd INTEGER NOT NULL DEFAULT 0");
+        }
+        return null;
+    }
+
+    /** Quản trị khoá tài khoản: đăng nhập bị từ chối, dữ liệu bài làm vẫn giữ. */
+    private static Void usersDisabled(Connection c) throws SQLException {
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0");
         }
         return null;
     }

@@ -100,6 +100,28 @@ public final class SessionManager {
         return Optional.of(s);
     }
 
+    /**
+     * Thu hồi mọi phiên của một người (quản trị khoá tài khoản): đóng kết nối, xoá token trong DB để
+     * {@code RESUME_REQ} không hồi sinh được phiên.
+     */
+    public synchronized void revoke(long userId) throws SQLException {
+        Session s = byUser.remove(userId);
+        if (s != null) {
+            byToken.remove(s.token());
+            Connection c = s.connection();
+            if (c != null) {
+                c.close();
+            }
+        }
+        byToken.values().removeIf(x -> x.userId() == userId);
+        db.tx(conn -> {
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM sessions WHERE user_id = ?")) {
+                ps.setLong(1, userId);
+                return ps.executeUpdate();
+            }
+        });
+    }
+
     public Optional<Session> byUser(long userId) {
         return Optional.ofNullable(byUser.get(userId));
     }

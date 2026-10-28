@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.ProtocolException;
+import labcast.server.account.AccountAdminModule;
 import labcast.server.account.AccountModule;
 import labcast.server.cast.CastModule;
 import labcast.server.classroom.ClassEvents;
@@ -43,6 +44,7 @@ public final class LabCastServer implements AutoCloseable {
     public static List<ServerModule> modules() {
         return List.of(
                 new AccountModule(), // Người 2
+                new AccountAdminModule(), // Quản trị tạo / khoá tài khoản (sau AccountModule: dùng UserRepository)
                 new ClassroomWorkspaceModule(), // Lớp thực hành và giám sát
                 new HomeModule(), // Trang chủ theo vai trò (giai đoạn 6.E)
                 new DiscussionModule(), // Thảo luận ở từng bài (giai đoạn 6.D)

@@ -53,6 +53,21 @@ public final class ClassRepository {
         });
     }
 
+    /** Chuyển học viên sang đúng một lớp: bỏ mọi lớp đang ghi danh rồi ghi danh lớp mới. */
+    public void moveStudent(long userId, long classId) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement del = c.prepareStatement("DELETE FROM enrollments WHERE user_id = ?");
+                    PreparedStatement ins =
+                            c.prepareStatement("INSERT INTO enrollments (class_id, user_id) VALUES (?, ?)")) {
+                del.setLong(1, userId);
+                del.executeUpdate();
+                ins.setLong(1, classId);
+                ins.setLong(2, userId);
+                return ins.executeUpdate();
+            }
+        });
+    }
+
     /** Lớp của một người: giáo viên là lớp mình dạy, học viên là lớp được ghi danh. 0 nếu chưa có. */
     public long classOf(long userId) throws SQLException {
         return db.read(c -> {

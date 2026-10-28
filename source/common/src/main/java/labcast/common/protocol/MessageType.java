@@ -152,7 +152,14 @@ public enum MessageType {
     /** Giáo viên/quản trị: payload rỗng → PASSWORD_REQUESTS_DATA. */
     PASSWORD_REQUESTS_REQ(0xAD),
     /** JSON {requests:[{username, fullName, role, at}]}: yêu cầu quên mật khẩu người xem xử lý được. */
-    PASSWORD_REQUESTS_DATA(0xAE);
+    PASSWORD_REQUESTS_DATA(0xAE),
+    /** Quản trị: payload rỗng → ACCOUNT_LIST_DATA (mọi tài khoản và lớp, xem AccountAdminModule). */
+    ACCOUNT_LIST_REQ(0xAF),
+    ACCOUNT_LIST_DATA(0xB0),
+    /** Quản trị tạo / sửa giáo viên, học viên: JSON → ADMIN_OK(str) hoặc ERROR. */
+    ACCOUNT_SAVE(0xB1),
+    /** Quản trị khoá / mở khoá: i64 id, bool locked → ADMIN_OK(str). */
+    ACCOUNT_LOCK(0xB2);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

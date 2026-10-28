@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS users (
     iterations    INTEGER NOT NULL,
     created_at    INTEGER NOT NULL,
     -- 1: mật khẩu tạm (giáo viên đặt lại, nhập từ CSV), lần đăng nhập sau phải tự đặt mật khẩu mới
-    must_change_pwd INTEGER NOT NULL DEFAULT 0
+    must_change_pwd INTEGER NOT NULL DEFAULT 0,
+    -- 1: quản trị đã khoá, không đăng nhập được (khoá thay vì xoá để giữ bài làm, thảo luận)
+    disabled      INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
