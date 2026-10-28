@@ -150,6 +150,57 @@ final class RosterSheet {
         return sb.toString();
     }
 
+    /** Độ rộng cột của file tài khoản gửi giáo viên ({@link #accountSheet}). */
+    static final double[] ACCOUNT_WIDTHS = {6, 18, 28, 13, 15, 44};
+
+    /**
+     * File gửi giáo viên phát cho học viên: tài khoản vừa tạo kèm mật khẩu tạm; tài khoản có sẵn (chỉ ghi danh) ghi
+     * là dùng mật khẩu cũ, vì server không đổi mật khẩu của họ. Dòng lỗi không có trong file.
+     */
+    static List<XlsxWriter.Line> accountSheet(
+            String className,
+            List<Entry> entries,
+            Set<String> created,
+            Set<String> enrolled,
+            java.time.LocalDateTime now) {
+        List<XlsxWriter.Line> out = new ArrayList<>();
+        out.add(new XlsxWriter.Line(XlsxWriter.TITLE, List.of("Tài khoản LabCast - lớp " + className)));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.NOTE,
+                List.of("Xuất lúc " + now.format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
+                        + ". Giữ kín file này: có mật khẩu tạm của học viên.")));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.NOTE,
+                List.of("Cách vào lớp: mở LabCast, chọn lớp \"" + className + "\" ở màn đăng nhập, gõ Tên đăng nhập và"
+                        + " Mật khẩu tạm. Lần đầu đăng nhập app bắt đặt mật khẩu mới của riêng mình.")));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.NOTE,
+                List.of("Quên mật khẩu: bấm \"Quên mật khẩu?\" ở màn đăng nhập, giáo viên sẽ đặt lại mật khẩu tạm.")));
+        out.add(new XlsxWriter.Line(XlsxWriter.PLAIN, List.of()));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.HEADER,
+                List.of("STT", "Tên đăng nhập", "Họ và tên", "Ngày sinh", "Mật khẩu tạm", "Ghi chú")));
+        int stt = 0;
+        for (Entry e : entries) {
+            if (!e.ok()) continue;
+            boolean isNew = created.contains(e.username());
+            boolean old = !isNew && enrolled.contains(e.username());
+            if (!isNew && !old) continue;
+            out.add(new XlsxWriter.Line(
+                    XlsxWriter.CELL,
+                    List.of(
+                            String.valueOf(++stt),
+                            e.username(),
+                            e.fullName(),
+                            e.birth(),
+                            isNew ? e.password() : "",
+                            isNew
+                                    ? "Đổi mật khẩu ở lần đăng nhập đầu"
+                                    : "Đã có tài khoản từ trước, dùng mật khẩu cũ")));
+        }
+        return out;
+    }
+
     static long valid(List<Entry> entries) {
         return entries.stream().filter(Entry::ok).count();
     }

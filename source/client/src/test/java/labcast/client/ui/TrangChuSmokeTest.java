@@ -187,6 +187,23 @@ class TrangChuSmokeTest {
                             return null;
                         });
                         until(() -> !nhap.isShowing(), "server trả lời nhập danh sách");
+                        // hộp thoại "Đã nhập": nút xuất file Excel tài khoản cho giáo viên
+                        var xong = fx(() -> javafx.stage.Window.getWindows().stream()
+                                .filter(w -> w instanceof javafx.stage.Stage st
+                                        && "Đã nhập danh sách lớp".equals(st.getTitle()))
+                                .findFirst()
+                                .orElseThrow());
+                        chup(xong.getScene(), "nhap-excel-xong");
+                        fx(() -> {
+                            xong.hide();
+                            return null;
+                        });
+                        RosterImportDialog.export(
+                                java.nio.file.Path.of("target/ui-smoke/tai-khoan-mau.xlsx"),
+                                "DSA Nâng cao - K23",
+                                RosterSheet.entries(ds, RosterSheet.guess(ds)),
+                                java.util.Set.of("B22DCCN001", "B22DCCN002", "B22DCCN003", "B22DCCN006"),
+                                java.util.Set.of());
                         var an = users.byUsername("B22DCCN001").orElseThrow();
                         assertTrue(users.mustChangePassword(an.id()));
                         assertTrue(users.byUsername("B22DCCN005").isEmpty(), "dòng lỗi không được tạo");

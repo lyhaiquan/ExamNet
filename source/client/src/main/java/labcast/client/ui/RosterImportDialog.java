@@ -1,13 +1,18 @@
 package labcast.client.ui;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -21,6 +26,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import labcast.client.net.LcpClient;
 import labcast.common.protocol.ErrorMessage;
@@ -186,12 +192,13 @@ final class RosterImportDialog {
                             if (err != null) {
                                 error.setText("Server không trả lời, thử lại sau");
                             } else if (f.type() == MessageType.ADMIN_OK) {
-                                String msg = f.reader().str();
+                                var r = f.reader();
+                                String msg = r.str();
+                                // server cũ không gửi danh sách tài khoản: không xuất file được
+                                Set<String> created = r.hasRemaining() ? lines(r.str()) : null;
+                                Set<String> enrolled = r.hasRemaining() ? lines(r.str()) : Set.of();
                                 d.close();
-                                Alert a = new Alert(Alert.AlertType.INFORMATION, msg);
-                                a.setHeaderText("Đã nhập danh sách lớp " + className);
-                                if (owner != null) a.initOwner(owner);
-                                a.show();
+                                done(owner, className, msg, List.copyOf(current), created, enrolled);
                                 if (onDone != null) onDone.run();
                             } else {
                                 error.setText(ErrorMessage.from(f).message());
@@ -203,6 +210,101 @@ final class RosterImportDialog {
         });
         d.show();
         return d;
+    }
+
+    /**
+     * Nhập xong: báo kết quả và cho xuất file Excel tài khoản + mật khẩu tạm để gửi giáo viên (học viên mới chưa
+     * biết mật khẩu thì không vào lớp được). Mật khẩu tạm chỉ có ở máy này lúc này: server chỉ giữ bản băm.
+     */
+    static Dialog<ButtonType> done(
+            Window owner,
+            String className,
+            String message,
+            List<RosterSheet.Entry> entries,
+            Set<String> created,
+            Set<String> enrolled) {
+        Dialog<ButtonType> d = new Dialog<>();
+        d.setTitle("Đã nhập danh sách lớp");
+        d.setHeaderText("Đã nhập danh sách lớp " + className);
+        if (owner != null) d.initOwner(owner);
+        Theme.apply(d.getDialogPane());
+        Label result = new Label(message);
+        result.setWrapText(true);
+        result.setMinHeight(Region.USE_PREF_SIZE);
+        Label why = new Label("Học viên mới chưa biết mật khẩu nên chưa vào lớp được. Xuất file Excel (tên đăng nhập,"
+                + " mật khẩu tạm) gửi giáo viên phụ trách để phát cho học viên. Server chỉ lưu bản băm của mật khẩu,"
+                + " đóng hộp thoại này rồi thì không xuất lại được mật khẩu tạm (khi đó dùng \"Đặt lại mật khẩu\").");
+        why.setWrapText(true);
+        why.setMinHeight(Region.USE_PREF_SIZE);
+        why.getStyleClass().add("muted");
+        Label saved = new Label();
+        saved.setWrapText(true);
+        saved.setMinHeight(Region.USE_PREF_SIZE);
+        saved.getStyleClass().add("roster-saved");
+        VBox content = new VBox(12, result, why, saved);
+        content.setPrefWidth(560);
+        d.getDialogPane().setPadding(new Insets(4));
+        d.getDialogPane().setContent(content);
+        ButtonType export = new ButtonType("Xuất file Excel cho giáo viên…", ButtonBar.ButtonData.OTHER);
+        d.getDialogPane().getButtonTypes().addAll(export, ButtonType.CLOSE);
+        ((Button) d.getDialogPane().lookupButton(ButtonType.CLOSE)).setText("Đóng");
+        Button exportBtn = (Button) d.getDialogPane().lookupButton(export);
+        exportBtn.setId("roster-export");
+        ButtonBar.setButtonUniformSize(exportBtn, false);
+        exportBtn.getStyleClass().add("workspace-primary-button");
+        if (created == null) {
+            exportBtn.setDisable(true);
+            saved.setText("Server đang chạy bản cũ, chưa gửi danh sách tài khoản vừa tạo nên chưa xuất file được.");
+        } else if (created.isEmpty() && enrolled.isEmpty()) {
+            exportBtn.setDisable(true);
+        }
+        exportBtn.addEventFilter(ActionEvent.ACTION, e -> {
+            e.consume(); // xuất xong vẫn để hộp thoại, còn đọc đường dẫn file
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Lưu file tài khoản lớp " + className);
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel", "*.xlsx"));
+            fc.setInitialFileName(fileName(className));
+            File file = fc.showSaveDialog(d.getDialogPane().getScene().getWindow());
+            if (file == null) return;
+            Path out = file.getName().toLowerCase(Locale.ROOT).endsWith(".xlsx")
+                    ? file.toPath()
+                    : file.toPath().resolveSibling(file.getName() + ".xlsx");
+            try {
+                export(out, className, entries, created, enrolled);
+                saved.setText("✓ Đã lưu " + out + "\nGửi file này cho giáo viên lớp " + className + ".");
+            } catch (Exception ex) {
+                saved.setText("Không lưu được file: " + ex.getMessage());
+            }
+        });
+        d.show();
+        return d;
+    }
+
+    static void export(
+            Path out, String className, List<RosterSheet.Entry> entries, Set<String> created, Set<String> enrolled)
+            throws java.io.IOException {
+        XlsxWriter.write(
+                out,
+                "Tài khoản",
+                RosterSheet.ACCOUNT_WIDTHS,
+                RosterSheet.accountSheet(className, entries, created, enrolled, LocalDateTime.now()));
+    }
+
+    /** "DSA Nâng cao - K23" → "tai-khoan-DSA-Nang-cao-K23.xlsx". */
+    static String fileName(String className) {
+        String s = java.text.Normalizer.normalize(className, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .replaceAll("[^A-Za-z0-9]+", "-")
+                .replaceAll("^-|-$", "");
+        return "tai-khoan-" + (s.isEmpty() ? "lop" : s) + ".xlsx";
+    }
+
+    private static Set<String> lines(String s) {
+        Set<String> out = new HashSet<>();
+        for (String x : s.split("\n")) if (!x.isBlank()) out.add(x.strip());
+        return out;
     }
 
     private static TableColumn<RosterSheet.Entry, String> column(
