@@ -243,7 +243,7 @@ public final class AccountModule implements ServerModule {
     }
 
     /**
-     * {@code ADMIN_ROSTER_IMPORT(str csv)} → {@code ADMIN_OK(str message)}. Giáo viên chưa có lớp thì tạo lớp
+     * {@code ADMIN_ROSTER_IMPORT(str csv)} → {@code ADMIN_OK(str message, str created, str enrolled)}. Giáo viên chưa có lớp thì tạo lớp
      * {@code --lop} cho họ; quản trị phải chọn lớp trước ({@code CLASS_SELECT_REQ}), không tự tạo lớp.
      */
     private void importRoster(Ctx c, Frame f) throws Exception {
@@ -256,7 +256,15 @@ public final class AccountModule implements ServerModule {
                 s.classId() > 0 ? s.classId() : classes.ensure(ctx.config().lop(), s.userId());
         RosterImporter.Result res = importer.importCsv(csv, classId);
         ctx.audit().record(s.username(), "ADMIN_ROSTER_IMPORT", res.message());
-        c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(res.message()).toBytes());
+        // hai trường sau (thêm sau, app cũ bỏ qua): tài khoản mới tạo, tài khoản có sẵn chỉ ghi danh; mỗi tên
+        // một dòng. App dùng để xuất file tài khoản + mật khẩu tạm gửi giáo viên.
+        c.reply(
+                MessageType.ADMIN_OK,
+                new PayloadWriter()
+                        .str(res.message())
+                        .str(String.join("\n", res.createdNames()))
+                        .str(String.join("\n", res.enrolledNames()))
+                        .toBytes());
     }
 
     /** Câu trả lời của PASSWORD_FORGOT, giống nhau cho mọi tên đăng nhập. */
