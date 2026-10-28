@@ -28,10 +28,14 @@ import labcast.server.lesson.LessonModule;
 import labcast.server.lesson.LessonRepository;
 import labcast.server.net.Ctx;
 import labcast.server.net.Priority;
+import labcast.server.practice.PracticeModule;
 import labcast.server.session.Session;
 import labcast.server.sqlviz.SqlLab;
 
-/** Chạy thử code học viên với một test xem được, gửi trace về để học viên xem chính code mình chạy. Chủ: Người 3. */
+/**
+ * Chạy thử code học viên với một test xem được, gửi trace về để học viên xem
+ * chính code mình chạy. Chủ: Người 3.
+ */
 public final class RunModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(RunModule.class.getName());
     static final int LINES_PER_CHUNK = 200;
@@ -46,7 +50,8 @@ public final class RunModule implements ServerModule {
         Sandbox sb = sandbox(ctx);
         this.runs = new RunService(sb);
         ctx.register(RunService.class, runs);
-        // chấm bài nộp (practice.SubmitModule) chạy script khác của runner trên cùng sandbox
+        // chấm bài nộp (practice.SubmitModule) chạy script khác của runner trên cùng
+        // sandbox
         ctx.register(ScriptRunner.class, (ScriptRunner) sb);
         ctx.router().on(MessageType.RUN_REQ, this::run);
         ctx.router().on(MessageType.PLAYGROUND_RUN_REQ, this::runPlayground);
@@ -66,10 +71,14 @@ public final class RunModule implements ServerModule {
     }
 
     /**
-     * {@code RUN_REQ(str lessonId, i64 codeSeq, str testId, bool lineTrace, str lang)} → {@code RUN_QUEUED(i64
-     * runId, u16 position)}, các {@code TRACE_CHUNK(i64 runId, i32 chunkIndex, bool last, blob lines)}, rồi {@code
+     * {@code RUN_REQ(str lessonId, i64 codeSeq, str testId, bool lineTrace, str lang)}
+     * → {@code RUN_QUEUED(i64
+     * runId, u16 position)}, các
+     * {@code TRACE_CHUNK(i64 runId, i32 chunkIndex, bool last, blob lines)}, rồi
+     * {@code
      * RUN_RESULT JSON{runId, ok, stdout, error, truncated, timeMs, tests:[{id, verdict}], errorLine?, errorKind?}}.
-     * {@code lineTrace} và {@code lang} có thể thiếu (client cũ): tắt chạy từng dòng, Python. Code chạy là bản
+     * {@code lineTrace} và {@code lang} có thể thiếu (client cũ): tắt chạy từng
+     * dòng, Python. Code chạy là bản
      * đang lưu của khoá tài liệu {@code lessonId} ở ngôn ngữ đó.
      */
     private void run(Ctx c, Frame f) throws Exception {
@@ -83,6 +92,7 @@ public final class RunModule implements ServerModule {
         LessonRepository repo = ctx.require(LessonRepository.class);
         Lesson l = repo.get(lessonId)
                 .orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không có bài " + lessonId));
+        PracticeModule.requireOpen(ctx, c, lessonId);
         Language lang = language(l, langCode);
         String docKey = Language.docKey(lessonId, lang);
         if (testId.isEmpty()) {
@@ -91,7 +101,8 @@ public final class RunModule implements ServerModule {
         String input = repo.testInput(lessonId, testId).orElse("");
         String expected = repo.testOutput(lessonId, testId).orElse(null);
 
-        // Chạy đúng phiên bản code học viên đang thấy: delta có thể còn trên đường tới, chờ tối đa 1 s.
+        // Chạy đúng phiên bản code học viên đang thấy: delta có thể còn trên đường tới,
+        // chờ tối đa 1 s.
         CodeStore store = ctx.require(CodeStore.class);
         CodeStore.Snapshot snap = store.current(s.userId(), docKey);
         for (int i = 0; i < 20 && snap.seq() < codeSeq; i++) {
@@ -146,8 +157,10 @@ public final class RunModule implements ServerModule {
     }
 
     /**
-     * Workspace tự do: code do người dùng nhập, không chọn bài và không ghi submissions. {@code
-     * PLAYGROUND_RUN_REQ JSON{code, input, trace, lang?}}; thiếu {@code lang} là Python.
+     * Workspace tự do: code do người dùng nhập, không chọn bài và không ghi
+     * submissions. {@code
+     * PLAYGROUND_RUN_REQ JSON{code, input, trace, lang?}}; thiếu {@code lang} là
+     * Python.
      */
     private void runPlayground(Ctx c, Frame f) throws Exception {
         var request = JsonPayload.tree(f);
@@ -171,7 +184,7 @@ public final class RunModule implements ServerModule {
         // Giới hạn thời gian, dung lượng và quyền truy cập giống Chạy thử Python.
         Job job = new Job(code, input, lineTrace, 3000, "playground", List.of(), lineTrace, lang);
         List<String> pending = new ArrayList<>();
-        int[] part = {0};
+        int[] part = { 0 };
         Consumer<Boolean> sendChunk = last -> {
             byte[] lines;
             synchronized (pending) {
@@ -195,7 +208,8 @@ public final class RunModule implements ServerModule {
                 pending.add(line);
                 flush = pending.size() >= LINES_PER_CHUNK;
             }
-            if (flush) sendChunk.accept(false);
+            if (flush)
+                sendChunk.accept(false);
         };
         runs.run(s.userId(), job, onLine).whenComplete((out, err) -> {
             sendChunk.accept(true);
@@ -222,8 +236,10 @@ public final class RunModule implements ServerModule {
     }
 
     /**
-     * Bài SQL: câu của học viên chạy bằng bộ máy SQL trên dữ liệu mẫu (không qua sandbox Python), cùng các
-     * thông điệp như bài DSA — trace các bước gửi bằng {@code TRACE_CHUNK}, kết quả dạng bảng chữ ở {@code
+     * Bài SQL: câu của học viên chạy bằng bộ máy SQL trên dữ liệu mẫu (không qua
+     * sandbox Python), cùng các
+     * thông điệp như bài DSA — trace các bước gửi bằng {@code TRACE_CHUNK}, kết quả
+     * dạng bảng chữ ở {@code
      * stdout}, đúng/sai so với đáp án ở test {@code du-lieu-mau}.
      */
     private void runSql(Session s, Lesson l, long runId, CodeStore.Snapshot snap) {
@@ -260,8 +276,10 @@ public final class RunModule implements ServerModule {
     }
 
     /**
-     * Lượt còn chờ bị lượt chạy thử mới hơn của cùng người thay: trả {@code RUN_RESULT} của chính lượt cũ với
-     * verdict {@code REPLACED}, KHÔNG trả {@code ERROR} — ERROR không mang runId, app sẽ tưởng lượt mới hỏng.
+     * Lượt còn chờ bị lượt chạy thử mới hơn của cùng người thay: trả
+     * {@code RUN_RESULT} của chính lượt cũ với
+     * verdict {@code REPLACED}, KHÔNG trả {@code ERROR} — ERROR không mang runId,
+     * app sẽ tưởng lượt mới hỏng.
      */
     private static void replaced(Session s, long runId) {
         Map<String, Object> res = new LinkedHashMap<>();
@@ -275,7 +293,10 @@ public final class RunModule implements ServerModule {
         s.send(JsonPayload.frame(MessageType.RUN_RESULT, res), Priority.NORMAL);
     }
 
-    /** Sandbox khi máy server không chạy được code: mọi lượt báo lỗi hạ tầng (SANDBOX_DOWN). */
+    /**
+     * Sandbox khi máy server không chạy được code: mọi lượt báo lỗi hạ tầng
+     * (SANDBOX_DOWN).
+     */
     private record Unavailable(String reason) implements Sandbox, ScriptRunner {
         @Override
         public Outcome run(Job job, Consumer<String> onLine) throws java.io.IOException {
@@ -291,7 +312,8 @@ public final class RunModule implements ServerModule {
 
     /** Kết quả chấm của một test (spec §10.3). */
     /**
-     * Ngôn ngữ của lượt chạy hay nộp bài: mã rỗng (client cũ) là Python; bài SQL bỏ qua mã. Mã lạ hay ngôn ngữ bài
+     * Ngôn ngữ của lượt chạy hay nộp bài: mã rỗng (client cũ) là Python; bài SQL bỏ
+     * qua mã. Mã lạ hay ngôn ngữ bài
      * không cho chọn là frame sai.
      */
     public static Language language(Lesson l, String code) throws ProtocolException {
@@ -319,7 +341,10 @@ public final class RunModule implements ServerModule {
         return normalize(o.stdout()).equals(normalize(expected)) ? "OK" : "WRONG";
     }
 
-    /** Bỏ khoảng trắng cuối mỗi dòng và các dòng trống ở cuối. Chấm bài nộp ({@code grade}) dùng chung. */
+    /**
+     * Bỏ khoảng trắng cuối mỗi dòng và các dòng trống ở cuối. Chấm bài nộp
+     * ({@code grade}) dùng chung.
+     */
     public static String normalize(String s) {
         List<String> lines = new ArrayList<>(List.of(s.replace("\r\n", "\n").split("\n", -1)));
         lines.replaceAll(String::stripTrailing);
@@ -347,7 +372,10 @@ public final class RunModule implements ServerModule {
         }
     }
 
-    /** Gom dòng trace thành khúc ≤ 200 dòng rồi gửi {@code TRACE_CHUNK}. Gọi trên luồng chạy code. */
+    /**
+     * Gom dòng trace thành khúc ≤ 200 dòng rồi gửi {@code TRACE_CHUNK}. Gọi trên
+     * luồng chạy code.
+     */
     private static final class Chunker implements Consumer<String> {
         private final long runId;
         private final Session s;

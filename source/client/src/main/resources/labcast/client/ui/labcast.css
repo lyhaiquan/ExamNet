@@ -181,20 +181,20 @@
     -fx-border-color: -lc-primary;
 }
 
-.combo-box > .list-cell {
+.combo-box>.list-cell {
     -fx-text-fill: -lc-text;
     -fx-padding: 4 6;
 }
 
-.combo-box > .arrow-button {
+.combo-box>.arrow-button {
     -fx-background-color: transparent;
 }
 
-.combo-box > .arrow-button > .arrow {
+.combo-box>.arrow-button>.arrow {
     -fx-background-color: -lc-muted;
 }
 
-.combo-box-popup > .list-view {
+.combo-box-popup>.list-view {
     -fx-background-color: -lc-surface;
     -fx-background-radius: 8;
     -fx-border-color: -lc-border;
@@ -202,14 +202,14 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 12, 0, 0, 4);
 }
 
-.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+.combo-box-popup>.list-view>.virtual-flow>.clipped-container>.sheet>.list-cell {
     -fx-background-color: transparent;
     -fx-padding: 5 10;
     -fx-text-fill: -lc-text;
 }
 
-.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:hover,
-.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:selected {
+.combo-box-popup>.list-view>.virtual-flow>.clipped-container>.sheet>.list-cell:hover,
+.combo-box-popup>.list-view>.virtual-flow>.clipped-container>.sheet>.list-cell:selected {
     -fx-background-color: -lc-primary-soft;
     -fx-text-fill: -lc-primary-text;
 }
@@ -221,29 +221,29 @@
     -fx-padding: 2;
 }
 
-.scroll-bar > .track,
-.scroll-bar > .track-background {
+.scroll-bar>.track,
+.scroll-bar>.track-background {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
 }
 
-.scroll-bar > .thumb {
+.scroll-bar>.thumb {
     -fx-background-color: rgba(148, 163, 184, 0.38);
     -fx-background-radius: 6;
 }
 
-.scroll-bar > .thumb:hover {
+.scroll-bar>.thumb:hover {
     -fx-background-color: rgba(148, 163, 184, 0.62);
 }
 
-.scroll-bar > .increment-button,
-.scroll-bar > .decrement-button {
+.scroll-bar>.increment-button,
+.scroll-bar>.decrement-button {
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
 
-.scroll-bar > .increment-button > .increment-arrow,
-.scroll-bar > .decrement-button > .decrement-arrow {
+.scroll-bar>.increment-button>.increment-arrow,
+.scroll-bar>.decrement-button>.decrement-arrow {
     -fx-padding: 0;
     -fx-background-color: transparent;
 }
@@ -253,11 +253,11 @@
     -fx-padding: 0;
 }
 
-.scroll-pane > .viewport {
+.scroll-pane>.viewport {
     -fx-background-color: transparent;
 }
 
-.scroll-pane > .corner {
+.scroll-pane>.corner {
     -fx-background-color: transparent;
 }
 
@@ -343,17 +343,17 @@
     -fx-padding: 4;
 }
 
-.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
+.server-list>.virtual-flow>.clipped-container>.sheet>.list-cell {
     -fx-background-color: transparent;
     -fx-padding: 8 10;
 }
 
-.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+.server-list>.virtual-flow>.clipped-container>.sheet>.list-cell:filled:hover {
     -fx-background-color: #334155;
     -fx-background-radius: 8;
 }
 
-.server-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+.server-list>.virtual-flow>.clipped-container>.sheet>.list-cell:filled:selected {
     -fx-background-color: -lc-primary-soft;
     -fx-background-radius: 8;
     -fx-border-color: -lc-primary;
@@ -497,17 +497,17 @@
     -fx-padding: 0 8;
 }
 
-.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
+.lesson-list>.virtual-flow>.clipped-container>.sheet>.list-cell {
     -fx-background-color: transparent;
     -fx-padding: 9 10;
 }
 
-.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+.lesson-list>.virtual-flow>.clipped-container>.sheet>.list-cell:filled:hover {
     -fx-background-color: -lc-surface-2;
     -fx-background-radius: 8;
 }
 
-.lesson-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+.lesson-list>.virtual-flow>.clipped-container>.sheet>.list-cell:filled:selected {
     -fx-background-color: -lc-primary-soft;
     -fx-background-radius: 8;
 }
@@ -546,7 +546,7 @@
     -fx-box-border: transparent;
 }
 
-.lesson-split > .split-pane-divider {
+.lesson-split>.split-pane-divider {
     -fx-background-color: transparent;
     -fx-padding: 0 5;
 }
@@ -560,16 +560,16 @@
     -fx-tab-min-height: 30;
 }
 
-.lesson-tabs > .tab-header-area {
+.lesson-tabs>.tab-header-area {
     -fx-padding: 6 12 0 12;
 }
 
-.lesson-tabs > .tab-header-area > .tab-header-background {
+.lesson-tabs>.tab-header-area>.tab-header-background {
     -fx-background-color: transparent;
     -fx-border-color: transparent transparent -lc-border transparent;
 }
 
-.lesson-tabs > .tab-header-area > .headers-region > .tab {
+.lesson-tabs>.tab-header-area>.headers-region>.tab {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-border-color: transparent;
@@ -578,24 +578,24 @@
     -fx-cursor: hand;
 }
 
-.lesson-tabs > .tab-header-area > .headers-region > .tab:selected {
+.lesson-tabs>.tab-header-area>.headers-region>.tab:selected {
     -fx-border-color: -lc-primary;
 }
 
-.lesson-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+.lesson-tabs>.tab-header-area>.headers-region>.tab>.tab-container>.tab-label {
     -fx-text-fill: -lc-muted;
     -fx-font-weight: bold;
 }
 
-.lesson-tabs > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+.lesson-tabs>.tab-header-area>.headers-region>.tab:selected>.tab-container>.tab-label {
     -fx-text-fill: -lc-primary-text;
 }
 
-.lesson-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .focus-indicator {
+.lesson-tabs>.tab-header-area>.headers-region>.tab>.tab-container>.focus-indicator {
     -fx-border-color: transparent;
 }
 
-.lesson-tabs > .tab-content-area {
+.lesson-tabs>.tab-content-area {
     -fx-background-color: transparent;
 }
 
@@ -856,17 +856,18 @@
 .position {
     -fx-font-family: "JetBrains Mono";
     -fx-text-fill: -lc-muted;
-    -fx-min-width: 76; /* đủ cho "999 / 999" */
+    -fx-min-width: 76;
+    /* đủ cho "999 / 999" */
     -fx-alignment: center-right;
 }
 
-.slider > .track {
+.slider>.track {
     -fx-background-color: #475569;
     -fx-background-radius: 4;
     -fx-padding: 2;
 }
 
-.slider > .thumb {
+.slider>.thumb {
     -fx-background-color: -lc-primary;
     -fx-background-radius: 999;
     -fx-padding: 7;
@@ -877,6 +878,16 @@
 
 .run-panel {
     -fx-padding: 12 14;
+    -fx-border-width: 2;
+    -fx-border-color: transparent;
+}
+
+.run-panel.result-ok {
+    -fx-border-color: #35a66f;
+}
+
+.run-panel.result-fail {
+    -fx-border-color: #d65c5c;
 }
 
 .verdict {
@@ -916,8 +927,8 @@
     -fx-padding: 4;
 }
 
-.console > .scroll-pane > .viewport,
-.console > .scroll-pane > .viewport > .content,
+.console>.scroll-pane>.viewport,
+.console>.scroll-pane>.viewport>.content,
 .console .content {
     -fx-background-color: transparent;
 }
@@ -935,10 +946,12 @@
     -fx-highlight-fill: -lc-primary;
     -fx-highlight-text-fill: white;
 }
+
 .lc-root .text-area .content,
 .lc-root .text-area:focused .content {
     -fx-background-color: -lc-surface;
 }
+
 .lc-root .list-view,
 .lc-root .table-view,
 .lc-root .tree-view {
@@ -946,57 +959,71 @@
     -fx-control-inner-background: -lc-surface;
     -fx-border-color: -lc-border;
 }
+
 .lc-root .list-cell,
 .lc-root .table-cell,
 .lc-root .tree-cell {
     -fx-text-fill: -lc-text;
 }
+
 .lc-root .list-cell:filled:selected,
 .lc-root .table-row-cell:filled:selected,
 .lc-root .tree-cell:filled:selected {
     -fx-background-color: -lc-primary-soft;
     -fx-text-fill: -lc-primary-text;
 }
+
 .lc-root .list-cell:filled:hover,
 .lc-root .tree-cell:filled:hover {
     -fx-background-color: -lc-surface-2;
 }
+
 .lc-root .table-view .column-header-background,
 .lc-root .table-view .column-header {
     -fx-background-color: -lc-surface-2;
 }
+
 .lc-root .table-view .column-header .label {
     -fx-text-fill: -lc-text;
 }
-.lc-root .tab-pane > .tab-header-area > .tab-header-background {
+
+.lc-root .tab-pane>.tab-header-area>.tab-header-background {
     -fx-background-color: -lc-surface;
 }
-.lc-root .tab-pane > .tab-header-area > .headers-region > .tab {
+
+.lc-root .tab-pane>.tab-header-area>.headers-region>.tab {
     -fx-background-color: -lc-surface;
 }
-.lc-root .tab-pane > .tab-header-area > .headers-region > .tab:selected {
+
+.lc-root .tab-pane>.tab-header-area>.headers-region>.tab:selected {
     -fx-background-color: -lc-surface-2;
 }
+
 .lc-root .scroll-pane,
-.lc-root .scroll-pane > .viewport {
+.lc-root .scroll-pane>.viewport {
     -fx-background-color: transparent;
 }
+
 .lc-root .split-pane,
-.lc-root .split-pane > .split-pane-divider {
+.lc-root .split-pane>.split-pane-divider {
     -fx-background-color: transparent;
 }
+
 .lc-root .tooltip {
     -fx-background-color: -lc-surface-2;
     -fx-text-fill: -lc-text;
     -fx-border-color: -lc-border-strong;
     -fx-background-radius: 6;
 }
-.lc-root .progress-bar > .track {
+
+.lc-root .progress-bar>.track {
     -fx-background-color: -lc-border;
 }
-.lc-root .progress-bar > .bar {
+
+.lc-root .progress-bar>.bar {
     -fx-background-color: -lc-primary;
 }
+
 /* Trong LabCast, console can giu nen toi hon text area thong thuong. */
 .lc-root .console,
 .lc-root .console:focused,
@@ -1004,20 +1031,25 @@
     -fx-background-color: -lc-console;
     -fx-text-fill: #E2E8F0;
 }
+
 /* Markdown code va slider: tranh nhung vung sang con sot lai. */
 .lc-root .md-code,
 .lc-root .md-pre {
     -fx-background-color: #111E32;
 }
+
 .lc-root .md-code {
     -fx-text-fill: #F9A8D4;
 }
-.lc-root .slider > .track {
+
+.lc-root .slider>.track {
     -fx-background-color: -lc-border-strong;
 }
+
 .lc-root .viz-value {
     -fx-fill: -lc-text;
 }
+
 /* Nut thu gon sidebar: de nhan biet tren topbar. */
 #sidebar-toggle {
     -fx-background-color: #22334C;
@@ -1026,6 +1058,7 @@
     -fx-background-radius: 8;
     -fx-border-radius: 8;
 }
+
 #sidebar-toggle:hover {
     -fx-background-color: #304666;
     -fx-border-color: #60A5FA;

@@ -3,7 +3,9 @@ package labcast.common.protocol;
 /**
  * Loại thông điệp của LCP/1.0 — một byte trong header (spec §10.3).
  *
- * <p>File chung do leader giữ. Mỗi người một dải mã (docs/plans/README.md), KHÔNG đánh số lại mã đã
+ * <p>
+ * File chung do leader giữ. Mỗi người một dải mã (docs/plans/README.md), KHÔNG
+ * đánh số lại mã đã
  * có: app và server khác phiên bản vẫn phải hiểu nhau ở các mã cũ.
  */
 public enum MessageType {
@@ -17,7 +19,10 @@ public enum MessageType {
     HEARTBEAT_ACK(0x07),
     RESUME_REQ(0x08),
     RESUME_STATE(0x09),
-    /** {@code bool inApp, i64 clientTs, str lessonId}: học viên vừa rời app (Alt+Tab, thu nhỏ) hoặc quay lại. */
+    /**
+     * {@code bool inApp, i64 clientTs, str lessonId}: học viên vừa rời app
+     * (Alt+Tab, thu nhỏ) hoặc quay lại.
+     */
     APP_FOCUS(0x0A),
     ERROR(0x0E),
     BYE(0x0F),
@@ -53,6 +58,11 @@ public enum MessageType {
     LESSON_LIST(0x30),
     LESSON_FETCH(0x31),
     LESSON_DATA(0x32),
+    PRACTICE_LIST(0x33),
+    PRACTICE_CREATE(0x34),
+    PRACTICE_START(0x35),
+    PRACTICE_STATE(0x36),
+    PRACTICE_SUBMIT(0x37),
     PREDICT_REQ(0x38),
     PREDICT_QUESTION(0x39),
     PREDICT_ANSWER(0x3A),
@@ -80,9 +90,15 @@ public enum MessageType {
     CHECKPOINT_LIST(0x52),
     CHECKPOINT_FETCH(0x53),
     CHECKPOINT_DATA(0x54),
-    /** {@code str docKey}: hỏi code đang lưu của một khoá tài liệu (đổi ngôn ngữ trong ô code). */
+    /**
+     * {@code str docKey}: hỏi code đang lưu của một khoá tài liệu (đổi ngôn ngữ
+     * trong ô code).
+     */
     CODE_FETCH(0x55),
-    /** {@code str docKey, i64 seq, str code}: code đang lưu trên server, hoặc khung nếu chưa có. */
+    /**
+     * {@code str docKey, i64 seq, str code}: code đang lưu trên server, hoặc khung
+     * nếu chưa có.
+     */
     CODE_DATA(0x56),
     HAND_RAISE(0x58),
     HAND_LOWER(0x59),
@@ -121,7 +137,9 @@ public enum MessageType {
     // 0x26, 0x27, 0x2B đã thuộc ADMIN_LESSON_* (bản #7) nên ba mã lớp/phiên này dời về đây
     CLASS_SELECT_RESULT(0x79),
     PRACTICE_LIST_REQ(0x7A),
-    PRACTICE_LIST_DATA(0x7B);
+    PRACTICE_LIST_DATA(0x7B),
+    /** Giáo viên xóa một đợt thực hành: i64 practiceId. */
+    PRACTICE_DELETE(0x7C);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

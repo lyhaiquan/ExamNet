@@ -74,6 +74,7 @@ TIN_HIEU = {
                     "khởi tạo hoặc đệ quy quá sâu",
     signal.SIGFPE: "Lỗi số học (Floating point exception): thường là chia hoặc lấy dư cho 0",
     signal.SIGABRT: "Chương trình bị huỷ (abort): thường do assert sai, cấp phát lỗi hoặc ngoại lệ không bắt",
+    signal.SIGBUS: "Lỗi truy cập bộ nhớ (Bus error)",
     signal.SIGILL: "Lệnh không hợp lệ (Illegal instruction): thường do chia cho 0 hoặc hàm có kiểu trả về mà "
                    "thiếu return",
 }
