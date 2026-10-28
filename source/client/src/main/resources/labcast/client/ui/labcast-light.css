@@ -2602,3 +2602,7 @@
 .table-row-cell.roster-bad .table-cell { -fx-text-fill: #DC2626; }
 .table-row-cell.roster-bad:selected .table-cell { -fx-text-fill: white; }
 .roster-summary { -fx-font-weight: bold; }
+
+/* Cột số thứ tự ở bảng Tài khoản, Học viên */
+.order-column { -fx-alignment: CENTER; }
+.table-view .order-column .table-cell, .order-column.table-cell { -fx-alignment: CENTER; }

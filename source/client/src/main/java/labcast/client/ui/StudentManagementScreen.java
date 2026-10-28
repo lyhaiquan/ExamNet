@@ -137,6 +137,7 @@ public final class StudentManagementScreen extends BorderPane {
         header.setPadding(new Insets(0, 0, 18, 0));
         setTop(header);
 
+        table.getColumns().add(AccountsScreen.orderColumn());
         addColumn("HỌ VÀ TÊN", "name", 180);
         addColumn("TÀI KHOẢN", "username", 120);
         TableColumn<StudentRow, String> connection = addColumn("KẾT NỐI", "connection", 125);

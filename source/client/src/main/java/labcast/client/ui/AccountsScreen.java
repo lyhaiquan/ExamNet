@@ -143,6 +143,7 @@ public final class AccountsScreen extends BorderPane {
         header.setPadding(new Insets(0, 0, 16, 0));
         setTop(header);
 
+        table.getColumns().add(orderColumn());
         column("HỌ VÀ TÊN", "fullName", 180);
         column("TÀI KHOẢN", "username", 120);
         column("VAI TRÒ", "roleLabel", 90).setMinWidth(80);
@@ -187,6 +188,28 @@ public final class AccountsScreen extends BorderPane {
         card.getStyleClass().addAll("students-stat-card", style);
         card.setMaxWidth(Double.MAX_VALUE);
         return card;
+    }
+
+    /** Số thứ tự theo thứ tự đang hiện (sau lọc, sắp xếp), không gắn với tài khoản. */
+    static <T> TableColumn<T, Void> orderColumn() {
+        TableColumn<T, Void> c = new TableColumn<>("STT");
+        c.setSortable(false);
+        c.setReorderable(false);
+        c.setPrefWidth(52);
+        c.setMinWidth(46);
+        c.setMaxWidth(64);
+        c.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Void v, boolean empty) {
+                super.updateItem(v, empty);
+                setText(
+                        empty || getTableRow() == null || getTableRow().getItem() == null
+                                ? null
+                                : String.valueOf(getIndex() + 1));
+            }
+        });
+        c.getStyleClass().add("order-column");
+        return c;
     }
 
     private TableColumn<Row, String> column(String title, String property, int width) {
