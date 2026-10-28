@@ -53,7 +53,39 @@ public final class ClassRepository {
         });
     }
 
+    /** Chuyển học viên sang đúng một lớp: bỏ mọi lớp đang ghi danh rồi ghi danh lớp mới. */
+    public void moveStudent(long userId, long classId) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement del = c.prepareStatement("DELETE FROM enrollments WHERE user_id = ?");
+                    PreparedStatement ins =
+                            c.prepareStatement("INSERT INTO enrollments (class_id, user_id) VALUES (?, ?)")) {
+                del.setLong(1, userId);
+                del.executeUpdate();
+                ins.setLong(1, classId);
+                ins.setLong(2, userId);
+                return ins.executeUpdate();
+            }
+        });
+    }
+
     /** Lớp của một người: giáo viên là lớp mình dạy, học viên là lớp được ghi danh. 0 nếu chưa có. */
+    /** Một lớp kèm tên giáo viên phụ trách, để quảng bá khi máy học viên dò lớp. */
+    public record Listed(long id, String name, String teacher) {}
+
+    /** Mọi lớp trên server này, theo tên. */
+    public java.util.List<Listed> listWithTeachers() throws SQLException {
+        return db.read(c -> {
+            java.util.List<Listed> out = new java.util.ArrayList<>();
+            try (PreparedStatement ps =
+                            c.prepareStatement("SELECT c.id, c.name, COALESCE(u.full_name, '') FROM classes c"
+                                    + " LEFT JOIN users u ON u.id = c.teacher_id ORDER BY c.name, c.id");
+                    ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) out.add(new Listed(rs.getLong(1), rs.getString(2), rs.getString(3)));
+            }
+            return out;
+        });
+    }
+
     public long classOf(long userId) throws SQLException {
         return db.read(c -> {
             try (PreparedStatement ps = c.prepareStatement("SELECT class_id FROM enrollments WHERE user_id = ?"

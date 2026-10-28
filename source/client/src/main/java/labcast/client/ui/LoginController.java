@@ -26,7 +26,8 @@ public final class LoginController {
             String fullName,
             long classId,
             String className,
-            int castId) {}
+            int castId,
+            boolean mustChangePassword) {}
 
     /** Đăng nhập không thành: sai mật khẩu, không nối được server… {@code getMessage()} hiện cho học viên. */
     public static final class LoginFailed extends Exception {
@@ -46,6 +47,36 @@ public final class LoginController {
                 return List.of();
             }
         });
+    }
+
+    /**
+     * Quên mật khẩu: nối, HELLO, gửi yêu cầu cho giáo viên rồi đóng. Trả câu server báo (giống nhau dù tài khoản có
+     * hay không).
+     */
+    public static String forgot(String host, int port, String username) throws LoginFailed {
+        try (LcpClient client = new LcpClient()) {
+            CompletableFuture<Frame> hello = client.expect(MessageType.HELLO_ACK);
+            try {
+                client.connect(host, port);
+            } catch (IOException e) {
+                throw new LoginFailed("Không nối được tới " + host + ":" + port + " (" + e.getMessage() + ")");
+            }
+            hello.get(5, TimeUnit.SECONDS);
+            CompletableFuture<Frame> reply = client.expect(MessageType.ADMIN_OK, MessageType.ERROR);
+            client.send(
+                    MessageType.PASSWORD_FORGOT,
+                    new PayloadWriter().str(username).toBytes());
+            Frame f = reply.get(10, TimeUnit.SECONDS);
+            if (f.type() == MessageType.ERROR) {
+                // server cũ chưa có chức năng này
+                throw new LoginFailed(ErrorMessage.from(f).message());
+            }
+            return f.reader().str();
+        } catch (LoginFailed e) {
+            throw e;
+        } catch (Exception e) {
+            throw new LoginFailed("Server không trả lời: " + e.getMessage());
+        }
     }
 
     /** Nối, HELLO, AUTH. Thành công thì client đã nhớ token để tự khôi phục phiên khi mất mạng. */
@@ -81,8 +112,10 @@ public final class LoginController {
             long userId = r.i64();
             String fullName = r.str();
             long classId = r.i64();
+            // server cũ không gửi cờ này
+            boolean mustChange = r.hasRemaining() && r.bool();
             client.setToken(token);
-            return new LoggedIn(client, token, role, userId, fullName, classId, className, castId);
+            return new LoggedIn(client, token, role, userId, fullName, classId, className, castId, mustChange);
         } catch (LoginFailed e) {
             client.close();
             throw e;

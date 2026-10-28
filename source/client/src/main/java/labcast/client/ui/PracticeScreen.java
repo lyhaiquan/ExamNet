@@ -141,7 +141,14 @@ public final class PracticeScreen extends VBox {
         headingTimes.setAlignment(Pos.CENTER_LEFT);
         VBox headingDetails = new VBox(4, headingQuestionCount, headingTimes, headingParticipation);
         headingDetails.setAlignment(Pos.CENTER_LEFT);
-        VBox heading = new VBox(6, headingTop, headingDetails);
+        teacherFilterBar.setSpacing(12);
+        teacherFilterBar.setAlignment(Pos.CENTER_RIGHT);
+        teacherFilterBar.setVisible(false);
+        teacherFilterBar.setManaged(false);
+        HBox headingInfo = new HBox(24, headingDetails, teacherFilterBar);
+        headingInfo.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(teacherFilterBar, javafx.scene.layout.Priority.ALWAYS);
+        VBox heading = new VBox(6, headingTop, headingInfo);
         getChildren().add(heading);
         bodyScroll.setFitToWidth(true);
         bodyScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -206,6 +213,17 @@ public final class PracticeScreen extends VBox {
         reply.orTimeout(10, TimeUnit.SECONDS).thenRun(() -> Platform.runLater(this::finishForStudent));
     }
 
+    public void returnToList() {
+        if (!teacherDetail)
+            return;
+        teacherDetail = false;
+        teacherPracticeId = 0;
+        teacherStudents = null;
+        teacherFilterInitialized = false;
+        onDetailClosed.run();
+        load();
+    }
+
     private void load() {
         long requestVersion = ++listRequestVersion;
         var reply = client.expect(MessageType.PRACTICE_STATE);
@@ -230,6 +248,7 @@ public final class PracticeScreen extends VBox {
         headingTitle.setText("Thực hành");
         headingState.setText("");
         headingMeta.setText("");
+        timer.setText("");
         headingQuestionCount.setText("");
         headingStartTime.setText("");
         headingEndTime.setText("");
@@ -317,6 +336,7 @@ public final class PracticeScreen extends VBox {
         ++listRequestVersion;
         teacherPracticeId = id;
         teacherDetail = true;
+        updateBackButton();
         onDetailOpened.run();
         var reply = client.expect(MessageType.PRACTICE_STATE);
         client.send(MessageType.PRACTICE_START, new PayloadWriter().i64(id).toBytes());
@@ -363,12 +383,9 @@ public final class PracticeScreen extends VBox {
                     ? previousFilter
                     : "Tất cả");
             teacherFilterBar.getChildren().setAll(studentFilter, deletePracticeButton);
-            teacherFilterBar.setSpacing(12);
-            teacherFilterBar.setAlignment(Pos.CENTER_RIGHT);
             teacherFilterBar.setMaxWidth(Double.MAX_VALUE);
             teacherFilterBar.setVisible(true);
             teacherFilterBar.setManaged(true);
-            body.getChildren().add(teacherFilterBar);
             teacherFilterInitialized = true;
         }
         updateDeletePracticeButton();
@@ -389,6 +406,9 @@ public final class PracticeScreen extends VBox {
                 ButtonType.OK, ButtonType.CANCEL);
         confirmation.setTitle("Xác nhận xóa bài thực hành");
         confirmation.setHeaderText("Xóa bài thực hành");
+        Theme.apply(confirmation.getDialogPane());
+        confirmation.getDialogPane().getStyleClass().add("practice-dialog");
+        confirmation.getDialogPane().lookupButton(ButtonType.OK).getStyleClass().add("primary");
         if (getScene() != null)
             confirmation.initOwner(getScene().getWindow());
         confirmation.showAndWait().ifPresent(result -> {
@@ -414,8 +434,7 @@ public final class PracticeScreen extends VBox {
     private void renderTeacherStudents() {
         if (teacherStudents == null)
             return;
-        while (body.getChildren().size() > 1)
-            body.getChildren().remove(1);
+        body.getChildren().clear();
         String filter = studentFilter.getValue();
         List<JsonNode> visibleStudents = new ArrayList<>();
         teacherStudents.forEach(student -> {
@@ -808,7 +827,8 @@ public final class PracticeScreen extends VBox {
     }
 
     private void updateBackButton() {
-        boolean canGoBack = onBack != null && (teacher || practiceId == 0 || sessionEnded);
+        boolean canGoBack = onBack != null
+                && ((teacher && teacherDetail) || (!teacher && (practiceId == 0 || sessionEnded)));
         backButton.setVisible(canGoBack);
         backButton.setManaged(canGoBack);
     }

@@ -43,7 +43,7 @@ NGON_NGU = {
     "java": {
         "file": "Main.java",
         "bien_dich": ["javac", "-J-Xshare:auto", "-J-XX:+UseSerialGC", "-J-XX:TieredStopAtLevel=1",
-                      "--release", "17", "-encoding", "UTF-8", "-d", "{dir}", "{src}"],
+                     "--release", "17", "-encoding", "UTF-8", "-d", "{dir}", "{src}"],
         "bien_dich_debug": ["javac", "-J-Xshare:auto", "-J-XX:+UseSerialGC", "-J-XX:TieredStopAtLevel=1",
                             "--release", "17", "-g", "-encoding", "UTF-8", "-d", "{dir}", "{src}"],
         "he_so_gio": 2,
@@ -69,17 +69,19 @@ GOI_Y_JAVA = {
     "NegativeArraySizeException": "tạo mảng với kích thước âm",
 }
 
-TIN_HIEU = {
-    signal.SIGSEGV: "Lỗi truy cập bộ nhớ (Segmentation fault): thường do truy cập ngoài mảng, con trỏ chưa "
-                    "khởi tạo hoặc đệ quy quá sâu",
-    signal.SIGFPE: "Lỗi số học (Floating point exception): thường là chia hoặc lấy dư cho 0",
-    signal.SIGABRT: "Chương trình bị huỷ (abort): thường do assert sai, cấp phát lỗi hoặc ngoại lệ không bắt",
-    signal.SIGBUS: "Lỗi truy cập bộ nhớ (Bus error)",
-    signal.SIGILL: "Lệnh không hợp lệ (Illegal instruction): thường do chia cho 0 hoặc hàm có kiểu trả về mà "
-                   "thiếu return",
+# Xử lý an toàn các tín hiệu (chỉ nạp các tín hiệu tồn tại trên hệ điều hành hiện tại, ví dụ Windows không có SIGBUS)
+_TIN_HIEU_THO = {
+    "SIGSEGV": "Lỗi truy cập bộ nhớ (Segmentation fault): thường do truy cập ngoài mảng, con trỏ chưa khởi tạo hoặc đệ quy quá sâu",
+    "SIGFPE": "Lỗi số học (Floating point exception): thường là chia hoặc lấy dư cho 0",
+    "SIGABRT": "Chương trình bị huỷ (abort): thường do assert sai, cấp phát lỗi hoặc ngoại lệ không bắt",
+    "SIGBUS": "Lỗi truy cập bộ nhớ (Bus error)",
+    "SIGILL": "Lệnh không hợp lệ (Illegal instruction): thường do chia cho 0 hoặc hàm có kiểu trả về mà thiếu return",
 }
-if hasattr(signal, "SIGBUS"):
-    TIN_HIEU[signal.SIGBUS] = "Lỗi truy cập bộ nhớ (Bus error)"
+
+TIN_HIEU = {}
+for _ten, _mo_ta in _TIN_HIEU_THO.items():
+    if hasattr(signal, _ten):
+        TIN_HIEU[getattr(signal, _ten)] = _mo_ta
 
 
 def ho_tro(ngon_ngu):
@@ -385,7 +387,7 @@ def chay_job(job, out):
     ten = "__trace_table__"
     if job.get("trace"):
         out.write(json.dumps({"t": "hdr", "lesson": job.get("lesson", ""), "views": [], "source": code,
-                              "lang": ngon_ngu}, ensure_ascii=False) + "\n")
+                            "lang": ngon_ngu}, ensure_ascii=False) + "\n")
     with ThuMuc(ngon_ngu, code) as tm:
         ok_bd, loi_bd, dong_bd = tm.bien_dich(debug=tung_dong)
         if not ok_bd:

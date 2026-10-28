@@ -1,0 +1,19 @@
+id: dsa.tim-kiem.can-bac-hai
+mon: dsa
+chuong: tim-kiem
+ten: Phần nguyên căn bậc hai
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin: []                  # luyện tập: chỉ chấm test và Trace Table, không có animation
+cam_dung: [isqrt, sqrt, pow]
+cam_import: []
+cam_cu_phap: [Pow]
+cam_theo_ngon_ngu:
+  c: [sqrt, sqrtl, sqrtf, pow, powl, cbrt]
+  cpp: [sqrt, sqrtl, pow, powl, cbrt]
+  java: [Math.sqrt, Math.pow, sqrt, Math.cbrt]
+gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []

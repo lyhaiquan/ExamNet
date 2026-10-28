@@ -9,7 +9,6 @@ import labcast.common.protocol.Language;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadWriter;
 import labcast.common.protocol.ProtocolException;
-import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
 import labcast.server.classroom.ClassEvents;
@@ -38,7 +37,7 @@ public final class JournalModule implements ServerModule {
         ctx.find(ClassEvents.class)
                 .ifPresent(events -> store.onLargeInsert(li -> {
                     Optional<Session> s = ctx.sessions().byUser(li.userId());
-                    if (s.isPresent() && s.get().role() == Role.TEACHER) {
+                    if (s.isPresent() && s.get().role().isStaff()) {
                         return; // giáo viên dán code mẫu là chuyện thường
                     }
                     String detail = li.burst()

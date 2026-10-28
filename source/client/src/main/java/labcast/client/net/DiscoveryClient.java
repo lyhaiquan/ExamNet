@@ -27,8 +27,23 @@ public final class DiscoveryClient {
     public static final int DEFAULT_PORT = 7002;
     public static final String CLIENT_VERSION = "0.1.0";
 
+    /** Một lớp tìm thấy. {@code classId} 0: server cũ chỉ quảng bá tên lớp trong cấu hình, không có mã lớp. */
     public record ServerInfo(
-            String className, String teacherName, String host, int port, boolean tls, String fingerprint) {}
+            String className,
+            String teacherName,
+            String host,
+            int port,
+            boolean tls,
+            String fingerprint,
+            long classId) {
+        public ServerInfo(
+                String className, String teacherName, String host, int port, boolean tls, String fingerprint) {
+            this(className, teacherName, host, port, tls, fingerprint, 0);
+        }
+    }
+
+    /** Server mới gửi kèm danh sách lớp; gói phải vừa một datagram (server tự cắt bớt). */
+    static final int MAX_DATAGRAM = 1500;
 
     private DiscoveryClient() {}
 
@@ -52,7 +67,7 @@ public final class DiscoveryClient {
                 }
             }
             long deadline = System.nanoTime() + timeout.toNanos();
-            byte[] buf = new byte[1500];
+            byte[] buf = new byte[MAX_DATAGRAM];
             while (true) {
                 long left = (deadline - System.nanoTime()) / 1_000_000;
                 if (left <= 0) {
@@ -70,8 +85,10 @@ public final class DiscoveryClient {
                     if (f.type() != MessageType.DISCOVER_REPLY) {
                         continue;
                     }
-                    ServerInfo info = withReachableHost(parse(f), p.getAddress());
-                    found.putIfAbsent(info.host() + ":" + info.port(), info);
+                    for (ServerInfo info : parse(f)) {
+                        info = withReachableHost(info, p.getAddress());
+                        found.putIfAbsent(info.host() + ":" + info.port() + "#" + info.classId(), info);
+                    }
                 } catch (ProtocolException e) {
                     // trả lời hỏng: bỏ
                 }
@@ -80,10 +97,24 @@ public final class DiscoveryClient {
         return new ArrayList<>(found.values());
     }
 
-    /** {@code DISCOVER_REPLY(str className, str teacherName, str host, u16 port, bool tls, str fingerprint)}. */
-    static ServerInfo parse(Frame f) throws ProtocolException {
+    /**
+     * {@code DISCOVER_REPLY(str className, str teacherName, str host, u16 port, bool tls, str fingerprint [, u16 n,
+     * n × (i64 classId, str name, str teacher)])}. Có danh sách lớp thì mỗi lớp một dòng (cùng máy chủ); server cũ
+     * không có phần sau thì một dòng như trước.
+     */
+    static List<ServerInfo> parse(Frame f) throws ProtocolException {
         PayloadReader r = f.reader();
-        return new ServerInfo(r.str(), r.str(), r.str(), r.u16(), r.bool(), r.str());
+        ServerInfo head = new ServerInfo(r.str(), r.str(), r.str(), r.u16(), r.bool(), r.str());
+        if (!r.hasRemaining()) return List.of(head);
+        int n = r.u16();
+        List<ServerInfo> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            long id = r.i64();
+            String name = r.str();
+            String teacher = r.str();
+            out.add(new ServerInfo(name, teacher, head.host(), head.port(), head.tls(), head.fingerprint(), id));
+        }
+        return out.isEmpty() ? List.of(head) : out;
     }
 
     /**
@@ -107,7 +138,8 @@ public final class DiscoveryClient {
                 source.getHostAddress(),
                 info.port(),
                 info.tls(),
-                info.fingerprint());
+                info.fingerprint(),
+                info.classId());
     }
 
     private static List<InetAddress> broadcastTargets() throws IOException {

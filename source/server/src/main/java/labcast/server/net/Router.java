@@ -24,6 +24,7 @@ public final class Router {
     private static final Set<MessageType> PUBLIC = EnumSet.of(
             MessageType.HELLO,
             MessageType.AUTH,
+            MessageType.PASSWORD_FORGOT,
             MessageType.RESUME_REQ,
             MessageType.TIME_SYNC_REQ,
             MessageType.HEARTBEAT_ACK,

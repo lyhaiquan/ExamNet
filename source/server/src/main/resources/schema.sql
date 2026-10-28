@@ -5,6 +5,9 @@
 -- Người 2 giữ phần mở kết nối và chạy file này (server.store).
 --
 -- Thời gian lưu dạng INTEGER: số mili giây kể từ epoch, theo đồng hồ server.
+--
+-- File này là lược đồ MỚI NHẤT, chạy mỗi lần mở DB (mọi câu IF NOT EXISTS). Đổi bảng hay cột đã có thì
+-- thêm một bước vào server.store.Migrations để DB của bản trước cũng được đổi theo.
 
 PRAGMA foreign_keys = ON;
 
@@ -19,12 +22,19 @@ CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     username      TEXT    NOT NULL UNIQUE,
     full_name     TEXT    NOT NULL,
-    role          TEXT    NOT NULL CHECK (role IN ('TEACHER', 'STUDENT')),
+    role          TEXT    NOT NULL CHECK (role IN ('ADMIN', 'TEACHER', 'STUDENT')),
     -- Không bao giờ lưu mật khẩu thô. PBKDF2-HMAC-SHA256, salt riêng từng người.
     pwd_hash      BLOB    NOT NULL,
     salt          BLOB    NOT NULL,
     iterations    INTEGER NOT NULL,
-    created_at    INTEGER NOT NULL
+    created_at    INTEGER NOT NULL,
+    -- 1: mật khẩu tạm (giáo viên đặt lại, nhập từ CSV), lần đăng nhập sau phải tự đặt mật khẩu mới
+    must_change_pwd INTEGER NOT NULL DEFAULT 0,
+    -- 1: quản trị đã khoá, không đăng nhập được (khoá thay vì xoá để giữ bài làm, thảo luận)
+    disabled      INTEGER NOT NULL DEFAULT 0,
+    -- mật khẩu tạm dạng chữ (nhập lớp, quản trị tạo, đặt lại) tới khi tự đặt mật khẩu riêng; để quản trị xuất
+    -- lại file tài khoản gửi giáo viên. NULL: đã tự đặt hoặc tài khoản tạo trước khi có cột này
+    temp_password TEXT
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -42,10 +52,73 @@ CREATE TABLE IF NOT EXISTS classes (
     created_at    INTEGER NOT NULL
 );
 
+-- Bấm "Quên mật khẩu" ở màn đăng nhập: chờ giáo viên (quản trị) đặt mật khẩu tạm.
+-- Mỗi người nhiều nhất một yêu cầu đang chờ; đặt lại hoặc tự đổi mật khẩu xong thì xoá.
+CREATE TABLE IF NOT EXISTS password_requests (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
+    created_at    INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS enrollments (
     class_id      INTEGER NOT NULL REFERENCES classes(id),
     user_id       INTEGER NOT NULL REFERENCES users(id),
     PRIMARY KEY (class_id, user_id)
+);
+
+-- Mã mời vào lớp, phiên thực hành và màn học viên đang mở (ClassroomWorkspaceModule)
+CREATE TABLE IF NOT EXISTS class_invites (
+    class_id      INTEGER PRIMARY KEY REFERENCES classes(id),
+    join_code     TEXT    UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS practice_rooms (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id      INTEGER NOT NULL REFERENCES classes(id),
+    title         TEXT    NOT NULL,
+    join_code     TEXT    NOT NULL UNIQUE,
+    teacher_id    INTEGER NOT NULL REFERENCES users(id),
+    created_at    INTEGER NOT NULL,
+    active        INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS practice_members (
+    room_id       INTEGER NOT NULL REFERENCES practice_rooms(id),
+    user_id       INTEGER NOT NULL REFERENCES users(id),
+    joined_at     INTEGER NOT NULL,
+    PRIMARY KEY (room_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS practice_room_lessons (
+    room_id       INTEGER NOT NULL REFERENCES practice_rooms(id) ON DELETE CASCADE,
+    lesson_id     TEXT    NOT NULL,
+    added_at      INTEGER NOT NULL,
+    PRIMARY KEY (room_id, lesson_id)
+);
+
+-- Thảo luận ở từng bài, riêng từng lớp (DiscussionModule); trả lời lồng một cấp qua parent_id
+CREATE TABLE IF NOT EXISTS discussions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id      INTEGER NOT NULL REFERENCES classes(id),
+    lesson_id     TEXT    NOT NULL REFERENCES lessons(id),
+    parent_id     INTEGER REFERENCES discussions(id),
+    author_id     INTEGER NOT NULL REFERENCES users(id),
+    text          TEXT    NOT NULL,
+    created_at    INTEGER NOT NULL,
+    hidden        INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_discussions_lesson ON discussions (class_id, lesson_id, id);
+CREATE TABLE IF NOT EXISTS discussion_likes (
+    discussion_id INTEGER NOT NULL REFERENCES discussions(id),
+    user_id       INTEGER NOT NULL REFERENCES users(id),
+    PRIMARY KEY (discussion_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS student_activity (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
+    class_id      INTEGER NOT NULL,
+    screen        TEXT    NOT NULL,
+    lesson_id     TEXT,
+    updated_at    INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS quizzes (

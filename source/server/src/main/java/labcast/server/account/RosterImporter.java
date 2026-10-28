@@ -11,9 +11,18 @@ import labcast.server.classroom.ClassRepository;
 /** Nhập danh sách lớp từ CSV, mỗi dòng {@code username,họ tên,mật khẩu}. */
 public final class RosterImporter {
 
-    public record Result(int created, int enrolledExisting, List<String> skipped) {
+    /** {@code createdNames}: tài khoản mới (mật khẩu là mật khẩu trong CSV); {@code enrolledNames}: đã có từ trước. */
+    public record Result(List<String> createdNames, List<String> enrolledNames, List<String> skipped) {
+        public int created() {
+            return createdNames.size();
+        }
+
+        public int enrolledExisting() {
+            return enrolledNames.size();
+        }
+
         public String message() {
-            String s = "Đã tạo " + created + " học viên, ghi danh " + enrolledExisting + " tài khoản đã có";
+            String s = "Đã tạo " + created() + " học viên, ghi danh " + enrolledExisting() + " tài khoản đã có";
             return skipped.isEmpty() ? s : s + "; bỏ qua " + skipped.size() + " dòng: " + String.join("; ", skipped);
         }
     }
@@ -28,8 +37,8 @@ public final class RosterImporter {
 
     /** Dòng thiếu cột, trùng tên đăng nhập (trong file hoặc đã có) thì bỏ và ghi lý do. */
     public Result importCsv(String csv, long classId) throws SQLException {
-        int created = 0;
-        int enrolledExisting = 0;
+        List<String> created = new ArrayList<>();
+        List<String> enrolled = new ArrayList<>();
         List<String> skipped = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         String[] lines = csv.split("\r?\n");
@@ -63,15 +72,17 @@ public final class RosterImporter {
                 }
 
                 classes.enroll(classId, existing.get().id());
-                enrolledExisting++;
+                enrolled.add(existing.get().username());
                 continue;
             }
-            long id = users.create(username, cols[1].strip(), Role.STUDENT, cols[2].strip());
+            String pwd = cols[2].strip();
+            long id = users.create(username, cols[1].strip(), Role.STUDENT, pwd);
+            users.setTemporaryPassword(id, pwd); // mật khẩu trong CSV là mật khẩu tạm
             if (classId > 0) {
                 classes.enroll(classId, id);
             }
-            created++;
+            created.add(username);
         }
-        return new Result(created, enrolledExisting, skipped);
+        return new Result(created, enrolled, skipped);
     }
 }

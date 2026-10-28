@@ -86,6 +86,7 @@ public final class StudentManagementScreen extends BorderPane {
     private final Label working = new Label("0");
     private final Label feedback = new Label("Đang đồng bộ...");
     private final Label details = new Label("Chọn một sinh viên để xem chi tiết hoạt động.");
+    private final PasswordRequestsBanner pwdRequests;
     private final Timeline timer;
     private boolean loading;
     private volatile boolean closed;
@@ -131,10 +132,12 @@ public final class StudentManagementScreen extends BorderPane {
         controls.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(search, Priority.ALWAYS);
         feedback.getStyleClass().add("muted");
-        VBox header = new VBox(17, headingBox, metrics, controls, feedback);
+        pwdRequests = new PasswordRequestsBanner(client, this::reload);
+        VBox header = new VBox(17, headingBox, pwdRequests, metrics, controls, feedback);
         header.setPadding(new Insets(0, 0, 18, 0));
         setTop(header);
 
+        table.getColumns().add(AccountsScreen.orderColumn());
         addColumn("HỌ VÀ TÊN", "name", 180);
         addColumn("TÀI KHOẢN", "username", 120);
         TableColumn<StudentRow, String> connection = addColumn("KẾT NỐI", "connection", 125);
@@ -153,6 +156,31 @@ public final class StudentManagementScreen extends BorderPane {
         addColumn("BUỔI THỰC HÀNH", "practice", 150);
         addColumn("ĐÃ XONG", "completed", 85);
         addColumn("CẬP NHẬT", "updated", 110);
+        // đặt lại mật khẩu cho học viên quên mật khẩu (server chỉ cho học viên lớp mình dạy)
+        TableColumn<StudentRow, String> pwd = new TableColumn<>("MẬT KHẨU");
+        pwd.setPrefWidth(110);
+        pwd.setSortable(false);
+        pwd.setCellFactory(col -> new TableCell<>() {
+            private final Button reset = new Button("Đặt lại");
+
+            {
+                reset.getStyleClass().add("students-reset");
+                reset.setOnAction(e -> {
+                    StudentRow row =
+                            getTableRow() == null ? null : getTableRow().getItem();
+                    if (row != null) {
+                        PasswordDialogs.reset(getScene().getWindow(), client, row.username(), row.name());
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(String value, boolean empty) {
+                super.updateItem(value, empty);
+                setGraphic(empty ? null : reset);
+            }
+        });
+        table.getColumns().add(pwd);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setItems(visible);
         table.setPlaceholder(new Label("Chưa có sinh viên trong lớp đang chọn."));
@@ -230,6 +258,7 @@ public final class StudentManagementScreen extends BorderPane {
     public void reload() {
         if (closed || loading) return;
         loading = true;
+        pwdRequests.reload();
         var pending = client.expect(MessageType.STUDENT_OVERVIEW_DATA, MessageType.ERROR);
         client.send(MessageType.STUDENT_OVERVIEW_REQ, new byte[0]);
         pending.orTimeout(12, TimeUnit.SECONDS)

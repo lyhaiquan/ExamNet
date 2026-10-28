@@ -30,43 +30,19 @@ public final class ClassroomWorkspaceModule implements ServerModule {
     @Override
     public void install(ServerContext c) {
         ctx = c;
-        try {
-            c.db().read(db -> {
-                try (Statement st = db.createStatement()) {
-                    st.execute("CREATE TABLE IF NOT EXISTS class_invites ("
-                            + "class_id INTEGER PRIMARY KEY REFERENCES classes(id), join_code TEXT UNIQUE NOT NULL)");
-                    st.execute("CREATE TABLE IF NOT EXISTS practice_rooms ("
-                            + "id INTEGER PRIMARY KEY AUTOINCREMENT, class_id INTEGER NOT NULL REFERENCES classes(id), "
-                            + "title TEXT NOT NULL, join_code TEXT NOT NULL UNIQUE, teacher_id INTEGER NOT NULL REFERENCES users(id), "
-                            + "created_at INTEGER NOT NULL, active INTEGER NOT NULL DEFAULT 1)");
-                    st.execute("CREATE TABLE IF NOT EXISTS practice_members ("
-                            + "room_id INTEGER NOT NULL REFERENCES practice_rooms(id), user_id INTEGER NOT NULL REFERENCES users(id), "
-                            + "joined_at INTEGER NOT NULL, PRIMARY KEY(room_id,user_id))");
-                    st.execute("CREATE TABLE IF NOT EXISTS practice_room_lessons ("
-                            + "room_id INTEGER NOT NULL REFERENCES practice_rooms(id) ON DELETE CASCADE, "
-                            + "lesson_id TEXT NOT NULL, added_at INTEGER NOT NULL, "
-                            + "PRIMARY KEY(room_id, lesson_id))");
-                    st.execute("CREATE TABLE IF NOT EXISTS student_activity ("
-                            + "user_id INTEGER PRIMARY KEY REFERENCES users(id), class_id INTEGER NOT NULL, "
-                            + "screen TEXT NOT NULL, lesson_id TEXT, updated_at INTEGER NOT NULL)");
-                }
-                return null;
-            });
-        } catch (SQLException e) {
-            throw new IllegalStateException("Không tạo được bảng phiên thực hành", e);
-        }
+        // Bảng của module này nằm trong schema.sql (class_invites, practice_*, student_activity)
         c.router()
                 .on(MessageType.CLASS_LIST_REQ, this::classes)
                 .on(MessageType.CLASS_SELECT_REQ, this::selectClass)
                 .on(MessageType.PRACTICE_LIST_REQ, this::rooms)
-                .on(MessageType.PRACTICE_CREATE_REQ, Set.of(Role.TEACHER), this::createRoom)
+                .on(MessageType.PRACTICE_CREATE_REQ, Role.STAFF, this::createRoom)
                 .on(MessageType.PRACTICE_JOIN_REQ, Set.of(Role.STUDENT), this::joinRoom)
-                .on(MessageType.STUDENT_OVERVIEW_REQ, Set.of(Role.TEACHER), this::students)
+                .on(MessageType.STUDENT_OVERVIEW_REQ, Role.STAFF, this::students)
                 .on(MessageType.STUDENT_ACTIVITY, Set.of(Role.STUDENT), this::activity)
-                .on(MessageType.CLASS_CREATE_REQ, Set.of(Role.TEACHER), this::createClass)
+                .on(MessageType.CLASS_CREATE_REQ, Role.STAFF, this::createClass)
                 .on(MessageType.CLASS_JOIN_REQ, Set.of(Role.STUDENT), this::joinClass)
-                .on(MessageType.PRACTICE_ASSIGN_REQ, Set.of(Role.TEACHER), this::assignLesson)
-                .on(MessageType.PRACTICE_UNASSIGN_REQ, Set.of(Role.TEACHER), this::unassignLesson)
+                .on(MessageType.PRACTICE_ASSIGN_REQ, Role.STAFF, this::assignLesson)
+                .on(MessageType.PRACTICE_UNASSIGN_REQ, Role.STAFF, this::unassignLesson)
                 .on(MessageType.PRACTICE_LESSONS_REQ, this::roomLessons);
     }
 
@@ -74,9 +50,17 @@ public final class ClassroomWorkspaceModule implements ServerModule {
         Session s = c.session();
         List<Map<String, Object>> data = ctx.db().read(db -> {
             List<Map<String, Object>> res = new ArrayList<>();
-            String sql = s.role() == Role.TEACHER
-                    ? "SELECT c.id,c.name,COALESCE(i.join_code,'') FROM classes c LEFT JOIN class_invites i ON i.class_id=c.id WHERE c.teacher_id=? ORDER BY c.created_at DESC"
-                    : "SELECT c.id,c.name FROM classes c JOIN enrollments e ON e.class_id=c.id WHERE e.user_id=? ORDER BY c.name";
+            // Quản trị thấy mọi lớp; giáo viên thấy lớp mình dạy; học viên thấy lớp mình học.
+            // Câu của quản trị vẫn nhận userId ("? > 0", luôn đúng) để ba câu bind cùng một kiểu.
+            String sql =
+                    switch (s.role()) {
+                        case ADMIN -> "SELECT c.id,c.name,COALESCE(i.join_code,'') FROM classes c LEFT JOIN class_invites i"
+                                + " ON i.class_id=c.id WHERE ? > 0 ORDER BY c.created_at DESC";
+                        case TEACHER -> "SELECT c.id,c.name,COALESCE(i.join_code,'') FROM classes c LEFT JOIN class_invites i"
+                                + " ON i.class_id=c.id WHERE c.teacher_id=? ORDER BY c.created_at DESC";
+                        case STUDENT -> "SELECT c.id,c.name FROM classes c JOIN enrollments e ON e.class_id=c.id"
+                                + " WHERE e.user_id=? ORDER BY c.name";
+                    };
             try (PreparedStatement ps = db.prepareStatement(sql)) {
                 ps.setLong(1, s.userId());
                 try (ResultSet rs = ps.executeQuery()) {
@@ -84,7 +68,7 @@ public final class ClassroomWorkspaceModule implements ServerModule {
                         Map<String, Object> row = new LinkedHashMap<>();
                         row.put("id", rs.getLong(1));
                         row.put("name", rs.getString(2));
-                        if (s.role() == Role.TEACHER) row.put("joinCode", rs.getString(3));
+                        if (s.role().isStaff()) row.put("joinCode", rs.getString(3));
                         res.add(row);
                     }
                 }
@@ -187,9 +171,12 @@ public final class ClassroomWorkspaceModule implements ServerModule {
 
     private boolean allowed(Session s, long classId) throws SQLException {
         return ctx.db().read(db -> {
-            String sql = s.role() == Role.TEACHER
-                    ? "SELECT 1 FROM classes WHERE id=? AND teacher_id=?"
-                    : "SELECT 1 FROM enrollments WHERE class_id=? AND user_id=?";
+            String sql =
+                    switch (s.role()) {
+                        case ADMIN -> "SELECT 1 FROM classes WHERE id=? AND ? > 0";
+                        case TEACHER -> "SELECT 1 FROM classes WHERE id=? AND teacher_id=?";
+                        case STUDENT -> "SELECT 1 FROM enrollments WHERE class_id=? AND user_id=?";
+                    };
             try (PreparedStatement ps = db.prepareStatement(sql)) {
                 ps.setLong(1, classId);
                 ps.setLong(2, s.userId());
@@ -236,7 +223,7 @@ public final class ClassroomWorkspaceModule implements ServerModule {
                         Map<String, Object> item = new LinkedHashMap<>();
                         item.put("id", rs.getLong(1));
                         item.put("title", rs.getString(2));
-                        if (s.role() == Role.TEACHER) item.put("joinCode", rs.getString(3));
+                        if (s.role().isStaff()) item.put("joinCode", rs.getString(3));
                         item.put("createdAt", rs.getLong(4));
                         item.put("joined", rs.getInt(5) == 1);
                         result.add(item);

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LabCast — kiến trúc hệ thống phòng thực hành DSA/SQL",
+    "output": "labcast-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "vi",
+    "repository": {
+      "url": "https://github.com/lyhaiquan/ExamNet.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d6ee7a30ed99fff4377b56f72255e5aeace8bae5"
+    }
+  },
+  "components": [
+    { "id": "students", "type": "external", "label": "Máy học viên", "sublabel": "× N (≤ 50)", "pos": [40, 250], "size": [140, 64] },
+    { "id": "teacher", "type": "external", "label": "Máy giáo viên", "sublabel": "vai trò giáo viên", "pos": [40, 110], "size": [140, 64] },
+    { "id": "client", "type": "frontend", "label": "App LabCast", "sublabel": "JavaFX (giáo viên / học viên)", "pos": [240, 180], "size": [170, 72], "sources": [ { "path": "source/client/src/main/java/labcast/client/app/Launcher.java", "line": 7, "end_line": 12, "label": "entry point" } ] },
+    { "id": "discovery", "type": "backend", "label": "Discovery", "sublabel": "UDP broadcast :7002", "pos": [470, 90], "size": [150, 56], "sources": [ { "path": "source/server/src/main/java/labcast/server/discovery/DiscoveryResponder.java", "line": 16, "end_line": 33, "label": "DISCOVER/REPLY" } ] },
+    { "id": "server", "type": "backend", "label": "LabCast Server", "sublabel": "Java 17, TCP :7000", "pos": [470, 190], "size": [160, 84], "sources": [ { "path": "source/server/src/main/java/labcast/server/ServerMain.java", "line": 35, "end_line": 60, "label": "khởi động server" } ] },
+    { "id": "multicast", "type": "messagebus", "label": "Multicast", "sublabel": "UDP 239.255.70.1:7001", "pos": [470, 300], "size": [160, 60], "sources": [ { "path": "source/server/src/main/java/labcast/server/cast/CastModule.java", "line": 48, "end_line": 52, "label": "DEFAULT_GROUP" } ] },
+    { "id": "sqlite", "type": "database", "label": "SQLite", "sublabel": "store (Database)", "pos": [700, 120], "size": [130, 60], "sources": [ { "path": "source/server/src/main/java/labcast/server/store/Database.java", "line": 34, "end_line": 50, "label": "Database.open" } ] },
+    { "id": "content", "type": "database", "label": "content/", "sublabel": "bài học (DSA/SQL)", "pos": [700, 220], "size": [130, 60], "sources": [ { "path": "source/server/src/main/java/labcast/server/lesson/LessonRepository.java", "line": 43, "end_line": 84, "label": "load content" } ] },
+    { "id": "docker", "type": "cloud", "label": "Docker sandbox", "sublabel": "Python 3.12", "pos": [700, 320], "size": [150, 60], "sources": [ { "path": "source/server/src/main/java/labcast/server/run/DockerSandbox.java", "line": 15, "end_line": 20, "label": "DEFAULT_IMAGE" } ] },
+    { "id": "status", "type": "cloud", "label": "Status HTTP", "sublabel": ":8080 /version", "pos": [700, 30], "size": [140, 56], "sources": [ { "path": "source/server/src/main/java/labcast/server/ops/StatusEndpoint.java", "line": 43, "end_line": 46, "label": "start" } ] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Máy giáo viên (server)", "wraps": ["discovery", "server", "multicast", "sqlite", "content", "docker", "status"] }
+  ],
+  "connections": [
+    { "id": "teacher-to-client", "from": "teacher", "to": "client", "label": "chế độ giáo viên", "variant": "default" },
+    { "id": "students-to-client", "from": "students", "to": "client", "label": "chế độ học viên", "variant": "default" },
+    { "id": "client-to-server", "from": "client", "to": "server", "label": "TCP LCP/1.0 :7000", "variant": "emphasis" },
+    { "id": "client-discovery", "from": "client", "to": "discovery", "label": "DISCOVER / REPLY (UDP :7002)", "variant": "dashed" },
+    { "id": "server-to-multicast", "from": "server", "to": "multicast", "label": "phát chiếu (UDP)", "variant": "dashed" },
+    { "id": "multicast-to-client", "from": "multicast", "to": "client", "label": "CAST_DATA / KEYFRAME", "variant": "dashed" },
+    { "id": "server-to-sqlite", "from": "server", "to": "sqlite", "label": "read/write" },
+    { "id": "server-to-content", "from": "server", "to": "content", "label": "nạp bài" },
+    { "id": "server-to-docker", "from": "server", "to": "docker", "label": "docker run", "variant": "dashed" },
+    { "id": "server-to-status", "from": "server", "to": "status", "label": "HTTP :8080" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Mạng (LCP/1.0)", "items": ["TCP :7000 — phiên làm việc", "UDP multicast 239.255.70.1:7001 — chiếu", "UDP broadcast :7002 — tìm server", "TLS tuỳ chọn"] },
+    { "dot": "emerald", "title": "Server (Java 17)", "items": ["net, session, account, presence, discovery", "classroom, quiz, practice, grade", "cast, sync, lesson, run (Docker)", "sqlviz, journal, mirror, store, ops"] },
+    { "dot": "violet", "title": "Client (JavaFX)", "items": ["app, net, ui, quiz, clock", "cast, player, presenter, views.*", "editor, journal, mirror, practice"] },
+    { "dot": "amber", "title": "Dữ liệu & sandbox", "items": ["SQLite (Database, schema.sql)", "content/ (DSA + SQL lessons)", "Docker image labcast-runner:py3.12"] }
+  ]
+}

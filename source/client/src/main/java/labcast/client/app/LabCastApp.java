@@ -14,6 +14,7 @@ import labcast.client.ui.LoginController;
 import labcast.client.ui.LoginView;
 import labcast.client.ui.Theme;
 import labcast.client.ui.ZoomPane;
+import labcast.common.protocol.Role;
 
 /** App desktop LabCast: màn đăng nhập, rồi màn chính theo vai trò. */
 public final class LabCastApp extends Application {
@@ -25,6 +26,8 @@ public final class LabCastApp extends Application {
     private final ClockSync clock = new ClockSync();
     /** Gốc cố định của cửa sổ; đổi màn thì thay nội dung bên trong để giữ mức phóng chữ. */
     private ZoomPane root;
+    /** Thẻ vai trò mở sẵn ở màn đăng nhập ({@code --vai=quan-tri|giao-vien|hoc-vien}); mặc định sinh viên. */
+    private Role loginRole = Role.STUDENT;
 
     public static void main(String[] args) {
         launch(args);
@@ -34,6 +37,8 @@ public final class LabCastApp extends Application {
     public void start(Stage stage) {
         Theme.loadFonts(); // font đóng gói phải nạp trước khi dựng màn đầu tiên
         this.stage = stage;
+        Role r = LoginView.roleFromArg(getParameters().getNamed().get("vai"));
+        if (r != null) loginRole = r;
         stage.setTitle("LabCast");
         // Icon trên thanh tiêu đề và taskbar; Windows chọn cỡ hợp nhất trong danh sách
         for (int s : new int[] {16, 32, 48, 64, 128, 256}) {
@@ -68,8 +73,8 @@ public final class LabCastApp extends Application {
             session.client().close();
             session = null;
         }
-        stage.setTitle("LabCast");
-        root.setContent(new LoginView(this::loggedIn));
+        stage.setTitle("LabCast — Đăng nhập " + LoginView.roleName(loginRole));
+        root.setContent(new LoginView(this::loggedIn, loginRole));
     }
 
     private void loggedIn(LoginController.LoggedIn li) {

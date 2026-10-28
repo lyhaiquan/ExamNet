@@ -37,6 +37,8 @@ public final class Database implements AutoCloseable {
 
     /**
      * Mở (tạo nếu chưa có) và chạy {@code schema.sql}. {@code ":memory:"} cho test.
+     * Mở (tạo nếu chưa có), đưa DB của bản trước lên lược đồ hiện tại ({@link Migrations}) rồi chạy {@code
+     * schema.sql}. {@code ":memory:"} cho test.
      */
     public static Database open(String path) throws SQLException {
         SQLiteConfig cfg = new SQLiteConfig();
@@ -45,10 +47,12 @@ public final class Database implements AutoCloseable {
         Connection c = DriverManager.getConnection("jdbc:sqlite:" + path, cfg.toProperties());
         Database db = new Database(c);
         try (Statement st = c.createStatement()) {
+            Migrations.upgrade(c, !hasTable(c, "users"));
             for (String sql : SqlScript.split(loadSchema())) {
                 st.execute(sql);
             }
             ensurePracticeSessionColumns(st);
+            Migrations.markLatest(c);
         } catch (SQLException e) {
             c.close();
             throw e;
@@ -116,6 +120,15 @@ public final class Database implements AutoCloseable {
     public void close() throws SQLException {
         synchronized (lock) {
             conn.close();
+        }
+    }
+
+    private static boolean hasTable(Connection c, String name) throws SQLException {
+        try (var ps = c.prepareStatement("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")) {
+            ps.setString(1, name);
+            try (var rs = ps.executeQuery()) {
+                return rs.next();
+            }
         }
     }
 

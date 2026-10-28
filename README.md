@@ -238,7 +238,9 @@ java -jar server/target/labcast-server.jar --cau-hinh lop-sql.conf
 
 App tìm thấy cả hai lớp trong danh sách lúc đăng nhập. Mỗi lớp có tài khoản, danh sách học viên và tiến độ riêng (database riêng): nhập danh sách lớp trên từng server. Hai lớp chiếu cùng lúc vẫn không lẫn: app chỉ nhận gói chiếu của server mình đăng nhập. Không ghi `mon` thì server nạp bài cả hai môn (chỉ nên dùng khi phát triển).
 
-Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_MON`, `LABCAST_TAO_GIAO_VIEN`, `LABCAST_CONTENT`, `LABCAST_DB`, `LABCAST_LAN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. Không cần `chcp 65001`: server tự chuyển cửa sổ cmd sang UTF-8 lúc chạy và trả lại bảng mã cũ khi tắt.
+**Tài khoản quản trị:** thêm dòng `tao-admin = ad:matkhau:Họ tên` (hoặc `--tao-admin`) để tạo tài khoản ADMIN lúc khởi động. Quản trị đăng nhập cùng app, làm được mọi việc quản lý của giáo viên trên mọi lớp; nhập danh sách học viên thì chọn lớp trước. DB của bản cũ được nâng lược đồ tự động khi mở (`PRAGMA user_version`).
+
+Hoặc dùng biến môi trường `LABCAST_LOP`, `LABCAST_MON`, `LABCAST_TAO_GIAO_VIEN`, `LABCAST_TAO_ADMIN`, `LABCAST_CONTENT`, `LABCAST_DB`, `LABCAST_LAN`. Thứ tự thắng: dòng lệnh > file cấu hình > biến môi trường > mặc định. Không cần `chcp 65001`: server tự chuyển cửa sổ cmd sang UTF-8 lúc chạy và trả lại bảng mã cũ khi tắt.
 
 **Dashboard:** mở `http://localhost:8080/` trên chính máy chạy server. Trang tự cập nhật 2 giây một lần: học viên nào đang vào, mạng tốt hay chập chờn, ai đang rời app (Alt+Tab) và bao lâu, ai bị đánh dấu "dán khối lớn" (rê chuột lên cờ để xem bài nào, bao nhiêu ký tự; cờ mất khi học viên nộp đúng bài đó), lượt chạy code gần đây, nhật ký sự kiện (`audit_log`), log server. Máy khác trong LAN gọi vào thì bị trả 403, vì trang có tên và kết quả của học viên. Trên VPS server chạy trong Docker nên dashboard cũng trả 403; ở đó xem log bằng `docker compose logs`.
 
