@@ -1,0 +1,15 @@
+id: dsa.de-quy.doi-co-so
+mon: dsa
+chuong: de-quy
+ten: Đổi sang hệ cơ số b
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin: []                  # luyện tập: chỉ chấm test và Trace Table, không có animation
+cam_dung: [bin, oct, hex, format]
+cam_import: []
+cam_cu_phap: []
+gioi_han: { thoi_gian_ms: 2000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []

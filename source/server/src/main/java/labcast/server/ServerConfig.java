@@ -41,6 +41,9 @@ public record ServerConfig(
               --port-dashboard <số>         cổng HTTP của /version và dashboard (mặc định 8080)
               --khong-sandbox               chạy code học viên bằng Python cục bộ, KHÔNG cách ly (chỉ để phát triển)
               --cau-hinh <file>             đọc các tham số trên từ file UTF-8, mỗi dòng "khoá = giá trị"
+              --dat-lai-mat-khau <user:mật khẩu mới>   đặt lại mật khẩu trong database (theo --db hoặc
+                                            --cau-hinh) rồi thoát, không bật server. Dùng khi quản trị quên
+                                            mật khẩu, ví dụ: --cau-hinh lop.conf --dat-lai-mat-khau ad:moi123
 
             Trên Windows, chữ tiếng Việt như ớ, ư, ạ KHÔNG đi qua được dòng lệnh (Java nhận thành '?').
             Tên lớp, họ tên giáo viên, đường dẫn có dấu: ghi vào file cấu hình, ví dụ lop.conf
@@ -221,7 +224,7 @@ public record ServerConfig(
     }
 
     /** Hệ điều hành chuyển tham số dòng lệnh sang bảng mã không phải UTF-8 (Windows: Cp1252). */
-    static boolean argsLoseUnicode() {
+    public static boolean argsLoseUnicode() {
         String enc = System.getProperty("sun.jnu.encoding", "UTF-8");
         return !enc.equalsIgnoreCase("UTF-8") && !enc.equalsIgnoreCase("UTF8");
     }

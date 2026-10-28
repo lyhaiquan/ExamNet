@@ -114,9 +114,18 @@ class AdminRoleTest {
                     new PayloadWriter().i64(lopCuaGiaoVien).toBytes());
             c.readUntil(MessageType.CLASS_SELECT_RESULT);
             c.send(MessageType.ADMIN_ROSTER_IMPORT, new PayloadWriter().str(csv).toBytes());
-            assertEquals(
-                    MessageType.ADMIN_OK,
-                    c.readUntil(MessageType.ADMIN_OK, MessageType.ERROR).type());
+            Frame ok = c.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
+            assertEquals(MessageType.ADMIN_OK, ok.type());
+            var r = ok.reader();
+            r.str();
+            assertEquals("sv01", r.str(), "tài khoản vừa tạo, để app xuất file mật khẩu tạm");
+            assertEquals("", r.str());
+            // nhập lại: sv01 đã có, chỉ ghi danh, không tính là tạo mới
+            c.send(MessageType.ADMIN_ROSTER_IMPORT, new PayloadWriter().str(csv).toBytes());
+            var again = c.readUntil(MessageType.ADMIN_OK).reader();
+            again.str();
+            assertEquals("", again.str());
+            assertEquals("sv01", again.str());
         }
         long sv = new UserRepository(db).byUsername("sv01").orElseThrow().id();
         assertEquals(lopCuaGiaoVien, new ClassRepository(db).classOf(sv));

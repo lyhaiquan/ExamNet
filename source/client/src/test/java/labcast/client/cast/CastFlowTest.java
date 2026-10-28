@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
  * 5% gói, một máy có đồng hồ lệch 7 s (đồng bộ bằng ClockSync thật), một máy vào lớp muộn. Trong lúc
  * chạy mọi máy cùng bước với server; dừng thì cùng dừng một bước. Máy không có đường multicast thì bỏ qua.
  */
-class CastFlowTest {
+public class CastFlowTest {
     static final String BAI = "dsa.sap-xep.noi-bot";
 
     /** Trace ~150 KB chữ ngẫu nhiên: nén không nhỏ đi bao nhiêu, ra vài chục khúc. */
@@ -132,7 +132,7 @@ class CastFlowTest {
      * Gửi thử một datagram theo đúng đường của test (phát trên loopback, nghe như app nối qua 127.0.0.1).
      * Linux thường không bật multicast trên {@code lo}; khi đó bỏ qua test thay vì báo lỗi.
      */
-    static boolean multicastWorks(NetworkInterface lo, InetSocketAddress group) throws Exception {
+    public static boolean multicastWorks(NetworkInterface lo, InetSocketAddress group) throws Exception {
         List<Frame> got = new CopyOnWriteArrayList<>();
         try (var r = new CastReceiver(LocalNic.allIpv4(), group, got::add, n -> {});
                 var s = CastSender.open(lo, group)) {

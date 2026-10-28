@@ -68,6 +68,12 @@ public final class LessonScreen extends BorderPane {
     private final TraceTablePane traceTable = new TraceTablePane();
     private final Tab traceTab = new Tab("Trace Table", traceTable);
     private final RunPanel runPanel;
+    private VBox edCard;
+    private VBox codeColumn;
+    private FocusLayer focus;
+    private DiscussionPane discussion;
+    private final SplitPane split = new SplitPane();
+    private final Button talkButton = new Button("Thảo luận");
     /** Ngôn ngữ đã chọn ở mỗi bài trong phiên làm việc: mở lại bài thì về đúng ngôn ngữ đang viết. */
     private static final Map<String, Language> LAST_LANGUAGE = new ConcurrentHashMap<>();
 
@@ -135,6 +141,7 @@ public final class LessonScreen extends BorderPane {
         Label title = new Label(lesson.path("ten").asText());
         title.getStyleClass().addAll("h1", "lesson-main-title");
         title.setMinWidth(0);
+        Marquee.install(title);
         Label typeBadge = badge(
                 loaiLabel(lesson.path("loai").asText()),
                 "badge-" + lesson.path("loai").asText());
@@ -183,6 +190,10 @@ public final class LessonScreen extends BorderPane {
         playerBar.setAlignment(Pos.CENTER_LEFT);
         playerBar.getStyleClass().add("player-bar");
         VBox anim = new VBox(playerBar, player);
+        // cho khung trái co hẹp được: chú thích màu tự xuống dòng thay vì bị cắt mất chữ
+        anim.setMinWidth(0);
+        player.setMinWidth(0);
+        tabs.setMinWidth(0);
         VBox.setVgrow(player, Priority.ALWAYS);
 
         ScrollPane de = new ScrollPane(MarkdownView.render(lesson.path("de").asText(), true));
@@ -191,7 +202,30 @@ public final class LessonScreen extends BorderPane {
 
         animTab = new Tab("Animation", anim);
         Tab deTab = new Tab("Đề bài", de);
-        tabs.getTabs().addAll(animTab, deTab, traceTab);
+        // Bài không khai báo bộ vẽ nào (luyện tập): chỉ chấm test và Trace Table, không có thẻ Animation.
+        // PlayerPane vẫn giữ để Trace Table điều khiển từng bước.
+        if (sql || lesson.path("khungNhin").size() > 0) {
+            tabs.getTabs().add(animTab);
+        }
+        tabs.getTabs().addAll(deTab, traceTab);
+        // Thảo luận của lớp ở bài này (cả DSA và SQL); số bình luận hiện trên tên thẻ
+        // Thảo luận: khung trượt bên phải, mở/đóng bằng nút 💬 trên tiêu đề; nút đếm bình luận chưa đọc
+        Label unreadBadge = new Label();
+        unreadBadge.getStyleClass().add("discuss-badge");
+        unreadBadge.setVisible(false);
+        unreadBadge.setMouseTransparent(true);
+        discussion = new DiscussionPane(client, lessonId, !studentMode, () -> toggleDiscussion(false), n -> {
+            unreadBadge.setText(n > 99 ? "99+" : Integer.toString(n));
+            unreadBadge.setVisible(n > 0);
+        });
+        talkButton.getStyleClass().add("discuss-toggle");
+        talkButton.setGraphic(DiscussionPane.icon(DiscussionPane.CHAT, "discuss-icon"));
+        talkButton.setTooltip(new Tooltip("Mở / đóng thảo luận của lớp ở bài này"));
+        talkButton.setOnAction(e -> toggleDiscussion(!split.getItems().contains(discussion)));
+        javafx.scene.layout.StackPane talk = new javafx.scene.layout.StackPane(talkButton, unreadBadge);
+        javafx.scene.layout.StackPane.setAlignment(unreadBadge, Pos.TOP_RIGHT);
+        talk.setMinWidth(Region.USE_PREF_SIZE);
+        headerLine.getChildren().add(headerLine.getChildren().indexOf(closeBtn), talk);
         if (lesson.path("loiGiai").size() > 0) {
             tabs.getTabs().add(new Tab("Lời giải", solutionPane(lesson.path("loiGiai"))));
         }
@@ -237,10 +271,15 @@ public final class LessonScreen extends BorderPane {
         Button expandEditor = new Button("⛶");
         expandEditor.getStyleClass().add("editor-expand-button");
         expandEditor.setTooltip(new Tooltip("Mở rộng / khôi phục Code Editor"));
+        // khung hẹp: các nhãn chạy chữ thay vì cắt "…"
+        for (Label l : new Label[] {edTitle, saved, fileName}) {
+            l.setMinWidth(40);
+            Marquee.install(l);
+        }
         HBox edHeader = new HBox(8, edTitle, gap2, saved, fileName, languagePicker, expandEditor);
         edHeader.setAlignment(Pos.CENTER_LEFT);
         edHeader.getStyleClass().add("card-header");
-        VBox edCard = new VBox(edHeader, editor.node());
+        edCard = new VBox(edHeader, editor.node());
         VBox.setVgrow(editor.node(), Priority.ALWAYS);
         edCard.getStyleClass().addAll("card", "editor-card");
         edCard.setMinWidth(0);
@@ -270,20 +309,19 @@ public final class LessonScreen extends BorderPane {
         runPanel.getStyleClass().add("card");
         runPanel.enableLineTrace(!sql);
 
-        VBox codeColumn = new VBox(10, edCard, runPanel);
+        codeColumn = new VBox(10, edCard, runPanel);
         VBox.setVgrow(edCard, Priority.ALWAYS);
         codeColumn.setMinWidth(0);
-        SplitPane split = new SplitPane(codeColumn, tabs);
+        // Đề bài / Animation / Trace bên trái, ô code ở giữa, thảo luận (khi mở) bên phải
+        split.getItems().setAll(tabs, codeColumn);
         split.getStyleClass().add("lesson-split");
-        split.setDividerPositions(0.55);
+        split.setDividerPositions(0.42);
         setCenter(split);
-        expandEditor.setOnAction(e -> {
-            if (split.getItems().size() == 1) {
-                split.getItems().add(tabs);
-                split.setDividerPositions(0.55);
-            } else {
-                split.getItems().remove(tabs);
-            }
+        // ⛶ hoặc bấm vào ô code: chế độ tập trung (đề + code nổi lên 90% màn, phần còn lại mờ)
+        expandEditor.setTooltip(new Tooltip("Chế độ tập trung: chỉ đề bài và ô code"));
+        expandEditor.setOnAction(e -> enterFocus());
+        editor.node().addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+            if (focus == null || !focus.isOpen()) Platform.runLater(this::enterFocus);
         });
 
         // Đổi ngôn ngữ: nạp bản code đã lưu của ngôn ngữ đó (CODE_FETCH), từ đó gõ là lưu lên server như Python
@@ -301,6 +339,71 @@ public final class LessonScreen extends BorderPane {
         }
 
         showDemo();
+    }
+
+    /**
+     * Chế độ tập trung: đề bài bên trái, ô code bên phải, nổi lên giữa màn chiếm 90%, nền mờ. "Chạy thử" thì trở
+     * lại giao diện thường rồi chạy; Esc hoặc bấm ra ngoài thì chỉ trở lại.
+     */
+    private void enterFocus() {
+        if (focus != null && focus.isOpen() || getScene() == null) return;
+        Region placeholder = new Region();
+        placeholder.setPrefHeight(edCard.getHeight());
+        VBox.setVgrow(placeholder, Priority.ALWAYS);
+        int at = codeColumn.getChildren().indexOf(edCard);
+        codeColumn.getChildren().set(at, placeholder);
+
+        Label title = new Label(lesson.path("ten").asText());
+        title.getStyleClass().add("focus-title");
+        Label hint = new Label("Chế độ tập trung · Esc để thoát");
+        hint.getStyleClass().add("author-hint");
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        Button exit = new Button("Thoát");
+        exit.getStyleClass().add("dash-ghost");
+        Button run = new Button("▶  Chạy thử");
+        run.getStyleClass().add("dash-primary");
+        HBox head = new HBox(10, new VBox(2, title, hint), gap, exit, run);
+        head.setAlignment(Pos.CENTER_LEFT);
+
+        ScrollPane de = new ScrollPane(MarkdownView.render(lesson.path("de").asText(), true));
+        de.setFitToWidth(true);
+        de.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        de.getStyleClass().add("focus-statement");
+        SplitPane body = new SplitPane(de, edCard);
+        body.setDividerPositions(0.38);
+        body.getStyleClass().add("focus-split");
+        VBox box = new VBox(12, head, body);
+        VBox.setVgrow(body, Priority.ALWAYS);
+        box.getStyleClass().add("focus-panel");
+
+        boolean[] runAfter = {false};
+        focus = FocusLayer.open(this, box, 0.9, () -> {
+            codeColumn.getChildren().set(codeColumn.getChildren().indexOf(placeholder), edCard);
+            VBox.setVgrow(edCard, Priority.ALWAYS);
+            if (runAfter[0]) runPanel.runCode();
+        });
+        exit.setOnAction(e -> focus.close());
+        run.setOnAction(e -> {
+            runAfter[0] = true;
+            focus.close();
+        });
+        Platform.runLater(editor::focus);
+    }
+
+    private void toggleDiscussion(boolean show) {
+        boolean shown = split.getItems().contains(discussion);
+        if (show == shown) return;
+        if (show) {
+            split.getItems().add(discussion);
+            split.setDividerPositions(0.28, 0.72);
+        } else {
+            split.getItems().remove(discussion);
+            split.setDividerPositions(0.42);
+        }
+        discussion.setOpen(show);
+        talkButton.getStyleClass().remove("discuss-toggle-on");
+        if (show) talkButton.getStyleClass().add("discuss-toggle-on");
     }
 
     /** Ngôn ngữ của code đang soạn. */
@@ -387,6 +490,7 @@ public final class LessonScreen extends BorderPane {
     }
 
     public void dispose() {
+        discussion.dispose();
         editor.flush();
         runPanel.dispose();
         if (presenter.casting()) {
@@ -502,7 +606,7 @@ public final class LessonScreen extends BorderPane {
 
     static String loaiLabel(String loai) {
         return switch (loai) {
-            case "giang-giai" -> "Giảng giải";
+            case "giang-giai" -> "Bài mẫu";
             case "bai-tap" -> "Bài tập";
             case "luyen-tap" -> "Luyện tập";
             default -> loai;
@@ -574,7 +678,10 @@ public final class LessonScreen extends BorderPane {
                 runPanel.lastRunStdout(),
                 currentPlayer,
                 editor::highlightTraceLine);
-        tabs.getSelectionModel().select(runPanel.lastRunLineTrace() && traceTable.hasSteps() ? traceTab : animTab);
+        Tab hien = runPanel.lastRunLineTrace() && traceTable.hasSteps() ? traceTab : animTab;
+        if (tabs.getTabs().contains(hien)) {
+            tabs.getSelectionModel().select(hien);
+        }
         setSource("Đang xem: code của em", "mine");
     }
 

@@ -121,7 +121,45 @@ public enum MessageType {
     // 0x26, 0x27, 0x2B đã thuộc ADMIN_LESSON_* (bản #7) nên ba mã lớp/phiên này dời về đây
     CLASS_SELECT_RESULT(0x79),
     PRACTICE_LIST_REQ(0x7A),
-    PRACTICE_LIST_DATA(0x7B);
+    PRACTICE_LIST_DATA(0x7B),
+    // 0xA0–0xBF: giai đoạn 6 (docs/plans/giai-doan-6.md); 0x80–0x9F để dành cho đợt 2
+    /** Thảo luận ở từng bài (DiscussionModule): str lessonId → DISCUSS_DATA. */
+    DISCUSS_REQ(0xA0),
+    DISCUSS_DATA(0xA1),
+    /** JSON{lessonId, parentId?, text} → DISCUSS_NEW cho người gửi và cả lớp. */
+    DISCUSS_POST(0xA2),
+    /** Giáo viên/quản trị: i64 id, bool hidden. */
+    DISCUSS_HIDE(0xA3),
+    DISCUSS_NEW(0xA4),
+    /** Thích / bỏ thích một bình luận: i64 id, bool like → DISCUSS_NEW (cập nhật số thích). */
+    DISCUSS_LIKE(0xA5),
+    /** Số liệu trang chủ theo vai trò, payload rỗng. */
+    HOME_REQ(0xA8),
+    /** JSON số liệu trang chủ: xem HomeModule. */
+    HOME_DATA(0xA9),
+    /** Tự đổi mật khẩu: str mật khẩu cũ, str mật khẩu mới → ADMIN_OK(str thông báo) hoặc ERROR. */
+    PASSWORD_CHANGE(0xAA),
+    /**
+     * Giáo viên/quản trị đặt lại mật khẩu người khác: str username, str mật khẩu mới → ADMIN_OK hoặc ERROR. Giáo
+     * viên chỉ đặt lại được cho học viên ghi danh trong lớp mình dạy; quản trị đặt lại được cho mọi người.
+     */
+    PASSWORD_RESET(0xAB),
+    /**
+     * Quên mật khẩu, gửi trước khi đăng nhập: str username → ADMIN_OK(str). Trả lời y hệt dù tài khoản có hay
+     * không, để không dò được tên đăng nhập; có thật thì ghi yêu cầu chờ giáo viên đặt mật khẩu tạm.
+     */
+    PASSWORD_FORGOT(0xAC),
+    /** Giáo viên/quản trị: payload rỗng → PASSWORD_REQUESTS_DATA. */
+    PASSWORD_REQUESTS_REQ(0xAD),
+    /** JSON {requests:[{username, fullName, role, at}]}: yêu cầu quên mật khẩu người xem xử lý được. */
+    PASSWORD_REQUESTS_DATA(0xAE),
+    /** Quản trị: payload rỗng → ACCOUNT_LIST_DATA (mọi tài khoản và lớp, xem AccountAdminModule). */
+    ACCOUNT_LIST_REQ(0xAF),
+    ACCOUNT_LIST_DATA(0xB0),
+    /** Quản trị tạo / sửa giáo viên, học viên: JSON → ADMIN_OK(str) hoặc ERROR. */
+    ACCOUNT_SAVE(0xB1),
+    /** Quản trị khoá / mở khoá: i64 id, bool locked → ADMIN_OK(str). */
+    ACCOUNT_LOCK(0xB2);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

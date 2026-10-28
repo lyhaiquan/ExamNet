@@ -1,0 +1,19 @@
+id: dsa.cay.trung-vi-dong
+mon: dsa
+chuong: cay
+ten: Trung vị của dãy đang thêm vào
+loai: luyen-tap            # giang-giai | bai-tap | luyen-tap
+bac: [code]
+khung_nhin: []                  # luyện tập: chỉ chấm test và Trace Table, không có animation
+cam_dung: [sorted, sort, insort, insort_left, insort_right]
+cam_import: []
+cam_cu_phap: []
+cam_theo_ngon_ngu:
+  c: [qsort]
+  cpp: [sort, stable_sort, nth_element]
+  java: [Arrays.sort, Collections.sort]
+gioi_han: { thoi_gian_ms: 3000, bo_nho_mb: 256 }
+test_xem: [nho-1, nho-2]
+test_cham: tat-ca
+so_test_an: 10
+mo_khoa: []

@@ -119,18 +119,18 @@ class AuthFlowTest {
     }
 
     @Test
-    void giaoVienNhapDanhSachLop() throws Exception {
+    void giaoVienKhongNhapDanhSachLop_taiKhoanDoQuanTriTao() throws Exception {
         try (var c = TestClient.connect(server.port())) {
             Frame ok = c.login("gv", "matkhau");
             assertEquals(MessageType.AUTH_OK, ok.type());
             c.send(
                     MessageType.ADMIN_ROSTER_IMPORT,
                     new PayloadWriter().str("sv7,Học Viên Bảy,777\n").toBytes());
-            String msg = c.readUntil(MessageType.ADMIN_OK).reader().str();
-            assertTrue(msg.contains("Đã tạo 1"), msg);
+            Frame err = c.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
+            assertEquals(ErrorCode.FORBIDDEN, ErrorMessage.from(err).code());
         }
         try (var c = TestClient.connect(server.port())) {
-            assertEquals(MessageType.AUTH_OK, c.login("sv7", "777").type());
+            assertEquals(MessageType.AUTH_FAIL, c.login("sv7", "777").type());
         }
     }
 }

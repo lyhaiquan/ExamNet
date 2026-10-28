@@ -26,6 +26,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
@@ -93,11 +95,15 @@ public final class HomeScreen extends BorderPane {
     private final Button sidebarToggle = new Button();
     private final Button themeToggle = new Button();
     // Mục Code tự do là chức năng độc lập nằm trong SIDEBAR (không thuộc bài học).
+    private final Button homeButton = new Button("Trang chủ");
     private final Button playgroundButton = new Button("Code tự do");
     private final Button exerciseButton = new Button("Bài tập");
     private final Button practiceButton = new Button("Thực hành");
     private final Button addExerciseButton = new Button("Thêm bài tập");
     private final Button manageStudentsButton = new Button("Quản lý sinh viên");
+    /** Chỉ quản trị: tạo, sửa, khoá tài khoản giáo viên và học viên. */
+    private final Button accountsButton = new Button("Tài khoản");
+
     private final ComboBox<ClassOption> classSelector = new ComboBox<>();
     private long selectedClassId;
     private boolean loadingClasses;
@@ -117,14 +123,18 @@ public final class HomeScreen extends BorderPane {
     private AddExerciseScreen addExerciseScreen;
 
     private enum Nav {
+        HOME,
         EXERCISES,
         PRACTICE,
         PLAYGROUND,
         ADD_EXERCISE,
-        STUDENTS
+        STUDENTS,
+        ACCOUNTS
     }
 
-    private Nav activeNav = Nav.EXERCISES;
+    private Nav activeNav = Nav.HOME;
+    private final DashboardHome dashboard;
+    private JsonNode classList = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.arrayNode();
     // Hủy các phản hồi LESSON_FETCH cũ khi chuyển màn hình.
     private long lessonRequestVersion;
     private PlaygroundScreen playground;
@@ -167,9 +177,28 @@ public final class HomeScreen extends BorderPane {
         this.selectedClassId = li.classId();
         this.exerciseCatalog = new ExerciseCatalogPane(li.role() == Role.STUDENT, this::open);
         exerciseWorkspace.setCenter(exerciseCatalog);
+        if (li.role().isStaff()) exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
+        this.dashboard = new DashboardHome(
+                li,
+                new DashboardHome.Actions(
+                        id -> {
+                            showLessonCategory(Nav.EXERCISES);
+                            open(id);
+                        },
+                        () -> showLessonCategory(Nav.EXERCISES),
+                        chuong -> {
+                            showLessonCategory(Nav.EXERCISES);
+                            exerciseCatalog.showChapter(chuong);
+                        },
+                        this::showPracticeRooms,
+                        this::showStudents,
+                        this::showAddExercise));
         this.cast = cast;
         this.onLogout = onLogout;
         Theme.apply(this);
+        getProperties().put(FocusLayer.HOST, true); // ô phóng to, chế độ tập trung nằm trên màn này
+        // Màu nhấn theo vai trò: học viên tím, giáo viên xanh lá, quản trị tím đậm (labcast-*.css).
+        getStyleClass().add("role-" + li.role().name().toLowerCase(Locale.ROOT));
         this.journal = journal;
         LcpClient client = li.client();
 
@@ -196,6 +225,8 @@ public final class HomeScreen extends BorderPane {
         });
 
         sidebarHeading.getStyleClass().add("section-title");
+        Marquee.install(sidebarHeading);
+        lessonCount.setMinWidth(Region.USE_PREF_SIZE);
         lessonCount.getStyleClass().add("muted");
         HBox.setHgrow(sidebarHeaderGap, Priority.ALWAYS);
         lessonCount.getStyleClass().add("lesson-count");
@@ -204,6 +235,12 @@ public final class HomeScreen extends BorderPane {
         sideHeader.getStyleClass().add("sidebar-header");
 
         // Nhóm điều hướng chính — không phải TreeItem bài học.
+        configureNavButton(
+                homeButton, "M4 11 L12 4 L20 11 V20 H14 V14 H10 V20 H4 Z", "Tổng quan, tiến độ và hoạt động");
+        homeButton.setOnAction(e -> showHome());
+        homeButton.setId("nav-home");
+        exerciseButton.setId("nav-exercises");
+        addExerciseButton.setId("nav-add");
         configureNavButton(exerciseButton, "M6 5 H19 V19 H6 Z M9 9 H16 M9 13 H16", "Lọc danh sách bài tập");
         practiceButton.setText(li.role().isStaff() ? "Lớp thực hành" : "Tham gia thực hành");
         configureNavButton(
@@ -220,12 +257,61 @@ public final class HomeScreen extends BorderPane {
         playgroundButton.setOnAction(e -> showPlayground());
         addExerciseButton.setOnAction(e -> showAddExercise());
         manageStudentsButton.setOnAction(e -> showStudents());
-        VBox menu = new VBox(5, exerciseButton, practiceButton, playgroundButton);
-        if (li.role().isStaff()) menu.getChildren().addAll(addExerciseButton, manageStudentsButton);
+        accountsButton.setId("nav-accounts");
+        configureNavButton(
+                accountsButton,
+                "M9 11 A3 3 0 1 0 9 5 A3 3 0 0 0 9 11 M3 19 V17 C3 15 5.5 13.5 9 13.5 C10.5 13.5 11.8 13.8 12.8 14.3"
+                        + " M17 13 V19 M14 16 H20",
+                "Tạo, sửa, khoá tài khoản giáo viên và học viên");
+        accountsButton.setOnAction(e -> showAccounts());
+        VBox menu = new VBox(4);
+        if (li.role() == Role.ADMIN) {
+            homeButton.setText("Tổng quan");
+            manageStudentsButton.setText("Học viên");
+            menu.getChildren()
+                    .addAll(
+                            homeButton,
+                            navSection("Quản lý"),
+                            accountsButton,
+                            manageStudentsButton,
+                            practiceButton,
+                            navSection("Nội dung"),
+                            exerciseButton,
+                            addExerciseButton,
+                            navSection("Công cụ"),
+                            playgroundButton);
+        } else if (li.role().isStaff()) {
+            menu.getChildren()
+                    .addAll(
+                            navSection("Giảng dạy"),
+                            homeButton,
+                            exerciseButton,
+                            practiceButton,
+                            addExerciseButton,
+                            navSection("Quản lý"),
+                            manageStudentsButton,
+                            navSection("Công cụ"),
+                            playgroundButton);
+        } else {
+            menu.getChildren()
+                    .addAll(
+                            navSection("Học tập"),
+                            homeButton,
+                            exerciseButton,
+                            practiceButton,
+                            navSection("Công cụ"),
+                            playgroundButton);
+        }
         menu.getStyleClass().add("sidebar-navigation");
-        for (Button b :
-                new Button[] {exerciseButton, practiceButton, playgroundButton, addExerciseButton, manageStudentsButton
-                }) {
+        for (Button b : new Button[] {
+            homeButton,
+            exerciseButton,
+            practiceButton,
+            playgroundButton,
+            addExerciseButton,
+            manageStudentsButton,
+            accountsButton
+        }) {
             b.setMaxWidth(Double.MAX_VALUE);
         }
 
@@ -339,7 +425,7 @@ public final class HomeScreen extends BorderPane {
         sidebarFrame.getChildren().addAll(sidebar, sidebarResizeHandle);
         widthProperty().addListener((obs, o, w) -> updateSidebar());
         setLeft(sidebarFrame);
-        setCenter(exerciseWorkspace);
+        setCenter(dashboard);
         updateSidebar();
         loadClasses();
 
@@ -407,8 +493,26 @@ public final class HomeScreen extends BorderPane {
         castChip.setVisible(cast.active());
     }
 
+    private static Label navSection(String text) {
+        Label l = new Label(text.toUpperCase(Locale.ROOT));
+        l.getStyleClass().add("sidebar-nav-section");
+        return l;
+    }
+
+    private void showHome() {
+        leaveActiveScreen();
+        activeNav = Nav.HOME;
+        refreshNavigation();
+        setCenter(dashboard);
+        dashboard.setClasses(classList, selectedClassId);
+        setStatus("", null);
+        reportActivity("Trang chủ", "");
+        updateSidebar();
+    }
+
     private void configureNavButton(Button b, String svgData, String hint) {
         b.getStyleClass().add("sidebar-nav-button");
+        Marquee.install(b); // sidebar hẹp thì tên mục chạy ngang thay vì cắt "…"
         b.setAlignment(Pos.CENTER_LEFT);
         b.setGraphicTextGap(10);
         b.setTooltip(new Tooltip(hint));
@@ -419,18 +523,22 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void refreshNavigation() {
+        homeButton.getStyleClass().remove("sidebar-nav-active");
         exerciseButton.getStyleClass().remove("sidebar-nav-active");
         practiceButton.getStyleClass().remove("sidebar-nav-active");
         playgroundButton.getStyleClass().remove("sidebar-nav-active");
         addExerciseButton.getStyleClass().remove("sidebar-nav-active");
         manageStudentsButton.getStyleClass().remove("sidebar-nav-active");
+        accountsButton.getStyleClass().remove("sidebar-nav-active");
         Button selected =
                 switch (activeNav) {
+                    case HOME -> homeButton;
                     case EXERCISES -> exerciseButton;
                     case PRACTICE -> practiceButton;
                     case PLAYGROUND -> playgroundButton;
                     case ADD_EXERCISE -> addExerciseButton;
                     case STUDENTS -> manageStudentsButton;
+                    case ACCOUNTS -> accountsButton;
                 };
         selected.getStyleClass().add("sidebar-nav-active");
         lessonBrowser.setManaged(false);
@@ -510,6 +618,15 @@ public final class HomeScreen extends BorderPane {
         reportActivity("Xem phiên thực hành", "");
     }
 
+    private void showAccounts() {
+        if (li.role() != Role.ADMIN) return;
+        leaveActiveScreen();
+        activeNav = Nav.ACCOUNTS;
+        setCenter(new AccountsScreen(li.client()));
+        refreshNavigation();
+        updateSidebar();
+    }
+
     private void showStudents() {
         if (!li.role().isStaff()) return;
         leaveActiveScreen();
@@ -526,6 +643,7 @@ public final class HomeScreen extends BorderPane {
             return;
         }
         if (addExerciseScreen == null) addExerciseScreen = new AddExerciseScreen();
+        addExerciseScreen.setLessons(allLessons);
         leaveActiveScreen();
         activeNav = Nav.ADD_EXERCISE;
         refreshNavigation();
@@ -557,6 +675,7 @@ public final class HomeScreen extends BorderPane {
     private void updateClassOptions(JsonNode payload) {
         loadingClasses = true;
         try {
+            classList = payload.path("classes");
             classSelector.getItems().clear();
             for (JsonNode n : payload.path("classes")) {
                 classSelector
@@ -575,6 +694,9 @@ public final class HomeScreen extends BorderPane {
         } finally {
             loadingClasses = false;
         }
+        dashboard.setClasses(classList, selectedClassId);
+        // Quản trị đăng nhập chưa gắn lớp nào: chọn sẵn lớp đầu để các màn theo lớp có dữ liệu.
+        if (selectedClassId <= 0 && classSelector.getValue() != null) selectClass(classSelector.getValue());
     }
 
     private void selectClass(ClassOption option) {
@@ -594,7 +716,8 @@ public final class HomeScreen extends BorderPane {
                     }
                     selectedClassId = option.id();
                     Nav destination = activeNav;
-                    if (destination == Nav.PRACTICE) showPracticeRooms();
+                    if (destination == Nav.HOME) showHome();
+                    else if (destination == Nav.PRACTICE) showPracticeRooms();
                     else if (destination == Nav.STUDENTS) showStudents();
                     else if (destination == Nav.EXERCISES) showLessonCategory(Nav.EXERCISES);
                     loadLessons();
@@ -770,17 +893,37 @@ public final class HomeScreen extends BorderPane {
             uploadBtn.getStyleClass().add("on-dark");
             uploadBtn.setOnAction(e -> uploadLessonZip());
 
-            Button importBtn = new Button("Nhập danh sách lớp (CSV)…");
+            Button importBtn = new Button("Nhập danh sách lớp (Excel/CSV)…");
             importBtn.getStyleClass().add("on-dark");
             importBtn.setOnAction(e -> importRoster());
-            bar.getChildren().addAll(uploadBtn, importBtn);
+            bar.getChildren().add(uploadBtn);
+            // tài khoản học viên do quản trị tạo: giáo viên không nhập CSV
+            if (li.role() == Role.ADMIN) bar.getChildren().add(importBtn);
         }
-        bar.getChildren().addAll(avatar, who);
+        // Bấm vào tên mình: menu mật khẩu (ai cũng tự đổi được; giáo viên, quản trị đặt lại cho người khác)
+        HBox userChip = new HBox(10, avatar, who);
+        userChip.setAlignment(Pos.CENTER_LEFT);
+        MenuButton userMenu = new MenuButton();
+        userMenu.setId("user-menu");
+        userMenu.setGraphic(userChip);
+        userMenu.getStyleClass().add("user-menu");
+        userMenu.setTooltip(new Tooltip("Tài khoản: đổi mật khẩu"));
+        MenuItem changePwd = new MenuItem("Đổi mật khẩu của tôi…");
+        changePwd.setOnAction(e -> PasswordDialogs.change(getScene().getWindow(), li.client()));
+        userMenu.getItems().add(changePwd);
+        if (li.role().isStaff()) {
+            MenuItem resetPwd = new MenuItem(
+                    li.role() == Role.ADMIN ? "Đặt lại mật khẩu cho người khác…" : "Đặt lại mật khẩu cho học viên…");
+            resetPwd.setOnAction(e -> PasswordDialogs.reset(getScene().getWindow(), li.client(), null, null));
+            userMenu.getItems().add(resetPwd);
+        }
+        bar.getChildren().add(userMenu);
 
         Button logoutBtn = new Button("Đăng xuất");
         logoutBtn.setId("logout-btn");
         logoutBtn.getStyleClass().addAll("on-dark", "logout");
         logoutBtn.setOnAction(e -> logout());
+        logoutBtn.setMinWidth(Region.USE_PREF_SIZE); // thanh trên chật thì co chỗ khác, không cắt chữ "Đăng xuất"
         bar.getChildren().add(logoutBtn);
 
         bar.setAlignment(Pos.CENTER_LEFT);
@@ -993,6 +1136,7 @@ public final class HomeScreen extends BorderPane {
             }
             lessons.setRoot(root);
             exerciseCatalog.update(allLessons);
+            dashboard.setLessons(allLessons);
             lessonCount.setText(visible + " bài");
             String activeId = openLesson.get();
             if (activeId != null) {
@@ -1069,6 +1213,7 @@ public final class HomeScreen extends BorderPane {
             return;
         }
         loggedOut = true;
+        dashboard.close();
         if (practiceRoomsScreen != null) {
             practiceRoomsScreen.close();
             practiceRoomsScreen = null;
@@ -1129,6 +1274,7 @@ public final class HomeScreen extends BorderPane {
         }
         // Chỉ bấm vào một bài mới gửi LESSON_FETCH. Code tự do không đi qua đây.
         if (playgroundOpen) hidePlayground();
+        if (activeNav == Nav.HOME) showLessonCategory(Nav.EXERCISES);
         if (activeNav != Nav.EXERCISES) return;
         long requestVersion = ++lessonRequestVersion;
         LcpClient c = li.client();
@@ -1170,10 +1316,18 @@ public final class HomeScreen extends BorderPane {
 
     private void importRoster() {
         FileChooser fc = new FileChooser();
-        fc.setTitle("Chọn file CSV: username,họ tên,mật khẩu");
-        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV", "*.csv", "*.txt"));
+        fc.setTitle("Chọn danh sách lớp: Excel (mã SV, họ tên, ngày sinh) hoặc CSV (username,họ tên,mật khẩu)");
+        fc.getExtensionFilters()
+                .addAll(
+                        new FileChooser.ExtensionFilter("Excel hoặc CSV", "*.xlsx", "*.csv", "*.txt"),
+                        new FileChooser.ExtensionFilter("Excel", "*.xlsx"),
+                        new FileChooser.ExtensionFilter("CSV", "*.csv", "*.txt"));
         File file = fc.showOpenDialog(getScene().getWindow());
         if (file == null) {
+            return;
+        }
+        if (file.getName().toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
+            importRosterExcel(file);
             return;
         }
         String csv;
@@ -1203,6 +1357,29 @@ public final class HomeScreen extends BorderPane {
                         alert(Alert.AlertType.ERROR, e.getMessage());
                     }
                 }));
+    }
+
+    /** Danh sách lớp xuất từ phòng đào tạo (mã SV, họ tên, ngày sinh): xem trước rồi mới tạo tài khoản. */
+    private void importRosterExcel(File file) {
+        ClassOption target = classSelector.getValue();
+        if (target == null || selectedClassId <= 0) {
+            alert(Alert.AlertType.INFORMATION, "Chọn lớp ở ô chọn lớp trước, học viên sẽ được ghi danh vào lớp đó.");
+            return;
+        }
+        List<List<String>> rows;
+        try {
+            rows = XlsxReader.firstSheet(file.toPath());
+        } catch (XlsxReader.Unreadable e) {
+            alert(Alert.AlertType.ERROR, e.getMessage());
+            return;
+        } catch (Exception e) {
+            alert(Alert.AlertType.ERROR, "Không đọc được file: " + e.getMessage());
+            return;
+        }
+        RosterImportDialog.show(getScene().getWindow(), li.client(), target.name(), rows, () -> {
+            if (studentManagementScreen != null) studentManagementScreen.reload();
+            if (practiceRoomsScreen != null) practiceRoomsScreen.reload();
+        });
     }
 
     private void toggleLessonActive(String lessonId, boolean active) {

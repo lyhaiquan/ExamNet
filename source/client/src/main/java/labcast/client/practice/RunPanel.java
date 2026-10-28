@@ -142,6 +142,11 @@ public final class RunPanel extends VBox {
     }
 
     /** Gỡ listener khi rời màn bài học. */
+    /** Chạy thử như bấm nút "Chạy thử" (dùng khi thoát chế độ tập trung bằng nút Chạy). */
+    public void runCode() {
+        run(false);
+    }
+
     public void dispose() {
         client.off(MessageType.RUN_QUEUED, onQueued);
         client.off(MessageType.TRACE_CHUNK, onChunk);
