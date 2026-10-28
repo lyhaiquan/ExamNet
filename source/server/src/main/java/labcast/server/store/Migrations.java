@@ -19,7 +19,7 @@ import java.util.List;
 public final class Migrations {
 
     /** Phiên bản lược đồ của bản này. 0: DB tạo trước khi có migration (trước giai đoạn 6). */
-    public static final int LATEST = 3;
+    public static final int LATEST = 4;
 
     /** Một bước nâng từ {@code version - 1} lên {@code version}. */
     private record Step(int version, String name, boolean foreignKeysOff, Database.SqlWork<Void> work) {}
@@ -27,7 +27,8 @@ public final class Migrations {
     private static final List<Step> STEPS = List.of(
             new Step(1, "users nhận vai trò ADMIN", true, Migrations::usersWithAdminRole),
             new Step(2, "users có cờ phải đổi mật khẩu", false, Migrations::usersMustChangePassword),
-            new Step(3, "users có cờ bị khoá", false, Migrations::usersDisabled));
+            new Step(3, "users có cờ bị khoá", false, Migrations::usersDisabled),
+            new Step(4, "users giữ mật khẩu tạm tới khi tự đổi", false, Migrations::usersTempPassword));
 
     private Migrations() {}
 
@@ -109,6 +110,17 @@ public final class Migrations {
     private static Void usersDisabled(Connection c) throws SQLException {
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0");
+        }
+        return null;
+    }
+
+    /**
+     * Mật khẩu tạm (nhập lớp, quản trị tạo, đặt lại) giữ dạng chữ tới khi người dùng tự đặt mật khẩu riêng, để quản
+     * trị xuất lại file tài khoản gửi giáo viên bất cứ lúc nào. Tự đặt xong thì xoá.
+     */
+    private static Void usersTempPassword(Connection c) throws SQLException {
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE users ADD COLUMN temp_password TEXT");
         }
         return null;
     }

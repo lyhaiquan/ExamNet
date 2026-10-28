@@ -75,8 +75,9 @@ public final class RosterImporter {
                 enrolled.add(existing.get().username());
                 continue;
             }
-            long id = users.create(username, cols[1].strip(), Role.STUDENT, cols[2].strip());
-            users.setMustChangePassword(id, true); // mật khẩu trong CSV là mật khẩu tạm
+            String pwd = cols[2].strip();
+            long id = users.create(username, cols[1].strip(), Role.STUDENT, pwd);
+            users.setTemporaryPassword(id, pwd); // mật khẩu trong CSV là mật khẩu tạm
             if (classId > 0) {
                 classes.enroll(classId, id);
             }

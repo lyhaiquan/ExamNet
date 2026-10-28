@@ -134,12 +134,41 @@ public final class UserRepository {
         });
     }
 
+    /** Bật / tắt cờ phải đổi mật khẩu; mật khẩu tạm đang giữ (nếu có) bị xoá. Có mật khẩu tạm: {@link #setTemporaryPassword}. */
     public void setMustChangePassword(long userId, boolean must) throws SQLException {
         db.tx(c -> {
-            try (PreparedStatement ps = c.prepareStatement("UPDATE users SET must_change_pwd = ? WHERE id = ?")) {
+            try (PreparedStatement ps =
+                    c.prepareStatement("UPDATE users SET must_change_pwd = ?, temp_password = NULL WHERE id = ?")) {
                 ps.setInt(1, must ? 1 : 0);
                 ps.setLong(2, userId);
                 return ps.executeUpdate();
+            }
+        });
+    }
+
+    /**
+     * Mật khẩu vừa đặt là mật khẩu tạm (nhập lớp, quản trị tạo, đặt lại): lần đăng nhập sau phải tự đặt mật khẩu
+     * riêng; giữ dạng chữ tới lúc đó để quản trị xuất file tài khoản gửi giáo viên.
+     */
+    public void setTemporaryPassword(long userId, String password) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement ps =
+                    c.prepareStatement("UPDATE users SET must_change_pwd = 1, temp_password = ? WHERE id = ?")) {
+                ps.setString(1, password);
+                ps.setLong(2, userId);
+                return ps.executeUpdate();
+            }
+        });
+    }
+
+    /** Mật khẩu tạm đang giữ; {@code null}: người dùng đã tự đặt mật khẩu, hay tạo trước khi app lưu mật khẩu tạm. */
+    public String temporaryPassword(long userId) throws SQLException {
+        return db.read(c -> {
+            try (PreparedStatement ps = c.prepareStatement("SELECT temp_password FROM users WHERE id = ?")) {
+                ps.setLong(1, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? rs.getString(1) : null;
+                }
             }
         });
     }

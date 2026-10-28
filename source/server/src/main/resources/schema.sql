@@ -31,7 +31,10 @@ CREATE TABLE IF NOT EXISTS users (
     -- 1: mật khẩu tạm (giáo viên đặt lại, nhập từ CSV), lần đăng nhập sau phải tự đặt mật khẩu mới
     must_change_pwd INTEGER NOT NULL DEFAULT 0,
     -- 1: quản trị đã khoá, không đăng nhập được (khoá thay vì xoá để giữ bài làm, thảo luận)
-    disabled      INTEGER NOT NULL DEFAULT 0
+    disabled      INTEGER NOT NULL DEFAULT 0,
+    -- mật khẩu tạm dạng chữ (nhập lớp, quản trị tạo, đặt lại) tới khi tự đặt mật khẩu riêng; để quản trị xuất
+    -- lại file tài khoản gửi giáo viên. NULL: đã tự đặt hoặc tài khoản tạo trước khi có cột này
+    temp_password TEXT
 );
 
 CREATE TABLE IF NOT EXISTS sessions (

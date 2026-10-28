@@ -91,6 +91,8 @@ class MigrationsTest {
             assertEquals(2, count(db, "SELECT count(*) FROM users WHERE must_change_pwd = 0"));
             assertEquals(1, count(db, "SELECT count(*) FROM sqlite_master WHERE name = 'password_requests'"));
             assertEquals(2, count(db, "SELECT count(*) FROM users WHERE disabled = 0"), "bước 3: chưa ai bị khoá");
+            assertEquals(
+                    2, count(db, "SELECT count(*) FROM users WHERE temp_password IS NULL"), "bước 4: chưa lưu mk tạm");
         }
     }
 

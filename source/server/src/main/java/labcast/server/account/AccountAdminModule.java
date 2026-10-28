@@ -55,8 +55,8 @@ public final class AccountAdminModule implements ServerModule {
 
     /**
      * {@code ACCOUNT_LIST_REQ} → {@code ACCOUNT_LIST_DATA} JSON {accounts:[{id, username, fullName, role, locked,
-     * mustChange, online, classes:[tên lớp], classId}], classes:[{id, name, teacher}]}. Không bao giờ có mật khẩu băm
-     * hay token.
+     * mustChange, tempPassword, online, classes:[tên lớp], classId}], classes:[{id, name, teacher}]}. Không bao giờ có mật khẩu băm
+     * hay token; {@code tempPassword} là mật khẩu tạm chưa đổi (null nếu đã tự đặt), để xuất file tài khoản.
      */
     private void list(Ctx c, Frame f) throws Exception {
         ObjectNode root = JsonNodeFactory.instance.objectNode();
@@ -64,8 +64,9 @@ public final class AccountAdminModule implements ServerModule {
         ArrayNode classList = root.putArray("classes");
         Map<Long, ObjectNode> byId = new LinkedHashMap<>();
         ctx.db().read(db -> {
-            try (PreparedStatement ps = db.prepareStatement("SELECT id, username, full_name, role, disabled,"
-                            + " must_change_pwd, created_at FROM users ORDER BY role, full_name, username");
+            try (PreparedStatement ps = db.prepareStatement(
+                            "SELECT id, username, full_name, role, disabled,"
+                                    + " must_change_pwd, created_at, temp_password FROM users ORDER BY role, full_name, username");
                     ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     long id = rs.getLong(1);
@@ -77,6 +78,7 @@ public final class AccountAdminModule implements ServerModule {
                             .put("locked", rs.getInt(5) != 0)
                             .put("mustChange", rs.getInt(6) != 0)
                             .put("createdAt", rs.getLong(7))
+                            .put("tempPassword", rs.getString(8))
                             .put(
                                     "online",
                                     ctx.sessions()
@@ -154,8 +156,9 @@ public final class AccountAdminModule implements ServerModule {
                 throw new ProtocolException(ErrorCode.BAD_FRAME, "Nhập tên lớp giáo viên này dạy");
             }
             requireClass(classId, role);
-            id = users.create(username, fullName, role, in.path("password").asText(""));
-            users.setMustChangePassword(id, true); // mật khẩu tạm: lần đăng nhập đầu tự đặt mật khẩu riêng
+            String pwd = in.path("password").asText("");
+            id = users.create(username, fullName, role, pwd);
+            users.setTemporaryPassword(id, pwd); // lần đăng nhập đầu tự đặt mật khẩu riêng
             if (role == Role.STUDENT) classes.enroll(classId, id);
             else classes.ensure(newClass, id);
             ctx.audit().record(admin.username(), "ACCOUNT_CREATE", role + " " + username);

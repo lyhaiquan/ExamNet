@@ -183,6 +183,7 @@ class PasswordTest {
             send(c, MessageType.PASSWORD_RESET, "sv1", "123456");
         }
         assertEquals(true, mustChange("sv1", "123456"));
+        assertEquals("123456", tempPwd("sv1"), "giữ mật khẩu tạm để quản trị xuất file");
         try (var c = TestClient.connect(server.port())) {
             c.login("sv1", "123456");
             // giữ nguyên mật khẩu tạm thì không được
@@ -192,6 +193,12 @@ class PasswordTest {
                     send(c, MessageType.PASSWORD_CHANGE, "123456", "meo-con").type());
         }
         assertEquals(false, mustChange("sv1", "meo-con"));
+        assertEquals(null, tempPwd("sv1"), "tự đặt mật khẩu rồi thì xoá mật khẩu tạm");
+    }
+
+    private String tempPwd(String user) throws Exception {
+        var users = new UserRepository(db);
+        return users.temporaryPassword(users.byUsername(user).orElseThrow().id());
     }
 
     @Test
@@ -227,6 +234,7 @@ class PasswordTest {
                 .classOf(new UserRepository(db).byUsername("gv").orElseThrow().id());
         new RosterImporter(new UserRepository(db), new ClassRepository(db))
                 .importCsv("sv9,Học viên Chín,mk-sv9\n", lop);
+        assertEquals("mk-sv9", tempPwd("sv9"));
         assertEquals(true, mustChange("sv9", "mk-sv9"));
     }
 

@@ -120,7 +120,7 @@ public final class AccountModule implements ServerModule {
         String bad = checkNewPassword(newPwd);
         if (bad != null) throw new ProtocolException(ErrorCode.BAD_FRAME, bad);
         users.setPassword(target.id(), newPwd);
-        users.setMustChangePassword(target.id(), true); // mật khẩu tạm: lần đăng nhập sau tự đặt mật khẩu riêng
+        users.setTemporaryPassword(target.id(), newPwd); // lần đăng nhập sau tự đặt mật khẩu riêng
         users.clearPasswordRequest(target.id());
         ctx.audit().record(s.username(), "PASSWORD_RESET", "đặt lại mật khẩu cho " + target.username());
         c.reply(
