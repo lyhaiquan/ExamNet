@@ -2788,3 +2788,34 @@
 .login-servers .scroll-bar > .decrement-button { -fx-pref-height: 0; -fx-padding: 0; }
 .login-servers .scroll-bar:vertical > .track { -fx-background-color: transparent; }
 .login-class-count { -fx-text-fill: -lc-faint; -fx-font-size: 12px; }
+/* O code tren, ket qua chay duoi: thanh chia doc keo duoc, nhin nhu khe giua hai the. */
+.code-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-box-border: transparent;
+}
+
+.code-split > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 5 0;
+    -fx-cursor: v-resize;
+}
+
+.code-split > .split-pane-divider:hover {
+    -fx-background-color: -lc-border;
+    -fx-background-insets: 4 40% 4 40%;
+    -fx-background-radius: 2;
+}
+
+.run-expand-button {
+    -fx-padding: 4 9;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -lc-muted;
+    -fx-font-size: 18px;
+    -fx-min-width: 34;
+}
+.run-expand-button:hover {
+    -fx-background-color: -lc-surface-2;
+    -fx-text-fill: -lc-primary-text;
+}

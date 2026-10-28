@@ -69,7 +69,10 @@ public final class LessonScreen extends BorderPane {
     private final Tab traceTab = new Tab("Trace Table", traceTable);
     private final RunPanel runPanel;
     private VBox edCard;
-    private VBox codeColumn;
+    private SplitPane codeColumn;
+    /** Phần chiều cao của ô code khi khung kết quả ở cỡ thường. */
+    private static final double CODE_SHARE = 0.68;
+
     private FocusLayer focus;
     private DiscussionPane discussion;
     private final SplitPane split = new SplitPane();
@@ -309,9 +312,14 @@ public final class LessonScreen extends BorderPane {
         runPanel.getStyleClass().add("card");
         runPanel.enableLineTrace(!sql);
 
-        codeColumn = new VBox(10, edCard, runPanel);
-        VBox.setVgrow(edCard, Priority.ALWAYS);
+        // Ô code trên, kết quả chạy dưới: kéo thanh giữa để chia lại, nút ⛶ trên khung kết quả phóng to / thu về
+        codeColumn = new SplitPane(edCard, runPanel);
+        codeColumn.setOrientation(javafx.geometry.Orientation.VERTICAL);
+        codeColumn.getStyleClass().add("code-split");
+        codeColumn.setDividerPositions(CODE_SHARE);
         codeColumn.setMinWidth(0);
+        SplitPane.setResizableWithParent(runPanel, false);
+        runPanel.setOnExpand(big -> codeColumn.setDividerPositions(big ? 0.25 : CODE_SHARE));
         // Đề bài / Animation / Trace bên trái, ô code ở giữa, thảo luận (khi mở) bên phải
         split.getItems().setAll(tabs, codeColumn);
         split.getStyleClass().add("lesson-split");
@@ -350,8 +358,10 @@ public final class LessonScreen extends BorderPane {
         Region placeholder = new Region();
         placeholder.setPrefHeight(edCard.getHeight());
         VBox.setVgrow(placeholder, Priority.ALWAYS);
-        int at = codeColumn.getChildren().indexOf(edCard);
-        codeColumn.getChildren().set(at, placeholder);
+        int at = codeColumn.getItems().indexOf(edCard);
+        double[] dividers = codeColumn.getDividerPositions();
+        codeColumn.getItems().set(at, placeholder);
+        codeColumn.setDividerPositions(dividers);
 
         Label title = new Label(lesson.path("ten").asText());
         title.getStyleClass().add("focus-title");
@@ -379,8 +389,8 @@ public final class LessonScreen extends BorderPane {
 
         boolean[] runAfter = {false};
         focus = FocusLayer.open(this, box, 0.9, () -> {
-            codeColumn.getChildren().set(codeColumn.getChildren().indexOf(placeholder), edCard);
-            VBox.setVgrow(edCard, Priority.ALWAYS);
+            codeColumn.getItems().set(codeColumn.getItems().indexOf(placeholder), edCard);
+            codeColumn.setDividerPositions(dividers);
             if (runAfter[0]) runPanel.runCode();
         });
         exit.setOnAction(e -> focus.close());
