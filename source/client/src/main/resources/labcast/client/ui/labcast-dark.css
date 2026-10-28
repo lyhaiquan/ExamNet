@@ -2719,3 +2719,8 @@
 /* ===== Tài khoản (quản trị) ===== */
 .button.account-lock { -fx-text-fill: #DC2626; }
 .button.account-unlock { -fx-text-fill: #16A34A; }
+
+/* ===== Nhập danh sách lớp từ Excel: dòng lỗi trong bảng xem trước ===== */
+.table-row-cell.roster-bad .table-cell { -fx-text-fill: #F87171; }
+.table-row-cell.roster-bad:selected .table-cell { -fx-text-fill: white; }
+.roster-summary { -fx-font-weight: bold; }

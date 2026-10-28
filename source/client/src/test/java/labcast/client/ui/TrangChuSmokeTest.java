@@ -161,6 +161,38 @@ class TrangChuSmokeTest {
                             add.close();
                             return null;
                         });
+                        // danh sách lớp như phòng đào tạo xuất: dòng tên trường, họ đệm và tên tách cột
+                        List<List<String>> ds = List.of(
+                                List.of("HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG"),
+                                List.of("DANH SÁCH SINH VIÊN LỚP D22CQCN01"),
+                                List.of(),
+                                List.of("STT", "Mã SV", "Họ đệm", "Tên", "Ngày sinh", "Giới tính"),
+                                List.of("1", "B22DCCN001", "Nguyễn Văn", "An", "38204", "Nam"),
+                                List.of("2", "B22DCCN002", "Trần Thị", "Bình", "03/01/2004", "Nữ"),
+                                List.of("3", "B22DCCN003", "Lê Hoàng", "Cường", "5082004", "Nam"),
+                                List.of("4", "B22DCCN003", "Phạm Minh", "Dũng", "12/11/2004", "Nam"),
+                                List.of("5", "B22DCCN005", "Đỗ Thu", "Hà", "31/02/2004", "Nữ"),
+                                List.of("6", "B22DCCN006", "Vũ Quang", "Huy", "2004-09-21", "Nam"));
+                        var nhap = fx(() -> RosterImportDialog.show(null, li.client(), "DSA Nâng cao - K23", ds, null));
+                        fx(() -> {
+                            nhap.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
+                            return null;
+                        });
+                        chup(nhap.getDialogPane().getScene(), "nhap-excel-xem-truoc");
+                        // bấm Tạo: server tạo 4 tài khoản, mật khẩu tạm là ngày sinh, phải tự đổi lần đầu
+                        fx(() -> {
+                            ((javafx.scene.control.Button)
+                                            nhap.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK))
+                                    .fire();
+                            return null;
+                        });
+                        until(() -> !nhap.isShowing(), "server trả lời nhập danh sách");
+                        var an = users.byUsername("B22DCCN001").orElseThrow();
+                        assertTrue(users.mustChangePassword(an.id()));
+                        assertTrue(users.byUsername("B22DCCN005").isEmpty(), "dòng lỗi không được tạo");
+                        LoginController.login("127.0.0.1", server.port(), "B22DCCN001", "05082004")
+                                .client()
+                                .close();
                     }
                     if (who[0].equals("gv") && !dark) {
                         fx(() -> {

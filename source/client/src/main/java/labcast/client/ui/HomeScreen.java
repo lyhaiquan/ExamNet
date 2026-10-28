@@ -893,7 +893,7 @@ public final class HomeScreen extends BorderPane {
             uploadBtn.getStyleClass().add("on-dark");
             uploadBtn.setOnAction(e -> uploadLessonZip());
 
-            Button importBtn = new Button("Nhập danh sách lớp (CSV)…");
+            Button importBtn = new Button("Nhập danh sách lớp (Excel/CSV)…");
             importBtn.getStyleClass().add("on-dark");
             importBtn.setOnAction(e -> importRoster());
             bar.getChildren().add(uploadBtn);
@@ -1316,10 +1316,18 @@ public final class HomeScreen extends BorderPane {
 
     private void importRoster() {
         FileChooser fc = new FileChooser();
-        fc.setTitle("Chọn file CSV: username,họ tên,mật khẩu");
-        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV", "*.csv", "*.txt"));
+        fc.setTitle("Chọn danh sách lớp: Excel (mã SV, họ tên, ngày sinh) hoặc CSV (username,họ tên,mật khẩu)");
+        fc.getExtensionFilters()
+                .addAll(
+                        new FileChooser.ExtensionFilter("Excel hoặc CSV", "*.xlsx", "*.csv", "*.txt"),
+                        new FileChooser.ExtensionFilter("Excel", "*.xlsx"),
+                        new FileChooser.ExtensionFilter("CSV", "*.csv", "*.txt"));
         File file = fc.showOpenDialog(getScene().getWindow());
         if (file == null) {
+            return;
+        }
+        if (file.getName().toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
+            importRosterExcel(file);
             return;
         }
         String csv;
@@ -1349,6 +1357,29 @@ public final class HomeScreen extends BorderPane {
                         alert(Alert.AlertType.ERROR, e.getMessage());
                     }
                 }));
+    }
+
+    /** Danh sách lớp xuất từ phòng đào tạo (mã SV, họ tên, ngày sinh): xem trước rồi mới tạo tài khoản. */
+    private void importRosterExcel(File file) {
+        ClassOption target = classSelector.getValue();
+        if (target == null || selectedClassId <= 0) {
+            alert(Alert.AlertType.INFORMATION, "Chọn lớp ở ô chọn lớp trước, học viên sẽ được ghi danh vào lớp đó.");
+            return;
+        }
+        List<List<String>> rows;
+        try {
+            rows = XlsxReader.firstSheet(file.toPath());
+        } catch (XlsxReader.Unreadable e) {
+            alert(Alert.AlertType.ERROR, e.getMessage());
+            return;
+        } catch (Exception e) {
+            alert(Alert.AlertType.ERROR, "Không đọc được file: " + e.getMessage());
+            return;
+        }
+        RosterImportDialog.show(getScene().getWindow(), li.client(), target.name(), rows, () -> {
+            if (studentManagementScreen != null) studentManagementScreen.reload();
+            if (practiceRoomsScreen != null) practiceRoomsScreen.reload();
+        });
     }
 
     private void toggleLessonActive(String lessonId, boolean active) {
