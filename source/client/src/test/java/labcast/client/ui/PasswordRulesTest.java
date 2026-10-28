@@ -19,6 +19,19 @@ class PasswordRulesTest {
     }
 
     @Test
+    void formTaiKhoan() {
+        assertNull(AccountForm.check(true, true, "sv01", "Học viên", 3, "", "123456"));
+        assertNull(AccountForm.check(true, false, "gv.an", "Cô An", 0, "Lớp B", "123456"));
+        assertNull(AccountForm.check(false, true, "", "Tên mới", 0, "", null));
+        assertNotNull(AccountForm.check(true, true, "s", "A", 3, "", "123456"));
+        assertNotNull(AccountForm.check(true, true, "sv:01", "A", 3, "", "123456"));
+        assertNotNull(AccountForm.check(true, true, "sv01", "  ", 3, "", "123456"));
+        assertNotNull(AccountForm.check(true, true, "sv01", "A", 0, "", "123456"));
+        assertNotNull(AccountForm.check(true, false, "gv2", "A", 0, " ", "123456"));
+        assertNotNull(AccountForm.check(true, true, "sv01", "A", 3, "", "12"));
+    }
+
+    @Test
     void goiYMatKhau_deDoc_quaDuocKiemTra() {
         for (int i = 0; i < 50; i++) {
             String p = PasswordRules.suggest();

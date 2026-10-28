@@ -2593,3 +2593,7 @@
 }
 .pwd-requests-btn:hover { -fx-background-color: #D97706; }
 .hyperlink.login-forgot { -fx-text-fill: -lc-primary; -fx-padding: 0; -fx-font-size: 12px; }
+
+/* ===== Tài khoản (quản trị) ===== */
+.button.account-lock { -fx-text-fill: #DC2626; }
+.button.account-unlock { -fx-text-fill: #16A34A; }

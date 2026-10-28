@@ -48,6 +48,7 @@ class TrangChuSmokeTest {
                         db,
                         List.of(
                                 new AccountModule(),
+                                new labcast.server.account.AccountAdminModule(),
                                 new LessonModule(),
                                 new ClassroomWorkspaceModule(),
                                 new HomeModule()))) {
@@ -142,6 +143,25 @@ class TrangChuSmokeTest {
                         return null;
                     });
                     chup(scene, "kho-bai-" + who[1] + (dark ? "-toi" : "-sang"));
+                    if (who[0].equals("ad") && !dark) {
+                        fx(() -> {
+                            ((javafx.scene.control.Button) scene.lookup("#nav-accounts")).fire();
+                            return null;
+                        });
+                        Thread.sleep(800); // chờ ACCOUNT_LIST_DATA
+                        chup(scene, "tai-khoan-quan-tri");
+                        var add = fx(
+                                () -> ((AccountsScreen) ((HomeScreen) scene.getRoot()).getCenter()).editDialog(null));
+                        fx(() -> {
+                            add.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
+                            return null;
+                        });
+                        chup(add.getDialogPane().getScene(), "them-tai-khoan");
+                        fx(() -> {
+                            add.close();
+                            return null;
+                        });
+                    }
                     if (who[0].equals("gv") && !dark) {
                         fx(() -> {
                             ((javafx.scene.control.Button) scene.lookup("#nav-add")).fire();
