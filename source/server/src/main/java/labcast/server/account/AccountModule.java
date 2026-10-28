@@ -2,12 +2,13 @@ package labcast.server.account;
 
 import java.sql.SQLException;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Logger;
+import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.Frame;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.PayloadWriter;
+import labcast.common.protocol.ProtocolException;
 import labcast.common.protocol.Role;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
@@ -44,33 +45,38 @@ public final class AccountModule implements ServerModule {
                 throw new IllegalStateException(e);
             }
         });
-        createTeacherFromConfig();
+        createFromConfig("--tao-giao-vien", ctx.config().taoGiaoVien(), Role.TEACHER);
+        createFromConfig("--tao-admin", ctx.config().taoAdmin(), Role.ADMIN);
 
         ctx.router()
                 .on(MessageType.HELLO, this::hello)
                 .on(MessageType.AUTH, this::auth)
                 .on(MessageType.RESUME_REQ, this::resume)
-                .on(MessageType.ADMIN_ROSTER_IMPORT, Set.of(Role.TEACHER), this::importRoster);
+                .on(MessageType.ADMIN_ROSTER_IMPORT, Role.STAFF, this::importRoster);
     }
 
-    /** {@code --tao-giao-vien user:mật khẩu:họ tên}; đã có tài khoản đó thì bỏ qua. */
-    private void createTeacherFromConfig() {
-        String spec = ctx.config().taoGiaoVien();
+    /**
+     * {@code --tao-giao-vien} / {@code --tao-admin user:mật khẩu:họ tên}; đã có tài khoản đó thì bỏ qua. Giáo
+     * viên được tạo kèm lớp {@code --lop}; quản trị không gắn lớp nào.
+     */
+    private void createFromConfig(String flag, String spec, Role role) {
         if (spec == null || spec.isBlank()) {
             return;
         }
         String[] p = spec.split(":", 3);
         if (p.length != 3 || p[0].isBlank() || p[1].isBlank() || p[2].isBlank()) {
-            throw new IllegalArgumentException("--tao-giao-vien phải có dạng user:mật khẩu:họ tên");
+            throw new IllegalArgumentException(flag + " phải có dạng user:mật khẩu:họ tên");
         }
         try {
             if (users.byUsername(p[0]).isEmpty()) {
-                long id = users.create(p[0], p[2], Role.TEACHER, p[1]);
-                classes.ensure(ctx.config().lop(), id);
-                LOG.info("Đã tạo tài khoản giáo viên " + p[0]);
+                long id = users.create(p[0], p[2], role, p[1]);
+                if (role == Role.TEACHER) {
+                    classes.ensure(ctx.config().lop(), id);
+                }
+                LOG.info("Đã tạo tài khoản " + (role == Role.ADMIN ? "quản trị " : "giáo viên ") + p[0]);
             }
         } catch (SQLException e) {
-            throw new IllegalStateException("Không tạo được giáo viên", e);
+            throw new IllegalStateException("Không tạo được tài khoản " + p[0], e);
         }
     }
 
@@ -152,10 +158,16 @@ public final class AccountModule implements ServerModule {
                 Priority.NORMAL);
     }
 
-    /** {@code ADMIN_ROSTER_IMPORT(str csv)} → {@code ADMIN_OK(str message)}. Chỉ giáo viên. */
+    /**
+     * {@code ADMIN_ROSTER_IMPORT(str csv)} → {@code ADMIN_OK(str message)}. Giáo viên chưa có lớp thì tạo lớp
+     * {@code --lop} cho họ; quản trị phải chọn lớp trước ({@code CLASS_SELECT_REQ}), không tự tạo lớp.
+     */
     private void importRoster(Ctx c, Frame f) throws Exception {
         String csv = f.reader().str();
         Session s = c.session();
+        if (s.classId() <= 0 && s.role() == Role.ADMIN) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Chọn lớp trước khi nhập danh sách học viên");
+        }
         long classId =
                 s.classId() > 0 ? s.classId() : classes.ensure(ctx.config().lop(), s.userId());
         RosterImporter.Result res = importer.importCsv(csv, classId);

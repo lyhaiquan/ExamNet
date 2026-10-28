@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.MessageType;
-import labcast.common.protocol.Role;
 import labcast.server.net.Connection;
 import labcast.server.net.FramePolicy;
 import labcast.server.session.Session;
@@ -99,7 +98,7 @@ public final class RateLimitPolicy implements FramePolicy {
         if (t == MessageType.CAST_NACK) {
             return pc.nack.tryTake(now) == 0 ? Decision.ALLOW : Decision.DROP;
         }
-        if (t == MessageType.CAST_CONTROL && s != null && s.role() == Role.TEACHER) {
+        if (t == MessageType.CAST_CONTROL && s != null && s.role().isStaff()) {
             return Decision.ALLOW;
         }
         long wait = pc.other.tryTake(now);
@@ -123,7 +122,7 @@ public final class RateLimitPolicy implements FramePolicy {
         if (s == null) {
             return Decision.ALLOW; // chưa đăng nhập: Router tự chặn mọi loại cần đăng nhập
         }
-        if (t == MessageType.RUN_REQ && s.role() != Role.TEACHER) {
+        if (t == MessageType.RUN_REQ && !s.role().isStaff()) {
             long wait = user(s, now).run.tryTake(now);
             if (wait > 0) {
                 return Decision.deny(

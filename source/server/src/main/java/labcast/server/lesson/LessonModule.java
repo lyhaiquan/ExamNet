@@ -88,9 +88,9 @@ public final class LessonModule implements ServerModule {
         ctx.router()
                 .on(MessageType.LESSON_LIST, this::list)
                 .on(MessageType.LESSON_FETCH, this::fetch)
-                .on(MessageType.ADMIN_LESSON_DELETE, Set.of(Role.TEACHER), this::deleteLesson)
-                .on(MessageType.ADMIN_LESSON_TOGGLE, Set.of(Role.TEACHER), this::toggleLesson)
-                .on(MessageType.ADMIN_LESSON_UPLOAD, Set.of(Role.TEACHER), this::uploadLesson);
+                .on(MessageType.ADMIN_LESSON_DELETE, Role.STAFF, this::deleteLesson)
+                .on(MessageType.ADMIN_LESSON_TOGGLE, Role.STAFF, this::toggleLesson)
+                .on(MessageType.ADMIN_LESSON_UPLOAD, Role.STAFF, this::uploadLesson);
     }
 
     /**
@@ -99,7 +99,7 @@ public final class LessonModule implements ServerModule {
      * NOT_STARTED = chưa có dòng progress (có thể đã lưu code nháp).
      */
     private void list(Ctx c, Frame f) throws SQLException {
-        boolean isTeacher = c.session() != null && c.session().role() == Role.TEACHER;
+        boolean isTeacher = c.session() != null && c.session().role().isStaff();
         Map<String, Map<String, Object>> progress = new HashMap<>();
         ctx.db().read(dbConn -> {
             try (PreparedStatement ps =
@@ -143,7 +143,7 @@ public final class LessonModule implements ServerModule {
      */
     private void fetch(Ctx c, Frame f) throws Exception {
         String id = f.reader().str();
-        boolean isTeacher = c.session() != null && c.session().role() == Role.TEACHER;
+        boolean isTeacher = c.session() != null && c.session().role().isStaff();
         if (!isTeacher && inactiveLessons.contains(id)) {
             throw new ProtocolException(ErrorCode.FORBIDDEN, "Bài học này hiện chưa được mở");
         }
