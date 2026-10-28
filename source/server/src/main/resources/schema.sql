@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS practice_sessions (
     teacher_id INTEGER NOT NULL REFERENCES users(id),
     class_id INTEGER REFERENCES classes(id),
     name TEXT NOT NULL DEFAULT 'Đợt thực hành',
+    type TEXT NOT NULL DEFAULT 'PRACTICE',
     starts_at INTEGER NOT NULL,
     closes_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL

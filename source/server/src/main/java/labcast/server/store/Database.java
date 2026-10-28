@@ -48,7 +48,7 @@ public final class Database implements AutoCloseable {
             for (String sql : SqlScript.split(loadSchema())) {
                 st.execute(sql);
             }
-            ensurePracticeSessionName(st);
+            ensurePracticeSessionColumns(st);
         } catch (SQLException e) {
             c.close();
             throw e;
@@ -56,19 +56,23 @@ public final class Database implements AutoCloseable {
         return db;
     }
 
-    private static void ensurePracticeSessionName(Statement st) throws SQLException {
+    private static void ensurePracticeSessionColumns(Statement st) throws SQLException {
         boolean hasName = false;
         boolean hasClassId = false;
+        boolean hasType = false;
         try (var columns = st.executeQuery("PRAGMA table_info(practice_sessions)")) {
             while (columns.next()) {
                 hasName |= "name".equals(columns.getString("name"));
                 hasClassId |= "class_id".equals(columns.getString("name"));
+                hasType |= "type".equals(columns.getString("name"));
             }
         }
         if (!hasName)
             st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN name TEXT NOT NULL DEFAULT 'Đợt thực hành'");
         if (!hasClassId)
             st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN class_id INTEGER REFERENCES classes(id)");
+        if (!hasType)
+            st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN type TEXT NOT NULL DEFAULT 'PRACTICE'");
         st.executeUpdate(
                 "UPDATE practice_sessions SET class_id = ("
                         + "SELECT id FROM classes WHERE classes.teacher_id = practice_sessions.teacher_id "

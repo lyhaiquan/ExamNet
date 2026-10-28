@@ -43,7 +43,8 @@ public final class PracticeModule implements ServerModule {
                     && !service.studentEnrolled(s.id(), c.session().userId())) {
                 continue;
             }
-            ObjectNode n = items.addObject().put("id", s.id()).put("name", s.name()).put("classId", s.classId())
+            ObjectNode n = items.addObject().put("id", s.id()).put("name", s.name()).put("type", s.type())
+                    .put("classId", s.classId())
                     .put("startsAt", s.startsAt())
                     .put("closesAt", s.closesAt()).put("questionCount", s.lessons().size());
             if (c.session().role() == Role.STUDENT) {
@@ -78,7 +79,8 @@ public final class PracticeModule implements ServerModule {
         List<String> ids = new ArrayList<>();
         n.path("lessons").forEach(x -> ids.add(x.asText()));
         long id = service.create(c.session().userId(), n.path("classId").asLong(),
-                n.path("name").asText("Đợt thực hành"), ids, n.path("startsAt").asLong(),
+                n.path("name").asText("Đợt thực hành"), n.path("type").asText("PRACTICE"), ids,
+                n.path("startsAt").asLong(),
                 n.path("durationMs").asLong(), System.currentTimeMillis());
         c.reply(JsonPayload.frame(MessageType.PRACTICE_STATE,
                 JsonPayload.MAPPER.createObjectNode().put("id", id)), Priority.NORMAL);
@@ -112,7 +114,8 @@ public final class PracticeModule implements ServerModule {
         if (c.session().role() == Role.STUDENT) {
             service.touch(s.id(), c.session().userId());
         }
-        ObjectNode n = JsonPayload.MAPPER.createObjectNode().put("id", s.id()).put("name", s.name()).put("startsAt", s.startsAt())
+        ObjectNode n = JsonPayload.MAPPER.createObjectNode().put("id", s.id()).put("name", s.name())
+                .put("type", s.type()).put("startsAt", s.startsAt())
                 .put("closesAt", s.closesAt()).put("open", s.open(now));
         var lessons = n.putArray("lessons");
         s.lessons().forEach(lessons::add);

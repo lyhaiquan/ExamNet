@@ -20,7 +20,8 @@ public final class PracticeService {
             Set<String> completedLessons) {
     }
 
-    public record Session(long id, long classId, String name, long startsAt, long closesAt, List<String> lessons) {
+    public record Session(long id, long classId, String name, String type, long startsAt, long closesAt,
+            List<String> lessons) {
         public boolean open(long now) {
             return now >= startsAt && now < closesAt;
         }
@@ -38,7 +39,7 @@ public final class PracticeService {
         this.db = db;
     }
 
-    public long create(long teacherId, long classId, String name, List<String> lessonIds, long startsAt,
+    public long create(long teacherId, long classId, String name, String type, List<String> lessonIds, long startsAt,
             long durationMs,
             long now)
             throws SQLException {
@@ -47,6 +48,9 @@ public final class PracticeService {
         }
         if (name == null || name.isBlank() || name.length() > 120) {
             throw new IllegalArgumentException("Tên đợt thực hành không hợp lệ");
+        }
+        if (!"PRACTICE".equals(type) && !"QUIZ".equals(type)) {
+            throw new IllegalArgumentException("Loại đợt thực hành không hợp lệ");
         }
         if (lessonIds == null || lessonIds.isEmpty() || lessonIds.stream().distinct().count() != lessonIds.size()) {
             throw new IllegalArgumentException("Đợt thực hành phải có ít nhất một bài khác nhau");
@@ -69,14 +73,15 @@ public final class PracticeService {
             }
             long id;
             try (PreparedStatement ps = c.prepareStatement(
-                    "INSERT INTO practice_sessions(teacher_id, class_id, name, starts_at, closes_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO practice_sessions(teacher_id, class_id, name, type, starts_at, closes_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     java.sql.Statement.RETURN_GENERATED_KEYS)) {
                 ps.setLong(1, teacherId);
                 ps.setLong(2, classId);
                 ps.setString(3, name.strip());
-                ps.setLong(4, startsAt);
-                ps.setLong(5, startsAt + durationMs);
-                ps.setLong(6, now);
+                ps.setString(4, type);
+                ps.setLong(5, startsAt);
+                ps.setLong(6, startsAt + durationMs);
+                ps.setLong(7, now);
                 ps.executeUpdate();
                 try (ResultSet keys = ps.getGeneratedKeys()) {
                     keys.next();
@@ -101,10 +106,11 @@ public final class PracticeService {
         return db.read(c -> {
             List<Session> out = new ArrayList<>();
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT id, class_id, name, starts_at, closes_at FROM practice_sessions ORDER BY starts_at DESC");
+                    "SELECT id, class_id, name, type, starts_at, closes_at FROM practice_sessions ORDER BY starts_at DESC");
                     ResultSet rs = ps.executeQuery()) {
                 while (rs.next())
-                    out.add(load(c, rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getLong(4), rs.getLong(5)));
+                    out.add(load(c, rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
+                            rs.getLong(5), rs.getLong(6)));
             }
             return out;
         });
@@ -135,10 +141,11 @@ public final class PracticeService {
     public Session get(long id) throws SQLException {
         return db.read(c -> {
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT class_id, name, starts_at, closes_at FROM practice_sessions WHERE id = ?")) {
+                    "SELECT class_id, name, type, starts_at, closes_at FROM practice_sessions WHERE id = ?")) {
                 ps.setLong(1, id);
                 try (ResultSet rs = ps.executeQuery()) {
-                    return rs.next() ? load(c, id, rs.getLong(1), rs.getString(2), rs.getLong(3), rs.getLong(4)) : null;
+                    return rs.next() ? load(c, id, rs.getLong(1), rs.getString(2), rs.getString(3),
+                            rs.getLong(4), rs.getLong(5)) : null;
                 }
             }
         });
@@ -284,7 +291,8 @@ public final class PracticeService {
         });
     }
 
-    private static Session load(java.sql.Connection c, long id, long classId, String name, long startsAt, long closesAt)
+    private static Session load(java.sql.Connection c, long id, long classId, String name, String type, long startsAt,
+            long closesAt)
             throws SQLException {
         List<String> lessons = new ArrayList<>();
         try (PreparedStatement ps = c.prepareStatement(
@@ -295,6 +303,6 @@ public final class PracticeService {
                     lessons.add(rs.getString(1));
             }
         }
-        return new Session(id, classId, name, startsAt, closesAt, List.copyOf(lessons));
+        return new Session(id, classId, name, type, startsAt, closesAt, List.copyOf(lessons));
     }
 }

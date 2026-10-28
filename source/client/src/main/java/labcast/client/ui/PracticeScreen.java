@@ -248,7 +248,7 @@ public final class PracticeScreen extends VBox {
         updateEarlySubmitButton();
         body.getChildren().clear();
         if (teacher) {
-            Button create = new Button("Tạo bài thực hành");
+            Button create = new Button("Tạo bài");
             create.getStyleClass().add("primary");
             create.setOnAction(e -> showCreateDialog());
             body.getChildren().add(create);
@@ -264,14 +264,14 @@ public final class PracticeScreen extends VBox {
             String name = s.path("name").asText("Đợt thực hành");
             Label title = new Label(name);
             title.getStyleClass().add("practice-session-name");
-            Label type = badge("THỰC HÀNH", "practice-type-badge");
+            Label type = badge(typeText(s.path("type").asText("PRACTICE")), "practice-type-badge");
             Label stateBadge = badge(stateText(state, startsAt), "practice-state-badge");
             stateBadge.getStyleClass().add("practice-state-" + state);
             HBox heading = new HBox(10, title, type, stateBadge);
             heading.setAlignment(Pos.CENTER_LEFT);
             Label questionCount = new Label(
                     s.path("questionCount").asInt(s.path("lessons").size()) + " câu hỏi · Bắt đầu "
-                            + format(startsAt));
+                            + format(startsAt) + " · Kết thúc " + format(closesAt));
             questionCount.getStyleClass().add("practice-session-meta");
             VBox details = new VBox(7, heading, questionCount);
             HBox item = new HBox(12, details);
@@ -299,6 +299,10 @@ public final class PracticeScreen extends VBox {
         Label label = new Label(text);
         label.getStyleClass().add(style);
         return label;
+    }
+
+    private static String typeText(String type) {
+        return "QUIZ".equalsIgnoreCase(type) ? "KIỂM TRA" : "THỰC HÀNH";
     }
 
     private static String stateText(String state, long startsAt) {
@@ -359,6 +363,7 @@ public final class PracticeScreen extends VBox {
                     ? previousFilter
                     : "Tất cả");
             teacherFilterBar.getChildren().setAll(studentFilter, deletePracticeButton);
+            teacherFilterBar.setSpacing(12);
             teacherFilterBar.setAlignment(Pos.CENTER_RIGHT);
             teacherFilterBar.setMaxWidth(Double.MAX_VALUE);
             teacherFilterBar.setVisible(true);
@@ -538,6 +543,10 @@ public final class PracticeScreen extends VBox {
         TextField name = new TextField();
         name.setPromptText("Ví dụ: Thực hành cấu trúc dữ liệu tuần 1");
         name.setMaxWidth(Double.MAX_VALUE);
+        ComboBox<String> practiceType = new ComboBox<>();
+        practiceType.getItems().addAll("Thực hành", "Kiểm tra");
+        practiceType.getSelectionModel().selectFirst();
+        practiceType.setMaxWidth(Double.MAX_VALUE);
         ComboBox<PracticeClass> classChoice = new ComboBox<>();
         classChoice.getItems().addAll(practiceClasses);
         classChoice.setMaxWidth(Double.MAX_VALUE);
@@ -579,18 +588,19 @@ public final class PracticeScreen extends VBox {
         form.getColumnConstraints().addAll(labelColumn, fieldColumn);
 
         addFormRow(form, 0, "Tên bài thực hành", name);
-        addFormRow(form, 1, "Lớp thực hành", classChoice);
+        addFormRow(form, 1, "Loại", practiceType);
+        addFormRow(form, 2, "Lớp thực hành", classChoice);
         VBox lessonSelection = new VBox(8, choose, selectedList);
         lessonSelection.setFillWidth(true);
-        addFormRow(form, 2, "Bài tập", lessonSelection);
+        addFormRow(form, 3, "Bài tập", lessonSelection);
 
         HBox time = new HBox(8, hour, new Label(":"), minute);
         time.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(hour, javafx.scene.layout.Priority.ALWAYS);
         HBox.setHgrow(minute, javafx.scene.layout.Priority.ALWAYS);
-        addFormRow(form, 3, "Ngày bắt đầu", date);
-        addFormRow(form, 4, "Giờ bắt đầu", time);
-        addFormRow(form, 5, "Thời lượng", duration);
+        addFormRow(form, 4, "Ngày bắt đầu", date);
+        addFormRow(form, 5, "Giờ bắt đầu", time);
+        addFormRow(form, 6, "Thời lượng", duration);
         content.getChildren().add(form);
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
@@ -617,7 +627,8 @@ public final class PracticeScreen extends VBox {
                 e.consume();
                 return;
             }
-            create(name.getText(), classChoice.getValue().id(), ids, date, hour, minute, duration);
+            create(name.getText(), "Kiểm tra".equals(practiceType.getValue()) ? "QUIZ" : "PRACTICE",
+                    classChoice.getValue().id(), ids, date, hour, minute, duration);
         });
         dialog.showAndWait();
     }
@@ -696,7 +707,8 @@ public final class PracticeScreen extends VBox {
         return field;
     }
 
-    private void create(String name, long classId, List<String> lessonIds, DatePicker date, TextField hour, TextField minute,
+    private void create(String name, String type, long classId, List<String> lessonIds, DatePicker date,
+            TextField hour, TextField minute,
             TextField duration) {
         ObjectNode n = JsonPayload.MAPPER.createObjectNode();
         ArrayNode ids = n.putArray("lessons");
@@ -714,12 +726,13 @@ public final class PracticeScreen extends VBox {
             n.put("startsAt", at);
             n.put("durationMs", durationValue * 60_000L);
             n.put("name", name.strip());
+            n.put("type", type);
             n.put("classId", classId);
             var reply = client.expect(MessageType.PRACTICE_STATE);
             client.send(JsonPayload.frame(MessageType.PRACTICE_CREATE, n));
             reply.orTimeout(10, TimeUnit.SECONDS)
                     .thenRun(() -> javafx.application.Platform.runLater(() -> {
-                        status.setText("Đã tạo đợt thực hành");
+                    status.setText("");
                         load();
                     }));
         } catch (Exception e) {
