@@ -22,10 +22,9 @@ class PasswordRulesTest {
     void goiYMatKhau_deDoc_quaDuocKiemTra() {
         for (int i = 0; i < 50; i++) {
             String p = PasswordRules.suggest();
-            assertTrue(p.matches("[a-z]{4}-[2-9]{4}"), p);
-            assertTrue(p.chars().noneMatch(c -> c == 'l' || c == 'o' || c == 'i'), p);
+            assertTrue(p.matches("[0-9]{6}"), p);
             assertNull(PasswordRules.check(p, null));
         }
-        assertEquals(9, PasswordRules.suggest().length());
+        assertEquals(6, PasswordRules.suggest().length());
     }
 }

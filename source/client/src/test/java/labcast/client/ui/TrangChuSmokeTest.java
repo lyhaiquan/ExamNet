@@ -116,6 +116,8 @@ class TrangChuSmokeTest {
             }
             // hộp thoại mật khẩu là cửa sổ thật duy nhất: đóng nó thì JavaFX tự tắt nếu không chặn
             Platform.setImplicitExit(false);
+            // học viên bấm "Quên mật khẩu": trang chủ giáo viên, quản trị hiện khung yêu cầu
+            LoginController.forgot("127.0.0.1", server.port(), "sv0");
             for (String[] who : new String[][] {{"sv0", "hoc-vien"}, {"gv", "giao-vien"}, {"ad", "quan-tri"}}) {
                 var li = LoginController.login("127.0.0.1", server.port(), who[0], "1");
                 for (boolean dark : new boolean[] {false, true}) {
@@ -164,6 +166,16 @@ class TrangChuSmokeTest {
                         chup(change.getDialogPane().getScene(), "doi-mat-khau");
                         fx(() -> {
                             change.close();
+                            return null;
+                        });
+                        var own = fx(() -> PasswordDialogs.chooseOwn(null, li.client(), "123456", () -> {}, () -> {}));
+                        fx(() -> {
+                            own.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
+                            return null;
+                        });
+                        chup(own.getDialogPane().getScene(), "dat-mat-khau-rieng");
+                        fx(() -> {
+                            own.close();
                             return null;
                         });
                     }

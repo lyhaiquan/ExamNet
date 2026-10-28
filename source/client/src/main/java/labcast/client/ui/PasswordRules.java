@@ -12,10 +12,6 @@ public final class PasswordRules {
 
     public static final int MAX = 128;
 
-    /** Bỏ các chữ dễ nhầm khi đọc cho nhau nghe: 0/o, 1/l/i. */
-    private static final String LETTERS = "abcdefghjkmnpqrstuvwxyz";
-
-    private static final String DIGITS = "23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private PasswordRules() {}
@@ -29,12 +25,11 @@ public final class PasswordRules {
         return null;
     }
 
-    /** Mật khẩu ngẫu nhiên dễ đọc cho nhau nghe, dạng {@code abcd-2345}. */
+    /**
+     * Mật khẩu tạm khi giáo viên đặt lại: 6 chữ số, dễ đọc cho nhau nghe. Chỉ dùng một lần, lần đăng nhập sau người
+     * dùng tự đặt mật khẩu của mình.
+     */
     public static String suggest() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 4; i++) sb.append(LETTERS.charAt(RANDOM.nextInt(LETTERS.length())));
-        sb.append('-');
-        for (int i = 0; i < 4; i++) sb.append(DIGITS.charAt(RANDOM.nextInt(DIGITS.length())));
-        return sb.toString();
+        return String.format("%06d", RANDOM.nextInt(1_000_000));
     }
 }

@@ -71,18 +71,24 @@ final class PasswordDialogs {
      * quản trị khác); có sẵn thì khoá ô đó (bấm từ dòng học viên).
      */
     static Dialog<ButtonType> reset(Window owner, LcpClient client, String username, String fullName) {
+        return reset(owner, client, username, fullName, null);
+    }
+
+    /** Như trên; {@code onDone} chạy sau khi đặt lại thành công (tải lại danh sách yêu cầu…). */
+    static Dialog<ButtonType> reset(Window owner, LcpClient client, String username, String fullName, Runnable onDone) {
         TextField user = new TextField(username == null ? "" : username);
         user.setPromptText("Tên đăng nhập, ví dụ sv01");
         user.setEditable(username == null);
         // hiện rõ mật khẩu: giáo viên cần đọc lại cho học viên
         TextField fresh = new TextField(PasswordRules.suggest());
         fresh.setPromptText("Ít nhất " + PasswordRules.MIN + " ký tự");
-        Button another = new Button("Tạo mật khẩu khác");
+        Button another = new Button("Số khác");
         another.setOnAction(e -> fresh.setText(PasswordRules.suggest()));
         HBox pwdRow = new HBox(8, fresh, another);
         HBox.setHgrow(fresh, Priority.ALWAYS);
-        GridPane form = form(new Label("Tài khoản"), user, new Label("Mật khẩu mới"), pwdRow);
-        Label hint = new Label("Đưa mật khẩu này cho người dùng; họ nên tự đổi lại sau khi đăng nhập.");
+        GridPane form = form(new Label("Tài khoản"), user, new Label("Mật khẩu tạm"), pwdRow);
+        Label hint = new Label("Đọc mật khẩu tạm này cho người dùng. Lần đăng nhập tới app sẽ bắt họ đặt mật khẩu"
+                + " của riêng mình, dễ nhớ với họ.");
         hint.setWrapText(true);
         hint.getStyleClass().add("muted");
         Label error = errorLabel();
@@ -102,8 +108,52 @@ final class PasswordDialogs {
             String pwd = fresh.getText();
             submit(client, ok, error, MessageType.PASSWORD_RESET, name, pwd, msg -> {
                 d.close();
-                info(owner, msg + ".\nMật khẩu mới: " + pwd);
+                info(owner, msg + ".\nMật khẩu tạm: " + pwd + "\nLần đăng nhập tới họ sẽ tự đặt mật khẩu mới.");
+                if (onDone != null) onDone.run();
             });
+        });
+        d.show();
+        return d;
+    }
+
+    /**
+     * Đăng nhập bằng mật khẩu tạm: bắt đặt mật khẩu của riêng mình trước khi vào app. Mật khẩu cũ là mật khẩu vừa gõ
+     * ở màn đăng nhập nên không hỏi lại. {@code onDone} khi đổi xong, {@code onCancel} khi bấm Huỷ (về màn đăng
+     * nhập).
+     */
+    static Dialog<ButtonType> chooseOwn(
+            Window owner, LcpClient client, String tempPassword, Runnable onDone, Runnable onCancel) {
+        PasswordField fresh = new PasswordField();
+        PasswordField again = new PasswordField();
+        fresh.setPromptText("Ít nhất " + PasswordRules.MIN + " ký tự, dễ nhớ với bạn");
+        again.setPromptText("Gõ lại mật khẩu mới");
+        GridPane form = form(new Label("Mật khẩu mới"), fresh, new Label("Nhập lại"), again);
+        Label hint = new Label("Bạn đang dùng mật khẩu tạm giáo viên đưa. Đặt một mật khẩu của riêng bạn để lần sau"
+                + " đăng nhập bằng mật khẩu đó.");
+        hint.setWrapText(true);
+        hint.setMaxWidth(380);
+        hint.getStyleClass().add("muted");
+        Label error = errorLabel();
+        Dialog<ButtonType> d =
+                dialog(owner, "Đặt mật khẩu của bạn", "Đặt mật khẩu của riêng bạn", new VBox(12, hint, form, error));
+        Platform.runLater(fresh::requestFocus);
+        Button ok = (Button) d.getDialogPane().lookupButton(ButtonType.OK);
+        ok.addEventFilter(ActionEvent.ACTION, e -> {
+            e.consume();
+            String bad = PasswordRules.check(fresh.getText(), again.getText());
+            if (bad == null && fresh.getText().equals(tempPassword)) bad = "Chọn mật khẩu khác mật khẩu tạm";
+            if (bad != null) {
+                error.setText(bad);
+                return;
+            }
+            submit(client, ok, error, MessageType.PASSWORD_CHANGE, tempPassword, fresh.getText(), msg -> {
+                d.setResult(ButtonType.OK);
+                d.close();
+                onDone.run();
+            });
+        });
+        d.setOnHidden(e -> {
+            if (d.getResult() != ButtonType.OK) onCancel.run();
         });
         d.show();
         return d;

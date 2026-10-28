@@ -2566,3 +2566,30 @@
 .menu-button.user-menu > .arrow-button { -fx-padding: 0 0 0 6; -fx-background-color: transparent; }
 .menu-button.user-menu > .arrow-button > .arrow { -fx-background-color: #cbd5e1; }
 .students-reset { -fx-font-size: 11px; -fx-padding: 3 10; -fx-cursor: hand; }
+
+/* ===== Yêu cầu quên mật khẩu (trang chủ, quản lý sinh viên của giáo viên / quản trị) ===== */
+.pwd-requests {
+    -fx-background-color: rgba(245, 158, 11, 0.10);
+    -fx-border-color: rgba(245, 158, 11, 0.55);
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 14 16;
+}
+.pwd-requests-title { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.pwd-requests-hint { -fx-font-size: 11px; -fx-text-fill: -lc-muted; }
+.pwd-requests-row {
+    -fx-background-color: -lc-surface;
+    -fx-background-radius: 10;
+    -fx-padding: 8 10;
+}
+.pwd-requests-name { -fx-font-weight: bold; -fx-text-fill: -lc-text; }
+.pwd-requests-meta { -fx-font-size: 11px; -fx-text-fill: -lc-muted; }
+.pwd-requests-btn {
+    -fx-background-color: #F59E0B;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+.pwd-requests-btn:hover { -fx-background-color: #D97706; }
+.hyperlink.login-forgot { -fx-text-fill: -lc-primary; -fx-padding: 0; -fx-font-size: 12px; }

@@ -86,6 +86,7 @@ public final class StudentManagementScreen extends BorderPane {
     private final Label working = new Label("0");
     private final Label feedback = new Label("Đang đồng bộ...");
     private final Label details = new Label("Chọn một sinh viên để xem chi tiết hoạt động.");
+    private final PasswordRequestsBanner pwdRequests;
     private final Timeline timer;
     private boolean loading;
     private volatile boolean closed;
@@ -131,7 +132,8 @@ public final class StudentManagementScreen extends BorderPane {
         controls.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(search, Priority.ALWAYS);
         feedback.getStyleClass().add("muted");
-        VBox header = new VBox(17, headingBox, metrics, controls, feedback);
+        pwdRequests = new PasswordRequestsBanner(client, this::reload);
+        VBox header = new VBox(17, headingBox, pwdRequests, metrics, controls, feedback);
         header.setPadding(new Insets(0, 0, 18, 0));
         setTop(header);
 
@@ -255,6 +257,7 @@ public final class StudentManagementScreen extends BorderPane {
     public void reload() {
         if (closed || loading) return;
         loading = true;
+        pwdRequests.reload();
         var pending = client.expect(MessageType.STUDENT_OVERVIEW_DATA, MessageType.ERROR);
         client.send(MessageType.STUDENT_OVERVIEW_REQ, new byte[0]);
         pending.orTimeout(12, TimeUnit.SECONDS)

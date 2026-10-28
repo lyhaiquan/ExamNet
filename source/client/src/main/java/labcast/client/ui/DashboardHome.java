@@ -73,11 +73,14 @@ final class DashboardHome extends ScrollPane {
     private long classId;
     private boolean closed;
     private String lessonFilter = "Tất cả";
+    /** Giáo viên, quản trị: ai bấm Quên mật khẩu thì hiện ngay trên trang chủ. Học viên: {@code null}. */
+    private final PasswordRequestsBanner pwdRequests;
 
     DashboardHome(LoginController.LoggedIn li, Actions actions) {
         this.li = li;
         this.actions = actions;
         this.role = li.role();
+        this.pwdRequests = role.isStaff() ? new PasswordRequestsBanner(li.client(), null) : null;
         getStyleClass().addAll("dash-scroll", "dash-" + role.name().toLowerCase());
         setFitToWidth(true);
         setHbarPolicy(ScrollBarPolicy.NEVER);
@@ -99,6 +102,7 @@ final class DashboardHome extends ScrollPane {
     /** Tải lại số liệu theo thời gian (và học viên online với giáo viên, quản trị). */
     void refresh() {
         request(MessageType.HOME_REQ, MessageType.HOME_DATA, data -> home = data);
+        if (pwdRequests != null) pwdRequests.reload();
         if (role.isStaff() && classId > 0) {
             request(
                     MessageType.STUDENT_OVERVIEW_REQ,
@@ -139,6 +143,7 @@ final class DashboardHome extends ScrollPane {
                     case STUDENT -> studentBody(stats);
                 };
         VBox page = new VBox(18, header(), body);
+        if (pwdRequests != null) page.getChildren().add(1, pwdRequests);
         page.getStyleClass().add("dash-page");
         setContent(page);
     }
@@ -791,7 +796,7 @@ final class DashboardHome extends ScrollPane {
         return card;
     }
 
-    private static String ago(long ts) {
+    static String ago(long ts) {
         if (ts <= 0) return "";
         long min = (System.currentTimeMillis() - ts) / 60_000;
         if (min < 1) return "vừa xong";

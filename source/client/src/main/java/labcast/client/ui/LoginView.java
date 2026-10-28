@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -28,6 +29,10 @@ public final class LoginView extends StackPane {
     private final PasswordField pass = new PasswordField();
     private final Button loginBtn = new Button("Đăng nhập");
     private final Label status = new Label();
+    private final Hyperlink forgotLink = new Hyperlink("Quên mật khẩu?");
+
+    /** Máy server sẽ nối tới: lớp chọn trong danh sách hoặc địa chỉ gõ tay. */
+    private record Target(String host, int port) {}
 
     public LoginView(Consumer<LoginController.LoggedIn> onLoggedIn) {
         Theme.apply(this);
@@ -96,6 +101,10 @@ public final class LoginView extends StackPane {
         loginBtn.setOnAction(e -> login(onLoggedIn));
         status.getStyleClass().add("form-status");
         status.setWrapText(true);
+        forgotLink.getStyleClass().add("login-forgot");
+        forgotLink.setOnAction(e -> forgot());
+        HBox forgotRow = new HBox(forgotLink);
+        forgotRow.setAlignment(Pos.CENTER_RIGHT);
 
         VBox card = new VBox(
                 12,
@@ -108,7 +117,7 @@ public final class LoginView extends StackPane {
                 spacer(2),
                 user,
                 pass,
-                spacer(2),
+                forgotRow,
                 loginBtn,
                 status);
         card.getStyleClass().add("login-card");
@@ -184,15 +193,11 @@ public final class LoginView extends StackPane {
                 }));
     }
 
-    private void login(Consumer<LoginController.LoggedIn> onLoggedIn) {
+    /** Lớp đang chọn hoặc địa chỉ gõ tay; không hợp lệ thì báo ở dòng trạng thái và trả {@code null}. */
+    private Target target() {
         String host;
         int port = 7000;
         String m = manual.getText().strip();
-        if (user.getText().isBlank() || pass.getText().isEmpty()) {
-            setStatus("Nhập tên đăng nhập và mật khẩu rồi bấm Đăng nhập.", true);
-            (user.getText().isBlank() ? user : pass).requestFocus();
-            return;
-        }
         if (!m.isEmpty() && !m.contains(".") && !m.contains(":") && !m.equalsIgnoreCase("localhost")) {
             // hay gặp: gõ tên đăng nhập nhầm vào ô địa chỉ
             setStatus(
@@ -200,7 +205,7 @@ public final class LoginView extends StackPane {
                             + " thì để trống ô này.",
                     true);
             manual.requestFocus();
-            return;
+            return null;
         }
         if (!m.isEmpty()) {
             int colon = m.lastIndexOf(':');
@@ -210,7 +215,7 @@ public final class LoginView extends StackPane {
                     port = Integer.parseInt(m.substring(colon + 1));
                 } catch (NumberFormatException e) {
                     setStatus("Cổng phải là số", true);
-                    return;
+                    return null;
                 }
             }
         } else if (servers.getSelectionModel().getSelectedItem() != null) {
@@ -219,10 +224,58 @@ public final class LoginView extends StackPane {
             port = s.port();
         } else {
             setStatus("Chọn một lớp hoặc nhập địa chỉ máy giáo viên.", true);
+            return null;
+        }
+        return new Target(host, port);
+    }
+
+    /**
+     * Quên mật khẩu: gửi yêu cầu cho giáo viên lớp đang chọn. Giáo viên đặt mật khẩu tạm, học viên đăng nhập bằng
+     * mật khẩu đó rồi app bắt đặt mật khẩu của riêng mình.
+     */
+    private void forgot() {
+        if (user.getText().isBlank()) {
+            setStatus("Gõ tên đăng nhập của bạn rồi bấm \"Quên mật khẩu?\" lần nữa.", true);
+            user.requestFocus();
             return;
         }
-        String h = host;
-        int p = port;
+        Target t = target();
+        if (t == null) return;
+        String u = user.getText().strip();
+        forgotLink.setDisable(true);
+        setStatus("Đang gửi yêu cầu…", false);
+        Thread th = new Thread(
+                () -> {
+                    String msg;
+                    boolean error = false;
+                    try {
+                        msg = LoginController.forgot(t.host(), t.port(), u);
+                    } catch (LoginController.LoginFailed ex) {
+                        msg = ex.getMessage();
+                        error = true;
+                    }
+                    String m = msg;
+                    boolean err = error;
+                    Platform.runLater(() -> {
+                        setStatus(m, err);
+                        forgotLink.setDisable(false);
+                    });
+                },
+                "quen-mat-khau");
+        th.setDaemon(true);
+        th.start();
+    }
+
+    private void login(Consumer<LoginController.LoggedIn> onLoggedIn) {
+        if (user.getText().isBlank() || pass.getText().isEmpty()) {
+            setStatus("Nhập tên đăng nhập và mật khẩu rồi bấm Đăng nhập.", true);
+            (user.getText().isBlank() ? user : pass).requestFocus();
+            return;
+        }
+        Target target = target();
+        if (target == null) return;
+        String h = target.host();
+        int p = target.port();
         String u = user.getText().strip();
         String pw = pass.getText();
         loginBtn.setDisable(true);
@@ -231,7 +284,25 @@ public final class LoginView extends StackPane {
                 () -> {
                     try {
                         LoginController.LoggedIn li = LoginController.login(h, p, u, pw);
-                        Platform.runLater(() -> onLoggedIn.accept(li));
+                        Platform.runLater(() -> {
+                            if (!li.mustChangePassword()) {
+                                onLoggedIn.accept(li);
+                                return;
+                            }
+                            // mật khẩu tạm giáo viên đưa: đặt mật khẩu của riêng mình rồi mới vào
+                            setStatus("Đặt mật khẩu của riêng bạn để tiếp tục.", false);
+                            PasswordDialogs.chooseOwn(
+                                    getScene() == null ? null : getScene().getWindow(),
+                                    li.client(),
+                                    pw,
+                                    () -> onLoggedIn.accept(li),
+                                    () -> {
+                                        li.client().close();
+                                        pass.clear();
+                                        setStatus("Chưa đặt mật khẩu mới nên chưa vào được lớp.", true);
+                                        loginBtn.setDisable(false);
+                                    });
+                        });
                     } catch (LoginController.LoginFailed ex) {
                         Platform.runLater(() -> {
                             setStatus(ex.getMessage(), true);
