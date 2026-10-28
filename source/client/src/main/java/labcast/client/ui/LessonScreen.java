@@ -202,7 +202,12 @@ public final class LessonScreen extends BorderPane {
 
         animTab = new Tab("Animation", anim);
         Tab deTab = new Tab("Đề bài", de);
-        tabs.getTabs().addAll(animTab, deTab, traceTab);
+        // Bài không khai báo bộ vẽ nào (luyện tập): chỉ chấm test và Trace Table, không có thẻ Animation.
+        // PlayerPane vẫn giữ để Trace Table điều khiển từng bước.
+        if (sql || lesson.path("khungNhin").size() > 0) {
+            tabs.getTabs().add(animTab);
+        }
+        tabs.getTabs().addAll(deTab, traceTab);
         // Thảo luận của lớp ở bài này (cả DSA và SQL); số bình luận hiện trên tên thẻ
         // Thảo luận: khung trượt bên phải, mở/đóng bằng nút 💬 trên tiêu đề; nút đếm bình luận chưa đọc
         Label unreadBadge = new Label();
@@ -673,7 +678,10 @@ public final class LessonScreen extends BorderPane {
                 runPanel.lastRunStdout(),
                 currentPlayer,
                 editor::highlightTraceLine);
-        tabs.getSelectionModel().select(runPanel.lastRunLineTrace() && traceTable.hasSteps() ? traceTab : animTab);
+        Tab hien = runPanel.lastRunLineTrace() && traceTable.hasSteps() ? traceTab : animTab;
+        if (tabs.getTabs().contains(hien)) {
+            tabs.getSelectionModel().select(hien);
+        }
         setSource("Đang xem: code của em", "mine");
     }
 
