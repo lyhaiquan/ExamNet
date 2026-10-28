@@ -50,6 +50,12 @@ public final class RunPanel extends VBox {
     private final Button runBtn = new Button(RUN_TEXT);
     private final Button submitBtn = new Button(SUBMIT_TEXT);
     private final Button traceBtn = new Button("⇥ Trace từng dòng");
+    private final Button expandBtn = new Button("⛶");
+    private Consumer<Boolean> onExpand = big -> {};
+    private boolean expanded;
+    /** Cỡ chữ khung kết quả, đổi bằng Ctrl + lăn chuột. */
+    private double outputFont = 13;
+
     private boolean lastRunLineTrace;
     private String lastRunStdout = "";
     private final Label verdict = new Label();
@@ -103,6 +109,24 @@ public final class RunPanel extends VBox {
         output.setWrapText(true);
         output.setPromptText("Kết quả in ra của code sẽ hiện ở đây");
         output.getStyleClass().add("console");
+        // Khung kết quả cao theo panel (panel nằm trong SplitPane dọc, kéo thanh chia để đổi cỡ)
+        output.setMinHeight(48);
+        output.setMaxHeight(Double.MAX_VALUE);
+        VBox.setVgrow(output, Priority.ALWAYS);
+        output.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
+            if (e.isControlDown() && e.getDeltaY() != 0) {
+                outputFont = Math.max(9, Math.min(28, outputFont + (e.getDeltaY() > 0 ? 1 : -1)));
+                output.setStyle("-fx-font-size: " + outputFont + "px;");
+                e.consume();
+            }
+        });
+        expandBtn.setId("run-expand");
+        expandBtn.getStyleClass().add("run-expand-button");
+        expandBtn.setTooltip(
+                new javafx.scene.control.Tooltip(
+                        "Phóng to / thu về khung kết quả (kéo thanh phía trên để chỉnh tuỳ ý, Ctrl + lăn chuột để đổi cỡ chữ)"));
+        expandBtn.setMinWidth(Region.USE_PREF_SIZE);
+        expandBtn.setOnAction(e -> setExpanded(!expanded));
         verdict.setId("verdict");
         verdict.getStyleClass().add("verdict");
         verdict.managedProperty().bind(verdict.visibleProperty());
@@ -127,7 +151,7 @@ public final class RunPanel extends VBox {
         tests.setMinWidth(Region.USE_PREF_SIZE);
         testLabel.setMinWidth(Region.USE_PREF_SIZE);
         verdict.setWrapText(true);
-        HBox bar = new HBox(8, runBtn, traceBtn, testLabel, tests, gap, submitBtn);
+        HBox bar = new HBox(8, runBtn, traceBtn, testLabel, tests, gap, expandBtn, submitBtn);
         bar.setAlignment(Pos.CENTER_LEFT);
         getChildren().addAll(bar, verdict, output);
 
@@ -374,6 +398,16 @@ public final class RunPanel extends VBox {
                 startCooldown(cd);
             }
         });
+    }
+
+    /** Gọi khi người dùng bấm ⛶: {@code true} phóng to khung kết quả, {@code false} thu về cỡ thường. */
+    public void setOnExpand(Consumer<Boolean> l) {
+        this.onExpand = l == null ? big -> {} : l;
+    }
+
+    private void setExpanded(boolean big) {
+        expanded = big;
+        onExpand.accept(big);
     }
 
     /** Kết quả từng test cho khung output. Test ẩn chỉ có đúng/sai, không có input hay output. */

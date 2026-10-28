@@ -61,6 +61,13 @@ class LopSqlSmokeTest {
         return mouse(javafx.scene.input.MouseEvent.MOUSE_CLICKED);
     }
 
+    /** Cảnh không nằm trong cửa sổ thật nên không tự bố trí lại theo nhịp: bố trí rồi mới đo. */
+    static double doCao(Scene scene, javafx.scene.layout.Region r) {
+        scene.getRoot().applyCss();
+        scene.getRoot().layout();
+        return r.getHeight();
+    }
+
     @Test
     void lopSql_trangChu_khoBai_themBai() throws Exception {
         var cfg = ServerConfig.forTest()
@@ -77,7 +84,9 @@ class LopSqlSmokeTest {
                                 new LessonModule(),
                                 new ClassroomWorkspaceModule(),
                                 new HomeModule(),
-                                new labcast.server.discuss.DiscussionModule()))) {
+                                new labcast.server.discuss.DiscussionModule(),
+                                new labcast.server.journal.JournalModule(),
+                                new labcast.server.run.RunModule()))) {
             server.start();
             var users = new UserRepository(db);
             long gv = users.create("gv", "Trần Minh Tâm", Role.TEACHER, "1");
@@ -157,6 +166,39 @@ class LopSqlSmokeTest {
                             "màn làm bài");
                     Thread.sleep(800);
                     chup(scene, "sql-thao-luan-dong-sv");
+
+                    // Chạy thử, rồi ⤢ phóng to khung kết quả và thu về
+                    fx(() -> {
+                        for (var n : scene.getRoot().lookupAll("*")) {
+                            if (n instanceof org.fxmisc.richtext.GenericStyledArea<?, ?, ?> a) {
+                                a.replaceText("select ten, gia from san_pham order by gia desc;");
+                            }
+                        }
+                        ((Button) scene.lookup("#run")).fire();
+                        return null;
+                    });
+                    javafx.scene.control.TextArea ketQua =
+                            (javafx.scene.control.TextArea) fx(() -> scene.lookup(".console"));
+                    until(() -> !ketQua.getText().isBlank(), "kết quả chạy thử");
+                    Thread.sleep(300);
+                    chup(scene, "sql-ket-qua-thuong");
+                    double thuong = fx(() -> doCao(scene, ketQua));
+                    Button phongTo = (Button) fx(() -> scene.lookup("#run-expand"));
+                    fx(() -> {
+                        phongTo.fire();
+                        return null;
+                    });
+                    Thread.sleep(400);
+                    double to = fx(() -> doCao(scene, ketQua));
+                    org.junit.jupiter.api.Assertions.assertTrue(
+                            to > thuong * 2, "khung kết quả phải cao lên: " + thuong + " → " + to);
+                    chup(scene, "sql-ket-qua-phong-to");
+                    fx(() -> {
+                        phongTo.fire();
+                        return null;
+                    });
+                    Thread.sleep(400);
+                    org.junit.jupiter.api.Assertions.assertTrue(fx(() -> doCao(scene, ketQua)) < to, "phải thu về");
                     fx(() -> {
                         ((Button) scene.getRoot().lookup(".discuss-toggle")).fire();
                         return null;
