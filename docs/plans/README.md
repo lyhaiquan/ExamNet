@@ -10,6 +10,8 @@ Mỗi file là kế hoạch triển khai của **một giai đoạn** trong [`..
 | [giai-doan-3.md](giai-doan-3.md) | Trợ giúp và hoàn thiện | 7–8 |
 | [giai-doan-4.md](giai-doan-4.md) | Thí nghiệm và nội dung | 9–10 |
 | [giai-doan-5.md](giai-doan-5.md) | Đóng gói và bảo vệ | 11 |
+| [giai-doan-6.md](giai-doan-6.md) | Mở rộng: nhiều lớp, Admin, soạn bài, kiểm tra, thảo luận, ô code | sau giai đoạn 5; xếp theo mức ưu tiên |
+| [viec-tiep-theo.md](viec-tiep-theo.md) | **Đọc trước:** đang ở đâu, chỗ chồng giữa đợt 2 và giai đoạn 6, thứ tự việc tiếp theo | cập nhật 26/10 |
 | [danh-muc-bai.md](danh-muc-bai.md) | Danh mục 53 bài giảng giải, 100 bài DSA, 100 bài SQL (bản tạm, chờ đề cương) | soạn ở tuần 9–10 |
 
 ## Mức chi tiết
@@ -52,10 +54,13 @@ Chỗ nào ghi "tham khảo bản cũ" là có lớp tương tự trong code Exa
 | `0x01–0x0F` | 2 | `HELLO 01`, `HELLO_ACK 02`, `AUTH 03`, `AUTH_OK 04`, `AUTH_FAIL 05`, `HEARTBEAT 06`, `HEARTBEAT_ACK 07`, `RESUME_REQ 08`, `RESUME_STATE 09`, `APP_FOCUS 0A`, `ERROR 0E`, `BYE 0F` |
 | `0x10–0x17` | 2 | `DISCOVER 10`, `DISCOVER_REPLY 11` |
 | `0x18–0x1F` | 3 | `TIME_SYNC_REQ 18`, `TIME_SYNC_RESP 19` |
-| `0x20–0x2F` | 2 | `CLASS_JOIN 20`, `CLASS_STATE 21`, `LESSON_PUSH 22`, `ADMIN_ROSTER_IMPORT 28`, `ADMIN_PROGRESS_EXPORT 29`, `ADMIN_OK 2A`, `QUIZ_OPEN 2C`, `QUIZ_ANSWER 2D`, `QUIZ_CLOSE 2E`, `QUIZ_RESULT 2F` |
+| `0x20–0x2F` | 2 | `CLASS_JOIN 20`, `CLASS_STATE 21`, `LESSON_PUSH 22`, `ADMIN_LESSON_DELETE 26`, `ADMIN_LESSON_TOGGLE 27`, `ADMIN_ROSTER_IMPORT 28`, `ADMIN_PROGRESS_EXPORT 29`, `ADMIN_OK 2A`, `ADMIN_LESSON_UPLOAD 2B`, `QUIZ_OPEN 2C`, `QUIZ_ANSWER 2D`, `QUIZ_CLOSE 2E`, `QUIZ_RESULT 2F` |
 | `0x30–0x4F` | 3 | `LESSON_LIST 30`, `LESSON_FETCH 31`, `LESSON_DATA 32`, `PREDICT_REQ 38`, `PREDICT_QUESTION 39`, `PREDICT_ANSWER 3A`, `PREDICT_RESULT 3B`, `SIM_START 3C`, `SIM_STEP 3D`, `SIM_RESULT 3E`, `RUN_REQ 40`, `RUN_QUEUED 41`, `TRACE_CHUNK 42`, `RUN_RESULT 43`, `SUBMIT_REQ 44`, `SUBMIT_RESULT 45`, `HINT_REQ 46`, `HINT_DATA 47` |
 | `0x50–0x6F` | 1 | `CODE_DELTA 50`, `CODE_ACK 51`, `CHECKPOINT_LIST 52`, `CHECKPOINT_FETCH 53`, `CHECKPOINT_DATA 54`, `HAND_RAISE 58`, `HAND_LOWER 59`, `MIRROR_SUBSCRIBE 5A`, `MIRROR_UNSUBSCRIBE 5B`, `MIRROR_SNAPSHOT 5C`, `MIRROR_DELTA 5D`, `COMMENT_ADD 60`, `COMMENT 61`, `VIEW_JOIN 64`, `VIEW_CONTROL 65`, `VIEW_STATE 66` |
 | `0x70–0x7F` | 4 | `CAST_CONTROL 70`, `CAST_DATA 71`, `CAST_KEYFRAME 72`, `CAST_NACK 73`, `CAST_REPAIR 74` |
+| `0x80–0xBF` | giai đoạn 6 | Admin, hiện/ẩn bài, soạn bài, kiểm tra, thảo luận, trang chủ — xem [giai-doan-6.md](giai-doan-6.md#bảng-mã-thông-điệp-mới) |
+
+Mã thêm sau khi lập bảng (xem `MessageType`): `PLAYGROUND_RUN_REQ 48`, `PLAYGROUND_RUN_QUEUED 49`, `PLAYGROUND_TRACE_CHUNK 4A`, `PLAYGROUND_RUN_RESULT 4B`, `CODE_FETCH 55`, `CODE_DATA 56`; từ [#10](https://github.com/lyhaiquan/ExamNet/pull/10): `CLASS_JOIN_RESULT 1A`, `CLASS_LIST_REQ 23`, `CLASS_LIST_DATA 24`, `CLASS_SELECT_REQ 25`, `PRACTICE_CREATE_REQ 67`, `PRACTICE_JOIN_REQ 68`, `PRACTICE_ACTION_RESULT 69`, `STUDENT_OVERVIEW_REQ 6A`, `STUDENT_OVERVIEW_DATA 6B`, `STUDENT_ACTIVITY 6C`, `CLASS_CREATE_REQ 6D`, `CLASS_CREATE_RESULT 6E`, `CLASS_JOIN_REQ 6F`, `PRACTICE_ASSIGN_REQ 75`, `PRACTICE_LESSONS_REQ 76`, `PRACTICE_LESSONS_DATA 77`, `PRACTICE_UNASSIGN_REQ 78`, `CLASS_SELECT_RESULT 79`, `PRACTICE_LIST_REQ 7A`, `PRACTICE_LIST_DATA 7B`.
 
 ## Ký hiệu payload
 
