@@ -2,12 +2,14 @@ package labcast.server;
 
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.List;
 import java.util.logging.Logger;
-import labcast.common.protocol.PayloadWriter;
 import labcast.server.account.PasswordRescue;
 import labcast.server.account.User;
 import labcast.server.account.UserRepository;
 import labcast.server.cast.CastModule;
+import labcast.server.classroom.ClassRepository;
+import labcast.server.discovery.DiscoveryReply;
 import labcast.server.discovery.DiscoveryResponder;
 import labcast.server.discovery.LanInterface;
 import labcast.server.discovery.NicInfo;
@@ -91,21 +93,17 @@ public final class ServerMain {
 
         String host = lanAddress(cfg);
         UserRepository users = server.context().require(UserRepository.class);
+        ClassRepository classes = new ClassRepository(db);
         DiscoveryResponder discovery = new DiscoveryResponder(cfg.discoveryPort(), () -> {
             String teacher = "";
+            List<ClassRepository.Listed> all = List.of();
             try {
                 teacher = users.firstTeacher().map(User::fullName).orElse("");
+                all = classes.listWithTeachers(); // màn đăng nhập hiện từng lớp trên server này
             } catch (Exception e) {
-                // tên giáo viên chỉ để hiển thị
+                // tên giáo viên, danh sách lớp chỉ để hiển thị
             }
-            return new PayloadWriter()
-                    .str(cfg.lop())
-                    .str(teacher)
-                    .str(host)
-                    .u16(server.port())
-                    .bool(false) // TLS: giai đoạn 3
-                    .str("")
-                    .toBytes();
+            return DiscoveryReply.build(cfg.lop(), teacher, host, server.port(), all);
         });
         discovery.start();
 
