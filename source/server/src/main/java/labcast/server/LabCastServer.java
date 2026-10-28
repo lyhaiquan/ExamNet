@@ -45,6 +45,7 @@ public final class LabCastServer implements AutoCloseable {
         return List.of(
                 new AccountModule(), // Người 2
                 new AccountAdminModule(), // Quản trị tạo / khoá tài khoản (sau AccountModule: dùng UserRepository)
+                new labcast.server.classroom.ClassAdminModule(), // Quản trị tạo lớp, giao giáo viên, xoá lớp trống
                 new ClassroomWorkspaceModule(), // Lớp thực hành và giám sát
                 new HomeModule(), // Trang chủ theo vai trò (giai đoạn 6.E)
                 new DiscussionModule(), // Thảo luận ở từng bài (giai đoạn 6.D)

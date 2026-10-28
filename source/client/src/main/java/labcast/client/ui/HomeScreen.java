@@ -104,6 +104,8 @@ public final class HomeScreen extends BorderPane {
     /** Chỉ quản trị: tạo, sửa, khoá tài khoản giáo viên và học viên. */
     private final Button accountsButton = new Button("Tài khoản");
 
+    private final Button classesButton = new Button("Lớp học");
+
     private final ComboBox<ClassOption> classSelector = new ComboBox<>();
     private long selectedClassId;
     private boolean loadingClasses;
@@ -129,7 +131,8 @@ public final class HomeScreen extends BorderPane {
         PLAYGROUND,
         ADD_EXERCISE,
         STUDENTS,
-        ACCOUNTS
+        ACCOUNTS,
+        CLASSES
     }
 
     private Nav activeNav = Nav.HOME;
@@ -264,6 +267,12 @@ public final class HomeScreen extends BorderPane {
                         + " M17 13 V19 M14 16 H20",
                 "Tạo, sửa, khoá tài khoản giáo viên và học viên");
         accountsButton.setOnAction(e -> showAccounts());
+        classesButton.setId("nav-classes");
+        configureNavButton(
+                classesButton,
+                "M4 6 H20 V18 H4 Z M4 10 H20 M9 10 V18",
+                "Tạo lớp, giao giáo viên phụ trách, đổi tên, xoá lớp trống");
+        classesButton.setOnAction(e -> showClasses());
         VBox menu = new VBox(4);
         if (li.role() == Role.ADMIN) {
             homeButton.setText("Tổng quan");
@@ -273,6 +282,7 @@ public final class HomeScreen extends BorderPane {
                             homeButton,
                             navSection("Quản lý"),
                             accountsButton,
+                            classesButton,
                             manageStudentsButton,
                             practiceButton,
                             navSection("Nội dung"),
@@ -310,7 +320,8 @@ public final class HomeScreen extends BorderPane {
             playgroundButton,
             addExerciseButton,
             manageStudentsButton,
-            accountsButton
+            accountsButton,
+            classesButton
         }) {
             b.setMaxWidth(Double.MAX_VALUE);
         }
@@ -530,6 +541,7 @@ public final class HomeScreen extends BorderPane {
         addExerciseButton.getStyleClass().remove("sidebar-nav-active");
         manageStudentsButton.getStyleClass().remove("sidebar-nav-active");
         accountsButton.getStyleClass().remove("sidebar-nav-active");
+        classesButton.getStyleClass().remove("sidebar-nav-active");
         Button selected =
                 switch (activeNav) {
                     case HOME -> homeButton;
@@ -539,6 +551,7 @@ public final class HomeScreen extends BorderPane {
                     case ADD_EXERCISE -> addExerciseButton;
                     case STUDENTS -> manageStudentsButton;
                     case ACCOUNTS -> accountsButton;
+                    case CLASSES -> classesButton;
                 };
         selected.getStyleClass().add("sidebar-nav-active");
         lessonBrowser.setManaged(false);
@@ -623,6 +636,17 @@ public final class HomeScreen extends BorderPane {
         leaveActiveScreen();
         activeNav = Nav.ACCOUNTS;
         setCenter(new AccountsScreen(li.client()));
+        refreshNavigation();
+        updateSidebar();
+    }
+
+    private void showClasses() {
+        if (li.role() != Role.ADMIN) return;
+        leaveActiveScreen();
+        activeNav = Nav.CLASSES;
+        ClassesScreen screen = new ClassesScreen(li.client());
+        screen.onChanged(this::loadClasses);
+        setCenter(screen);
         refreshNavigation();
         updateSidebar();
     }
