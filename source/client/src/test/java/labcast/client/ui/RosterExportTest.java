@@ -55,6 +55,33 @@ class RosterExportTest {
     }
 
     @Test
+    void xuatTuManTaiKhoan_matKhauTamChiCuaNguoiChuaTuDat() {
+        var rows = List.of(
+                row("B01", "Nguyễn An", false, true, "05082004"),
+                row("B02", "Trần Bình", false, false, null),
+                row("B03", "Lê Cường", false, true, null),
+                row("B04", "Đỗ Hà", true, true, "01012004"));
+        var lines = AccountsScreen.exportSheet("DSA K23", rows, LocalDateTime.of(2026, 10, 28, 9, 5));
+        assertEquals("Tài khoản LabCast - lớp DSA K23", lines.get(0).cells().get(0));
+        var body = lines.subList(6, lines.size());
+        assertEquals("05082004", body.get(0).cells().get(5));
+        assertEquals("", body.get(1).cells().get(5));
+        assertEquals("Đã tự đặt mật khẩu riêng", body.get(1).cells().get(6));
+        assertTrue(body.get(2).cells().get(6).contains("cấp mật khẩu tạm mới"), "tạo trước khi server lưu mk tạm");
+        assertEquals("", body.get(3).cells().get(5), "tài khoản bị khoá: không phát mật khẩu");
+        assertEquals(
+                "Tài khoản LabCast",
+                AccountsScreen.exportSheet("", rows, LocalDateTime.now())
+                        .get(0)
+                        .cells()
+                        .get(0));
+    }
+
+    private static AccountsScreen.Row row(String user, String name, boolean locked, boolean must, String temp) {
+        return new AccountsScreen.Row(1, name, user, "STUDENT", "Học viên", "DSA K23", 1, "", locked, must, temp);
+    }
+
+    @Test
     void tenFile_khongDau() {
         assertEquals("tai-khoan-DSA-Nang-cao-K23.xlsx", RosterImportDialog.fileName("DSA Nâng cao - K23"));
         assertEquals("tai-khoan-Lop-Dien-tu.xlsx", RosterImportDialog.fileName("Lớp Điện tử"));

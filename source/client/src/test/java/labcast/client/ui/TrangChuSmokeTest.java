@@ -210,6 +210,34 @@ class TrangChuSmokeTest {
                         LoginController.login("127.0.0.1", server.port(), "B22DCCN001", "05082004")
                                 .client()
                                 .close();
+                        // màn Tài khoản: lọc lớp rồi "Xuất Excel" lúc nào cũng được (server giữ mật khẩu tạm)
+                        fx(() -> {
+                            ((javafx.scene.control.Button) scene.lookup("#nav-accounts")).fire();
+                            return null;
+                        });
+                        Thread.sleep(800);
+                        fx(() -> {
+                            @SuppressWarnings("unchecked")
+                            var lopLoc = (javafx.scene.control.ComboBox<String>) scene.getRoot()
+                                    .lookupAll(".students-filter")
+                                    .iterator()
+                                    .next();
+                            lopLoc.setValue("DSA Nâng cao - K23");
+                            return null;
+                        });
+                        chup(scene, "tai-khoan-xuat-excel");
+                        fx(() -> {
+                            @SuppressWarnings("unchecked")
+                            var bang = (javafx.scene.control.TableView<AccountsScreen.Row>)
+                                    scene.lookup(".students-table");
+                            XlsxWriter.write(
+                                    java.nio.file.Path.of("target/ui-smoke/tai-khoan-tu-man-tai-khoan.xlsx"),
+                                    "Tài khoản",
+                                    AccountsScreen.EXPORT_WIDTHS,
+                                    AccountsScreen.exportSheet(
+                                            "DSA Nâng cao - K23", bang.getItems(), java.time.LocalDateTime.now()));
+                            return null;
+                        });
                     }
                     if (who[0].equals("gv") && !dark) {
                         fx(() -> {

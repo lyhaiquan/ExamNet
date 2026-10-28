@@ -1,9 +1,13 @@
 package labcast.client.ui;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.io.File;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -25,12 +29,14 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import labcast.client.net.LcpClient;
 import labcast.common.protocol.ErrorMessage;
@@ -54,7 +60,9 @@ public final class AccountsScreen extends BorderPane {
             String classes,
             long classId,
             String status,
-            boolean locked) {
+            boolean locked,
+            boolean mustChange,
+            String tempPassword) {
         public String getFullName() {
             return fullName;
         }
@@ -90,6 +98,7 @@ public final class AccountsScreen extends BorderPane {
     private final TableView<Row> table = new TableView<>(visible);
     private final TextField search = new TextField();
     private final ComboBox<String> roleFilter = new ComboBox<>();
+    private final ComboBox<String> classFilter = new ComboBox<>();
     private final Label feedback = new Label("Đang tải…");
     private final Label teachers = new Label("0");
     private final Label students = new Label("0");
@@ -133,10 +142,21 @@ public final class AccountsScreen extends BorderPane {
         roleFilter.getSelectionModel().selectFirst();
         roleFilter.getStyleClass().add("students-filter");
         roleFilter.setOnAction(e -> applyFilter());
+        classFilter.getItems().add(ALL_CLASSES);
+        classFilter.getSelectionModel().selectFirst();
+        classFilter.getStyleClass().add("students-filter");
+        classFilter.valueProperty().addListener((o, a, b) -> applyFilter());
         Button refresh = new Button("↻ Làm mới");
         refresh.getStyleClass().add("students-refresh");
         refresh.setOnAction(e -> reload());
-        HBox controls = new HBox(10, search, roleFilter, refresh);
+        // lúc nào cũng xuất được: server giữ mật khẩu tạm tới khi người dùng tự đặt mật khẩu riêng
+        Button export = new Button("⬇ Xuất Excel");
+        export.setId("account-export");
+        export.getStyleClass().add("students-refresh");
+        export.setTooltip(new Tooltip("Xuất các tài khoản đang hiện (lọc theo lớp trước) kèm mật khẩu tạm, gửi giáo"
+                + " viên phát cho học viên"));
+        export.setOnAction(e -> exportVisible());
+        HBox controls = new HBox(10, search, classFilter, roleFilter, refresh, export);
         controls.setAlignment(Pos.CENTER_LEFT);
         feedback.getStyleClass().add("muted");
         VBox header = new VBox(16, headingBox, metrics, controls, feedback);
@@ -252,10 +272,14 @@ public final class AccountsScreen extends BorderPane {
     private void applyFilter() {
         String q = search.getText() == null ? "" : search.getText().strip().toLowerCase();
         String f = roleFilter.getValue();
+        String cls = classFilter.getValue();
         visible.setPredicate(r -> {
             if (!(r.fullName() + " " + r.username() + " " + r.classes())
                     .toLowerCase()
                     .contains(q)) return false;
+            if (cls != null
+                    && !cls.equals(ALL_CLASSES)
+                    && !List.of(r.classes().split(", ")).contains(cls)) return false;
             return switch (f == null ? "" : f) {
                 case "Giáo viên" -> r.role().equals("TEACHER");
                 case "Học viên" -> r.role().equals("STUDENT");
@@ -328,14 +352,95 @@ public final class AccountsScreen extends BorderPane {
                     names.isEmpty() ? "—" : String.join(", ", names),
                     a.path("classId").asLong(),
                     status,
-                    isLocked));
+                    isLocked,
+                    a.path("mustChange").asBoolean(),
+                    a.path("tempPassword").isTextual() ? a.path("tempPassword").asText() : null));
         }
         rows.setAll(list);
         teachers.setText(Integer.toString(t));
         students.setText(Integer.toString(s));
         locked.setText(Integer.toString(l));
         feedback.setText(list.size() + " tài khoản · " + classes.size() + " lớp");
+        String keep = classFilter.getValue();
+        classFilter.getItems().setAll(ALL_CLASSES);
+        cls.stream().map(ClassItem::name).distinct().sorted().forEach(classFilter.getItems()::add);
+        classFilter.setValue(classFilter.getItems().contains(keep) ? keep : ALL_CLASSES);
         applyFilter();
+    }
+
+    static final String ALL_CLASSES = "Mọi lớp";
+
+    /** Xuất các tài khoản đang hiện trong bảng (trừ quản trị) ra Excel. */
+    private void exportVisible() {
+        List<Row> list = visible.stream().filter(r -> !r.role().equals("ADMIN")).toList();
+        if (list.isEmpty()) {
+            feedback.setText("Không có tài khoản giáo viên, học viên nào đang hiện để xuất.");
+            return;
+        }
+        String cls = classFilter.getValue();
+        String title = cls == null || cls.equals(ALL_CLASSES) ? "" : cls;
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Lưu file tài khoản" + (title.isEmpty() ? "" : " lớp " + title));
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel", "*.xlsx"));
+        fc.setInitialFileName(RosterImportDialog.fileName(title.isEmpty() ? "tat ca" : title));
+        File file = fc.showSaveDialog(getScene() == null ? null : getScene().getWindow());
+        if (file == null) return;
+        Path out = file.getName().toLowerCase(Locale.ROOT).endsWith(".xlsx")
+                ? file.toPath()
+                : file.toPath().resolveSibling(file.getName() + ".xlsx");
+        try {
+            XlsxWriter.write(out, "Tài khoản", EXPORT_WIDTHS, exportSheet(title, list, LocalDateTime.now()));
+            long withPwd = list.stream().filter(r -> r.tempPassword() != null).count();
+            feedback.setText("✓ Đã xuất " + list.size() + " tài khoản (" + withPwd + " có mật khẩu tạm) vào " + out);
+        } catch (Exception ex) {
+            feedback.setText("Không lưu được file: " + ex.getMessage());
+        }
+    }
+
+    static final double[] EXPORT_WIDTHS = {6, 18, 28, 11, 26, 15, 46};
+
+    /**
+     * File tài khoản gửi giáo viên: mật khẩu tạm của ai chưa tự đặt mật khẩu; người đã tự đặt thì ghi chú, không lộ gì.
+     * {@code className} rỗng: nhiều lớp.
+     */
+    static List<XlsxWriter.Line> exportSheet(String className, List<Row> list, LocalDateTime now) {
+        List<XlsxWriter.Line> out = new ArrayList<>();
+        String where = className.isEmpty() ? "" : " - lớp " + className;
+        out.add(new XlsxWriter.Line(XlsxWriter.TITLE, List.of("Tài khoản LabCast" + where)));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.NOTE,
+                List.of("Xuất lúc " + now.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
+                        + ". Giữ kín file này: có mật khẩu tạm.")));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.NOTE,
+                List.of("Cách vào lớp: mở LabCast, chọn lớp ở màn đăng nhập, gõ Tên đăng nhập và Mật khẩu tạm. Lần đầu"
+                        + " đăng nhập app bắt đặt mật khẩu mới của riêng mình.")));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.NOTE,
+                List.of("Quên mật khẩu: bấm \"Quên mật khẩu?\" ở màn đăng nhập, giáo viên sẽ đặt lại mật khẩu tạm.")));
+        out.add(new XlsxWriter.Line(XlsxWriter.PLAIN, List.of()));
+        out.add(new XlsxWriter.Line(
+                XlsxWriter.HEADER,
+                List.of("STT", "Tên đăng nhập", "Họ và tên", "Vai trò", "Lớp", "Mật khẩu tạm", "Ghi chú")));
+        int stt = 0;
+        for (Row r : list) {
+            String note;
+            if (r.locked()) note = "Tài khoản đang bị khoá";
+            else if (r.tempPassword() != null) note = "Đổi mật khẩu ở lần đăng nhập đầu";
+            else if (r.mustChange()) note = "Không còn lưu mật khẩu tạm: bấm \"Mật khẩu\" để cấp mật khẩu tạm mới";
+            else note = "Đã tự đặt mật khẩu riêng";
+            out.add(new XlsxWriter.Line(
+                    XlsxWriter.CELL,
+                    List.of(
+                            String.valueOf(++stt),
+                            r.username(),
+                            r.fullName(),
+                            r.roleLabel(),
+                            r.classes(),
+                            r.tempPassword() == null || r.locked() ? "" : r.tempPassword(),
+                            note)));
+        }
+        return out;
     }
 
     private void confirmLock(Row r) {
