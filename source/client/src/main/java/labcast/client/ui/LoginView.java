@@ -283,13 +283,18 @@ public final class LoginView extends StackPane {
         empty.getStyleClass().add("placeholder");
         empty.setWrapText(true);
         servers.setPlaceholder(empty);
-        servers.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(ServerInfo s, boolean empty) {
-                super.updateItem(s, empty);
-                setText(null);
-                setGraphic(empty || s == null ? null : serverCell(s));
-            }
+        servers.setCellFactory(lv -> {
+            ListCell<ServerInfo> cell = new ListCell<>() {
+                @Override
+                protected void updateItem(ServerInfo s, boolean empty) {
+                    super.updateItem(s, empty);
+                    setText(null);
+                    setGraphic(empty || s == null ? null : serverCell(s));
+                }
+            };
+            // ô rộng đúng bằng danh sách, không giãn theo chữ: tên lớp dài cắt "…" thay vì đẩy thẻ ra ngoài
+            cell.setPrefWidth(0);
+            return cell;
         });
         // Chọn lớp trong danh sách hay gõ địa chỉ tay: chỉ một trong hai có hiệu lực, nên làm cái này thì xoá
         // cái kia (trước đây ô nhập tay còn chữ thì lớp đã chọn bị bỏ qua mà không báo gì).
@@ -357,14 +362,20 @@ public final class LoginView extends StackPane {
         Label addr = new Label(s.host() + ":" + s.port());
         addr.getStyleClass().add("server-meta");
         meta.getChildren().addAll(icon(SERVER, "login-meta-icon"), addr);
-        Region gap = new Region();
-        HBox.setHgrow(gap, Priority.ALWAYS);
+        // tên lớp dài: cắt "…" cho mũi tên khỏi bị đẩy ra ngoài, rê chuột xem đủ
+        name.setMinWidth(0);
+        name.setTooltip(new javafx.scene.control.Tooltip(s.className()));
         VBox text = new VBox(3, name, meta);
         text.setAlignment(Pos.CENTER_LEFT);
-        HBox row = new HBox(14, dot, avatar, text, gap, icon(CHEVRON, "login-chevron"));
+        text.setMinWidth(0);
+        text.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(text, Priority.ALWAYS);
+        HBox row = new HBox(14, dot, avatar, text, icon(CHEVRON, "login-chevron"));
         row.setFillHeight(false);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("login-class-card");
+        row.setMinWidth(0);
+        row.setMaxWidth(Double.MAX_VALUE);
         row.setMinHeight(72); // ô danh sách cao 80, chừa 8 làm khe giữa hai thẻ
         row.setPrefHeight(72);
         return row;

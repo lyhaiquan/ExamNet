@@ -2896,3 +2896,17 @@
 }
 .login-server-info { -fx-text-fill: -lc-text; -fx-font-size: 13px; }
 .login-server-line { -fx-background-color: rgba(255, 255, 255, 0.04); }
+
+/* Danh sách lớp ở màn đăng nhập: ô trống trong suốt, thanh cuộn mảnh khi nhiều lớp */
+.login-servers .virtual-flow,
+.login-servers .clipped-container,
+.login-servers .sheet,
+.login-servers .list-cell:empty,
+.login-servers .corner { -fx-background-color: transparent; }
+.login-servers .scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 10; -fx-padding: 2 0 10 3; }
+.login-servers .scroll-bar:vertical > .thumb { -fx-background-color: -lc-border-strong; -fx-background-radius: 5; }
+.login-servers .scroll-bar:vertical > .thumb:hover { -fx-background-color: -lc-primary; }
+.login-servers .scroll-bar > .increment-button,
+.login-servers .scroll-bar > .decrement-button { -fx-pref-height: 0; -fx-padding: 0; }
+.login-servers .scroll-bar:vertical > .track { -fx-background-color: transparent; }
+.login-class-count { -fx-text-fill: -lc-faint; -fx-font-size: 12px; }
