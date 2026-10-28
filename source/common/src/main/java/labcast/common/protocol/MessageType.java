@@ -159,7 +159,14 @@ public enum MessageType {
     /** Quản trị tạo / sửa giáo viên, học viên: JSON → ADMIN_OK(str) hoặc ERROR. */
     ACCOUNT_SAVE(0xB1),
     /** Quản trị khoá / mở khoá: i64 id, bool locked → ADMIN_OK(str). */
-    ACCOUNT_LOCK(0xB2);
+    ACCOUNT_LOCK(0xB2),
+    /** Quản trị: payload rỗng → ADMIN_CLASS_DATA (mọi lớp kèm giáo viên, số học viên; danh sách giáo viên). */
+    ADMIN_CLASS_LIST(0xB3),
+    ADMIN_CLASS_DATA(0xB4),
+    /** Quản trị tạo / sửa lớp: JSON {id, name, teacherId} → ADMIN_OK(str) hoặc ERROR. id 0: tạo mới. */
+    ADMIN_CLASS_SAVE(0xB5),
+    /** Quản trị xoá lớp chưa có học viên: i64 id → ADMIN_OK(str) hoặc ERROR. */
+    ADMIN_CLASS_DELETE(0xB6);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

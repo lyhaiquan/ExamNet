@@ -49,6 +49,7 @@ class TrangChuSmokeTest {
                         List.of(
                                 new AccountModule(),
                                 new labcast.server.account.AccountAdminModule(),
+                                new labcast.server.classroom.ClassAdminModule(),
                                 new LessonModule(),
                                 new ClassroomWorkspaceModule(),
                                 new HomeModule()))) {
@@ -238,6 +239,42 @@ class TrangChuSmokeTest {
                                             "DSA Nâng cao - K23", bang.getItems(), java.time.LocalDateTime.now()));
                             return null;
                         });
+
+                        // Quản lý lớp: tạo lớp mới giao cho giáo viên
+                        fx(() -> {
+                            ((javafx.scene.control.Button) scene.lookup("#nav-classes")).fire();
+                            return null;
+                        });
+                        Thread.sleep(800); // chờ ADMIN_CLASS_DATA
+                        chup(scene, "quan-ly-lop");
+                        var taoLop =
+                                fx(() -> ((ClassesScreen) ((HomeScreen) scene.getRoot()).getCenter()).editDialog(null));
+                        fx(() -> {
+                            var pane = taoLop.getDialogPane();
+                            ((javafx.scene.control.TextField) pane.lookup(".text-field"))
+                                    .setText("Lớp D25CQCN01 – Nhập môn lập trình");
+                            ((javafx.scene.control.ComboBox<?>) pane.lookup(".combo-box"))
+                                    .getSelectionModel()
+                                    .selectFirst();
+                            return null;
+                        });
+                        chup(taoLop.getDialogPane().getScene(), "tao-lop");
+                        fx(() -> {
+                            ((javafx.scene.control.Button)
+                                            taoLop.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK))
+                                    .fire();
+                            return null;
+                        });
+                        until(
+                                () -> {
+                                    @SuppressWarnings("unchecked")
+                                    var bang = (javafx.scene.control.TableView<ClassesScreen.Row>)
+                                            scene.lookup(".students-table");
+                                    return bang.getItems().stream()
+                                            .anyMatch(r -> r.name().startsWith("Lớp D25CQCN01"));
+                                },
+                                "lớp vừa tạo hiện trong bảng");
+                        chup(scene, "quan-ly-lop-sau-tao");
                     }
                     if (who[0].equals("gv") && !dark) {
                         fx(() -> {
