@@ -19,13 +19,14 @@ import java.util.List;
 public final class Migrations {
 
     /** Phiên bản lược đồ của bản này. 0: DB tạo trước khi có migration (trước giai đoạn 6). */
-    public static final int LATEST = 1;
+    public static final int LATEST = 2;
 
     /** Một bước nâng từ {@code version - 1} lên {@code version}. */
     private record Step(int version, String name, boolean foreignKeysOff, Database.SqlWork<Void> work) {}
 
-    private static final List<Step> STEPS =
-            List.of(new Step(1, "users nhận vai trò ADMIN", true, Migrations::usersWithAdminRole));
+    private static final List<Step> STEPS = List.of(
+            new Step(1, "users nhận vai trò ADMIN", true, Migrations::usersWithAdminRole),
+            new Step(2, "users có cờ phải đổi mật khẩu", false, Migrations::usersMustChangePassword));
 
     private Migrations() {}
 
@@ -93,6 +94,14 @@ public final class Migrations {
                 ResultSet rs = st.executeQuery("PRAGMA user_version")) {
             return rs.next() ? rs.getInt(1) : 0;
         }
+    }
+
+    /** Mật khẩu tạm (giáo viên đặt lại, nhập từ CSV): lần đăng nhập sau phải tự đặt mật khẩu của mình. */
+    private static Void usersMustChangePassword(Connection c) throws SQLException {
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE users ADD COLUMN must_change_pwd INTEGER NOT NULL DEFAULT 0");
+        }
+        return null;
     }
 
     /** SQLite không sửa được {@code CHECK} của cột: tạo bảng mới, chép dữ liệu, xoá bảng cũ, đổi tên. */

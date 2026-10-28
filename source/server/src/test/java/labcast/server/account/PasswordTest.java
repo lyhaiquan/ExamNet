@@ -138,6 +138,98 @@ class PasswordTest {
         }
     }
 
+    /** Đăng nhập; trả cờ "phải đổi mật khẩu" trong AUTH_OK. */
+    private boolean mustChange(String user, String pwd) throws Exception {
+        try (var c = TestClient.connect(server.port())) {
+            Frame ok = c.login(user, pwd);
+            assertEquals(MessageType.AUTH_OK, ok.type());
+            var r = ok.reader();
+            r.str();
+            r.str();
+            r.i64();
+            r.str();
+            r.i64();
+            return r.bool();
+        }
+    }
+
+    private Frame forgot(String user) throws Exception {
+        try (var c = TestClient.connect(server.port())) {
+            c.send(
+                    MessageType.HELLO,
+                    new PayloadWriter().str("test").str("may-test").toBytes());
+            c.readUntil(MessageType.HELLO_ACK);
+            c.send(MessageType.PASSWORD_FORGOT, new PayloadWriter().str(user).toBytes());
+            return c.readUntil(MessageType.ADMIN_OK, MessageType.ERROR);
+        }
+    }
+
+    private List<String> requests(String user, String pwd) throws Exception {
+        try (var c = TestClient.connect(server.port())) {
+            c.login(user, pwd);
+            c.send(MessageType.PASSWORD_REQUESTS_REQ, new byte[0]);
+            var json = labcast.common.protocol.JsonPayload.tree(c.readUntil(MessageType.PASSWORD_REQUESTS_DATA));
+            List<String> out = new java.util.ArrayList<>();
+            json.path("requests").forEach(n -> out.add(n.path("username").asText()));
+            return out;
+        }
+    }
+
+    @Test
+    void matKhauTam_dangNhapBiBatDoi_doiXongThiHet() throws Exception {
+        assertEquals(false, mustChange("sv1", "mk-sv1"));
+        try (var c = TestClient.connect(server.port())) {
+            c.login("gv", "mk-gv");
+            send(c, MessageType.PASSWORD_RESET, "sv1", "123456");
+        }
+        assertEquals(true, mustChange("sv1", "123456"));
+        try (var c = TestClient.connect(server.port())) {
+            c.login("sv1", "123456");
+            // giữ nguyên mật khẩu tạm thì không được
+            assertEquals(ErrorCode.BAD_FRAME, code(send(c, MessageType.PASSWORD_CHANGE, "123456", "123456")));
+            assertEquals(
+                    MessageType.ADMIN_OK,
+                    send(c, MessageType.PASSWORD_CHANGE, "123456", "meo-con").type());
+        }
+        assertEquals(false, mustChange("sv1", "meo-con"));
+    }
+
+    @Test
+    void quenMatKhau_khongCanDangNhap_traLoiGiongNhau_giaoVienThayHocVienLopMinh() throws Exception {
+        Frame co = forgot("sv1");
+        Frame khong = forgot("khong-co-ai");
+        assertEquals(MessageType.ADMIN_OK, co.type());
+        assertEquals(MessageType.ADMIN_OK, khong.type());
+        assertEquals(co.reader().str(), khong.reader().str(), "không dò được tên đăng nhập có thật hay không");
+        forgot("sv1"); // gửi lại: vẫn một yêu cầu
+        forgot("sv2");
+        forgot("gv2");
+
+        assertEquals(List.of("sv1"), requests("gv", "mk-gv"));
+        assertEquals(List.of("sv2"), requests("gv2", "mk-gv2"));
+        assertEquals(java.util.Set.of("sv1", "sv2", "gv2"), java.util.Set.copyOf(requests("ad", "mk-ad")));
+
+        try (var c = TestClient.connect(server.port())) {
+            c.login("gv", "mk-gv");
+            send(c, MessageType.PASSWORD_RESET, "sv1", "tam-1234");
+        }
+        assertEquals(List.of(), requests("gv", "mk-gv"), "đặt lại xong thì yêu cầu biến mất");
+        try (var c = TestClient.connect(server.port())) {
+            c.login("sv1", "tam-1234");
+            c.send(MessageType.PASSWORD_REQUESTS_REQ, new byte[0]);
+            assertEquals(ErrorCode.FORBIDDEN, code(c.readUntil(MessageType.ERROR)));
+        }
+    }
+
+    @Test
+    void nhapCsv_matKhauTrongFileLaMatKhauTam() throws Exception {
+        long lop = new ClassRepository(db)
+                .classOf(new UserRepository(db).byUsername("gv").orElseThrow().id());
+        new RosterImporter(new UserRepository(db), new ClassRepository(db))
+                .importCsv("sv9,Học viên Chín,mk-sv9\n", lop);
+        assertEquals(true, mustChange("sv9", "mk-sv9"));
+    }
+
     @Test
     void kiemTraMatKhauMoi() {
         assertNull(AccountModule.checkNewPassword("abcd"));

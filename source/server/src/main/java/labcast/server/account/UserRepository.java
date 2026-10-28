@@ -4,6 +4,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import labcast.common.protocol.Role;
 import labcast.server.store.Database;
@@ -71,6 +73,79 @@ public final class UserRepository {
                 ps.setInt(3, h.iterations());
                 ps.setLong(4, userId);
                 return ps.executeUpdate() == 1;
+            }
+        });
+    }
+
+    /** Lần đăng nhập sau phải tự đặt mật khẩu mới không (đang dùng mật khẩu tạm). */
+    public boolean mustChangePassword(long userId) throws SQLException {
+        return db.read(c -> {
+            try (PreparedStatement ps = c.prepareStatement("SELECT must_change_pwd FROM users WHERE id = ?")) {
+                ps.setLong(1, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() && rs.getInt(1) != 0;
+                }
+            }
+        });
+    }
+
+    public void setMustChangePassword(long userId, boolean must) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement ps = c.prepareStatement("UPDATE users SET must_change_pwd = ? WHERE id = ?")) {
+                ps.setInt(1, must ? 1 : 0);
+                ps.setLong(2, userId);
+                return ps.executeUpdate();
+            }
+        });
+    }
+
+    /** Ghi yêu cầu quên mật khẩu; đã có yêu cầu đang chờ thì giữ nguyên. */
+    public void requestPasswordReset(long userId, long now) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement ps =
+                    c.prepareStatement("INSERT OR IGNORE INTO password_requests (user_id, created_at) VALUES (?, ?)")) {
+                ps.setLong(1, userId);
+                ps.setLong(2, now);
+                return ps.executeUpdate();
+            }
+        });
+    }
+
+    public void clearPasswordRequest(long userId) throws SQLException {
+        db.tx(c -> {
+            try (PreparedStatement ps = c.prepareStatement("DELETE FROM password_requests WHERE user_id = ?")) {
+                ps.setLong(1, userId);
+                return ps.executeUpdate();
+            }
+        });
+    }
+
+    /** Một yêu cầu quên mật khẩu đang chờ. */
+    public record PasswordRequest(String username, String fullName, Role role, long at) {}
+
+    /**
+     * Yêu cầu đang chờ mà người xem xử lý được: quản trị thấy tất cả (cả giáo viên quên mật khẩu), giáo viên chỉ
+     * thấy học viên ghi danh trong lớp mình dạy. Cũ nhất trước.
+     */
+    public List<PasswordRequest> passwordRequests(long viewerId, boolean admin) throws SQLException {
+        return db.read(c -> {
+            String sql = "SELECT u.username, u.full_name, u.role, r.created_at FROM password_requests r"
+                    + " JOIN users u ON u.id = r.user_id"
+                    + (admin
+                            ? " WHERE ? > 0"
+                            : " WHERE u.role = 'STUDENT' AND EXISTS (SELECT 1 FROM enrollments e JOIN classes c"
+                                    + " ON c.id = e.class_id WHERE e.user_id = u.id AND c.teacher_id = ?)")
+                    + " ORDER BY r.created_at, u.username";
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                ps.setLong(1, admin ? 1 : viewerId);
+                List<PasswordRequest> out = new ArrayList<>();
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        out.add(new PasswordRequest(
+                                rs.getString(1), rs.getString(2), Role.valueOf(rs.getString(3)), rs.getLong(4)));
+                    }
+                }
+                return out;
             }
         });
     }

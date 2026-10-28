@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS users (
     pwd_hash      BLOB    NOT NULL,
     salt          BLOB    NOT NULL,
     iterations    INTEGER NOT NULL,
-    created_at    INTEGER NOT NULL
+    created_at    INTEGER NOT NULL,
+    -- 1: mật khẩu tạm (giáo viên đặt lại, nhập từ CSV), lần đăng nhập sau phải tự đặt mật khẩu mới
+    must_change_pwd INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -42,6 +44,13 @@ CREATE TABLE IF NOT EXISTS classes (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT    NOT NULL,
     teacher_id    INTEGER NOT NULL REFERENCES users(id),
+    created_at    INTEGER NOT NULL
+);
+
+-- Bấm "Quên mật khẩu" ở màn đăng nhập: chờ giáo viên (quản trị) đặt mật khẩu tạm.
+-- Mỗi người nhiều nhất một yêu cầu đang chờ; đặt lại hoặc tự đổi mật khẩu xong thì xoá.
+CREATE TABLE IF NOT EXISTS password_requests (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
     created_at    INTEGER NOT NULL
 );
 

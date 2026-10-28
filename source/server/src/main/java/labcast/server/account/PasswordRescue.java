@@ -51,6 +51,8 @@ public final class PasswordRescue {
         User u = users.byUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Không có tài khoản " + username + " trong database"));
         users.setPassword(u.id(), pwd);
+        users.setMustChangePassword(u.id(), false); // quản trị tự chọn mật khẩu ở đây, không phải mật khẩu tạm
+        users.clearPasswordRequest(u.id());
         return "Đã đặt lại mật khẩu cho " + u.username() + " (" + u.fullName() + ", " + u.role() + ")";
     }
 }

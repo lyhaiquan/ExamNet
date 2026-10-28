@@ -143,7 +143,16 @@ public enum MessageType {
      * Giáo viên/quản trị đặt lại mật khẩu người khác: str username, str mật khẩu mới → ADMIN_OK hoặc ERROR. Giáo
      * viên chỉ đặt lại được cho học viên ghi danh trong lớp mình dạy; quản trị đặt lại được cho mọi người.
      */
-    PASSWORD_RESET(0xAB);
+    PASSWORD_RESET(0xAB),
+    /**
+     * Quên mật khẩu, gửi trước khi đăng nhập: str username → ADMIN_OK(str). Trả lời y hệt dù tài khoản có hay
+     * không, để không dò được tên đăng nhập; có thật thì ghi yêu cầu chờ giáo viên đặt mật khẩu tạm.
+     */
+    PASSWORD_FORGOT(0xAC),
+    /** Giáo viên/quản trị: payload rỗng → PASSWORD_REQUESTS_DATA. */
+    PASSWORD_REQUESTS_REQ(0xAD),
+    /** JSON {requests:[{username, fullName, role, at}]}: yêu cầu quên mật khẩu người xem xử lý được. */
+    PASSWORD_REQUESTS_DATA(0xAE);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

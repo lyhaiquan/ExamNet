@@ -1,10 +1,14 @@
 package labcast.server.account;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.logging.Logger;
 import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.Frame;
+import labcast.common.protocol.JsonPayload;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.PayloadReader;
 import labcast.common.protocol.PayloadWriter;
@@ -56,7 +60,9 @@ public final class AccountModule implements ServerModule {
                 .on(MessageType.RESUME_REQ, this::resume)
                 .on(MessageType.ADMIN_ROSTER_IMPORT, Role.STAFF, this::importRoster)
                 .on(MessageType.PASSWORD_CHANGE, this::changePassword)
-                .on(MessageType.PASSWORD_RESET, Role.STAFF, this::resetPassword);
+                .on(MessageType.PASSWORD_RESET, Role.STAFF, this::resetPassword)
+                .on(MessageType.PASSWORD_FORGOT, this::forgotPassword)
+                .on(MessageType.PASSWORD_REQUESTS_REQ, Role.STAFF, this::passwordRequests);
     }
 
     /** Mật khẩu mới hợp lệ không; {@code null} nếu được, ngược lại là lý do để báo người dùng. */
@@ -82,7 +88,12 @@ public final class AccountModule implements ServerModule {
         }
         String bad = checkNewPassword(newPwd);
         if (bad != null) throw new ProtocolException(ErrorCode.BAD_FRAME, bad);
+        if (newPwd.equals(oldPwd) && users.mustChangePassword(u.id())) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Chọn mật khẩu khác mật khẩu tạm giáo viên đưa");
+        }
         users.setPassword(u.id(), newPwd);
+        users.setMustChangePassword(u.id(), false);
+        users.clearPasswordRequest(u.id());
         ctx.audit().record(u.username(), "PASSWORD_CHANGE", c.connection().remoteAddress());
         c.reply(MessageType.ADMIN_OK, new PayloadWriter().str("Đã đổi mật khẩu").toBytes());
     }
@@ -107,6 +118,8 @@ public final class AccountModule implements ServerModule {
         String bad = checkNewPassword(newPwd);
         if (bad != null) throw new ProtocolException(ErrorCode.BAD_FRAME, bad);
         users.setPassword(target.id(), newPwd);
+        users.setMustChangePassword(target.id(), true); // mật khẩu tạm: lần đăng nhập sau tự đặt mật khẩu riêng
+        users.clearPasswordRequest(target.id());
         ctx.audit().record(s.username(), "PASSWORD_RESET", "đặt lại mật khẩu cho " + target.username());
         c.reply(
                 MessageType.ADMIN_OK,
@@ -191,6 +204,7 @@ public final class AccountModule implements ServerModule {
                         .i64(u.id())
                         .str(u.fullName())
                         .i64(classId)
+                        .bool(users.mustChangePassword(u.id())) // mật khẩu tạm: app bắt đặt mật khẩu riêng
                         .toBytes());
     }
 
@@ -233,6 +247,36 @@ public final class AccountModule implements ServerModule {
         RosterImporter.Result res = importer.importCsv(csv, classId);
         ctx.audit().record(s.username(), "ADMIN_ROSTER_IMPORT", res.message());
         c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(res.message()).toBytes());
+    }
+
+    /** Câu trả lời của PASSWORD_FORGOT, giống nhau cho mọi tên đăng nhập. */
+    static final String FORGOT_REPLY = "Đã gửi yêu cầu tới giáo viên. Hỏi giáo viên mật khẩu tạm, đăng nhập bằng"
+            + " mật khẩu đó rồi đặt mật khẩu mới của bạn.";
+
+    /** {@code PASSWORD_FORGOT(str username)} → {@code ADMIN_OK(str)}. Không cần đăng nhập. */
+    private void forgotPassword(Ctx c, Frame f) throws Exception {
+        String username = f.reader().str().strip();
+        Optional<User> u = username.isEmpty() ? Optional.empty() : users.byUsername(username);
+        if (u.isPresent()) {
+            users.requestPasswordReset(u.get().id(), System.currentTimeMillis());
+            ctx.audit().record(username, "PASSWORD_FORGOT", c.connection().remoteAddress());
+        }
+        c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(FORGOT_REPLY).toBytes());
+    }
+
+    /** {@code PASSWORD_REQUESTS_REQ} → {@code PASSWORD_REQUESTS_DATA}. */
+    private void passwordRequests(Ctx c, Frame f) throws Exception {
+        Session s = c.session();
+        ObjectNode root = JsonNodeFactory.instance.objectNode();
+        ArrayNode arr = root.putArray("requests");
+        for (UserRepository.PasswordRequest r : users.passwordRequests(s.userId(), s.role() == Role.ADMIN)) {
+            arr.addObject()
+                    .put("username", r.username())
+                    .put("fullName", r.fullName())
+                    .put("role", r.role().name())
+                    .put("at", r.at());
+        }
+        c.reply(JsonPayload.frame(MessageType.PASSWORD_REQUESTS_DATA, root), Priority.NORMAL);
     }
 
     private boolean verifyDummy(String password) {
