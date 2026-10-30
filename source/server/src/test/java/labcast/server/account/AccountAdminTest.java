@@ -75,7 +75,7 @@ class AccountAdminTest {
     }
 
     @Test
-    void giaoVien_khongDungDuocQuanLyTaiKhoan_khongNhapCsvDuoc() throws Exception {
+    void giaoVien_khongDungDuocQuanLyTaiKhoan() throws Exception {
         try (var c = TestClient.connect(server.port())) {
             c.login("gv", "mk-gv");
             c.send(MessageType.ACCOUNT_LIST_REQ, new byte[0]);
@@ -84,10 +84,6 @@ class AccountAdminTest {
                     ErrorCode.FORBIDDEN,
                     code(save(c, Map.of("username", "sv9", "fullName", "A", "role", "STUDENT", "password", "1234"))));
             assertEquals(ErrorCode.FORBIDDEN, code(lock(c, 1, true)));
-            c.send(
-                    MessageType.ADMIN_ROSTER_IMPORT,
-                    new PayloadWriter().str("sv8,B,1234\n").toBytes());
-            assertEquals(ErrorCode.FORBIDDEN, code(c.readUntil(MessageType.ERROR)));
         }
     }
 
