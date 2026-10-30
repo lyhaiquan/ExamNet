@@ -1441,6 +1441,8 @@ public final class HomeScreen extends BorderPane {
         practiceOpen = true;
         practice = new PracticeScreen(li.client(), li.role(), allLessons, this::openPracticeLesson,
                 this::finishPractice, this::finishPractice, this::backFromPractice);
+        // Đợt thực hành tính giờ theo đồng hồ server đã đồng bộ, không theo giờ máy (các máy lệch giờ vẫn đóng ca đúng lúc)
+        practice.setClock(cast != null ? cast::serverNow : System::currentTimeMillis);
         practice.setPracticeClasses(classSelector.getItems().stream()
                 .map(option -> new PracticeScreen.PracticeClass(option.id(), option.name()))
                 .toList());

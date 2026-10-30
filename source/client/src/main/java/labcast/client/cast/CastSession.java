@@ -59,6 +59,11 @@ public final class CastSession {
         this.nack = nack;
     }
 
+    /** Giờ server đã đồng bộ (serverNow), cho các màn cần tính giờ theo đồng hồ server. */
+    public long serverNow() {
+        return clock.serverNow();
+    }
+
     /** Một gói chiếu đã qua {@link CastReceiver} (multicast hoặc TCP). Gói hỏng thì bỏ. */
     public void onFrame(Frame f) {
         try {

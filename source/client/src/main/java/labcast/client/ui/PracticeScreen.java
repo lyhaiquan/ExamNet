@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -52,6 +53,7 @@ public final class PracticeScreen extends VBox {
     private static final String SORT_ASC = "Số bài làm: tăng dần";
     private static final String SORT_DESC = "Số bài làm: giảm dần";
     private final LcpClient client;
+    private LongSupplier serverNow = System::currentTimeMillis;
     private final boolean teacher;
     private final List<JsonNode> lessons;
     private final Consumer<String> openLesson;
@@ -175,6 +177,11 @@ public final class PracticeScreen extends VBox {
         refreshTicker.stop();
     }
 
+    /** Nguồn giờ để tính trạng thái và đếm ngược đợt: dùng giờ server đã đồng bộ, không dùng giờ máy. */
+    public void setClock(LongSupplier serverNow) {
+        this.serverNow = serverNow;
+    }
+
     public void setPracticeClasses(List<PracticeClass> classes) {
         practiceClasses.clear();
         if (classes != null)
@@ -275,7 +282,7 @@ public final class PracticeScreen extends VBox {
         sessions.forEach(s -> {
             long startsAt = s.path("startsAt").asLong();
             long closesAt = s.path("closesAt").asLong();
-            long now = System.currentTimeMillis();
+            long now = serverNow.getAsLong();
             String state = state(startsAt, closesAt, now);
             if (s.path("ended").asBoolean(false)) {
                 state = "finished";
@@ -346,7 +353,7 @@ public final class PracticeScreen extends VBox {
                 headingTitle.setText(state.path("name").asText("Thực hành"));
                 startsAt = state.path("startsAt").asLong();
                 closesAt = state.path("closesAt").asLong();
-                String detailState = state(startsAt, closesAt, System.currentTimeMillis());
+                String detailState = state(startsAt, closesAt, serverNow.getAsLong());
                 headingState.setText(stateText(detailState, startsAt));
                 headingQuestionCount.setText(state.path("lessons").size() + " câu hỏi");
                 headingStartTime.setText("Bắt đầu " + format(startsAt));
@@ -396,7 +403,7 @@ public final class PracticeScreen extends VBox {
     private void confirmDeletePractice() {
         if (!teacher || !teacherDetail || teacherPracticeId == 0)
             return;
-        if ("ongoing".equals(state(startsAt, closesAt, System.currentTimeMillis()))) {
+        if ("ongoing".equals(state(startsAt, closesAt, serverNow.getAsLong()))) {
             status.setText("Không thể xóa đợt thực hành đang diễn ra");
             return;
         }
@@ -481,7 +488,7 @@ public final class PracticeScreen extends VBox {
                 if (student.path("active").asBoolean(false))
                     activeCount++;
             }
-            boolean ongoing = "ongoing".equals(state(startsAt, closesAt, System.currentTimeMillis()));
+            boolean ongoing = "ongoing".equals(state(startsAt, closesAt, serverNow.getAsLong()));
             headingParticipation.setVisible(ongoing);
             headingParticipation.setManaged(ongoing);
             headingParticipation.setText("● Đang tham gia: " + activeCount + "/" + teacherStudents.size());
@@ -502,8 +509,8 @@ public final class PracticeScreen extends VBox {
     private void updateTeacherTimer() {
         if (!teacherDetail)
             return;
-        long left = closesAt - System.currentTimeMillis();
-        long untilStart = startsAt - System.currentTimeMillis();
+        long left = closesAt - serverNow.getAsLong();
+        long untilStart = startsAt - serverNow.getAsLong();
         if (untilStart > 0) {
             headingState.setText("● Sắp tới");
             headingState.getStyleClass().removeAll("practice-state-finished", "practice-state-ongoing");
@@ -529,7 +536,7 @@ public final class PracticeScreen extends VBox {
 
     private void updateDeletePracticeButton() {
         boolean canDelete = teacher && teacherDetail
-                && !"ongoing".equals(state(startsAt, closesAt, System.currentTimeMillis()));
+                && !"ongoing".equals(state(startsAt, closesAt, serverNow.getAsLong()));
         deletePracticeButton.setVisible(canDelete);
         deletePracticeButton.setManaged(canDelete);
     }
@@ -879,7 +886,7 @@ public final class PracticeScreen extends VBox {
     }
 
     private void tick() {
-        long left = closesAt - System.currentTimeMillis();
+        long left = closesAt - serverNow.getAsLong();
         if (left <= 0) {
             timer.setText("Đã hết giờ");
             ticker.stop();
