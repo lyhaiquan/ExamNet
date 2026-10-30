@@ -1071,3 +1071,29 @@
     -fx-border-color: #BE123C;
     -fx-text-fill: white;
 }
+
+/* O code tren, ket qua chay duoi: thanh chia doc keo duoc, nhin nhu khe giua hai the. */
+.code-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-box-border: transparent;
+}
+
+.code-split > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 5 0;
+    -fx-cursor: v-resize;
+}
+
+.code-split > .split-pane-divider:hover {
+    -fx-background-color: -lc-border;
+    -fx-background-insets: 4 40% 4 40%;
+    -fx-background-radius: 2;
+}
+
+.run-expand-button {
+    -fx-background-color: transparent;
+    -fx-min-width: 34;
+}
+.run-expand-button:hover {
+}
