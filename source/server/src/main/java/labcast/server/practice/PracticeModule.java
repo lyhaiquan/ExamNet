@@ -1,7 +1,5 @@
 package labcast.server.practice;
 
-import labcast.server.ServerContext;
-import labcast.server.ServerModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +8,8 @@ import labcast.common.protocol.ErrorCode;
 import labcast.common.protocol.JsonPayload;
 import labcast.common.protocol.MessageType;
 import labcast.common.protocol.Role;
+import labcast.server.ServerContext;
+import labcast.server.ServerModule;
 import labcast.server.net.Ctx;
 import labcast.server.net.Priority;
 
@@ -43,14 +43,20 @@ public final class PracticeModule implements ServerModule {
                     && !service.studentEnrolled(s.id(), c.session().userId())) {
                 continue;
             }
-            ObjectNode n = items.addObject().put("id", s.id()).put("name", s.name()).put("type", s.type())
+            ObjectNode n = items.addObject()
+                    .put("id", s.id())
+                    .put("name", s.name())
+                    .put("type", s.type())
                     .put("classId", s.classId())
                     .put("startsAt", s.startsAt())
-                    .put("closesAt", s.closesAt()).put("questionCount", s.lessons().size());
+                    .put("closesAt", s.closesAt())
+                    .put("questionCount", s.lessons().size());
             if (c.session().role() == Role.STUDENT) {
                 n.put("ended", service.finished(s.id(), c.session().userId()));
             } else {
-                n.put("studentCount", service.studentProgress(s.id(), c.session().userId()).size());
+                n.put(
+                        "studentCount",
+                        service.studentProgress(s.id(), c.session().userId()).size());
             }
             if (c.session().role() == Role.TEACHER || s.visible(now)) {
                 var lessons = n.putArray("lessons");
@@ -70,27 +76,46 @@ public final class PracticeModule implements ServerModule {
         }
         service.finish(practiceId, c.session().userId(), System.currentTimeMillis());
         service.clearActive(practiceId, c.session().userId());
-        c.reply(JsonPayload.frame(MessageType.PRACTICE_STATE,
-                JsonPayload.MAPPER.createObjectNode().put("id", practiceId).put("ended", true)), Priority.NORMAL);
+        c.reply(
+                JsonPayload.frame(
+                        MessageType.PRACTICE_STATE,
+                        JsonPayload.MAPPER
+                                .createObjectNode()
+                                .put("id", practiceId)
+                                .put("ended", true)),
+                Priority.NORMAL);
     }
 
     private void create(Ctx c, labcast.common.protocol.Frame f) throws Exception {
         var n = JsonPayload.tree(f);
         List<String> ids = new ArrayList<>();
         n.path("lessons").forEach(x -> ids.add(x.asText()));
-        long id = service.create(c.session().userId(), n.path("classId").asLong(),
-                n.path("name").asText("Đợt thực hành"), n.path("type").asText("PRACTICE"), ids,
+        long id = service.create(
+                c.session().userId(),
+                n.path("classId").asLong(),
+                n.path("name").asText("Đợt thực hành"),
+                n.path("type").asText("PRACTICE"),
+                ids,
                 n.path("startsAt").asLong(),
-                n.path("durationMs").asLong(), System.currentTimeMillis());
-        c.reply(JsonPayload.frame(MessageType.PRACTICE_STATE,
-                JsonPayload.MAPPER.createObjectNode().put("id", id)), Priority.NORMAL);
+                n.path("durationMs").asLong(),
+                System.currentTimeMillis());
+        c.reply(
+                JsonPayload.frame(
+                        MessageType.PRACTICE_STATE,
+                        JsonPayload.MAPPER.createObjectNode().put("id", id)),
+                Priority.NORMAL);
     }
 
     private void delete(Ctx c, labcast.common.protocol.Frame f) throws Exception {
         long practiceId = f.reader().i64();
         service.delete(practiceId, c.session().userId());
-        c.reply(JsonPayload.frame(MessageType.PRACTICE_STATE,
-                JsonPayload.MAPPER.createObjectNode().put("id", practiceId).put("deleted", true)),
+        c.reply(
+                JsonPayload.frame(
+                        MessageType.PRACTICE_STATE,
+                        JsonPayload.MAPPER
+                                .createObjectNode()
+                                .put("id", practiceId)
+                                .put("deleted", true)),
                 Priority.NORMAL);
     }
 
@@ -114,16 +139,26 @@ public final class PracticeModule implements ServerModule {
         if (c.session().role() == Role.STUDENT) {
             service.touch(s.id(), c.session().userId());
         }
-        ObjectNode n = JsonPayload.MAPPER.createObjectNode().put("id", s.id()).put("name", s.name())
-                .put("type", s.type()).put("startsAt", s.startsAt())
-                .put("closesAt", s.closesAt()).put("open", s.open(now));
+        ObjectNode n = JsonPayload.MAPPER
+                .createObjectNode()
+                .put("id", s.id())
+                .put("name", s.name())
+                .put("type", s.type())
+                .put("startsAt", s.startsAt())
+                .put("closesAt", s.closesAt())
+                .put("open", s.open(now));
         var lessons = n.putArray("lessons");
         s.lessons().forEach(lessons::add);
         if (c.session().role() == Role.TEACHER) {
             var students = n.putArray("students");
-            for (PracticeService.StudentProgress p : service.studentProgress(s.id(), c.session().userId())) {
-                students.addObject().put("fullName", p.fullName()).put("username", p.username())
-                        .put("completed", p.completed()).put("total", p.total()).put("active", p.active())
+            for (PracticeService.StudentProgress p :
+                    service.studentProgress(s.id(), c.session().userId())) {
+                students.addObject()
+                        .put("fullName", p.fullName())
+                        .put("username", p.username())
+                        .put("completed", p.completed())
+                        .put("total", p.total())
+                        .put("active", p.active())
                         .putPOJO("completedLessons", p.completedLessons());
             }
         }
@@ -131,8 +166,7 @@ public final class PracticeModule implements ServerModule {
     }
 
     public static void requireOpen(ServerContext ctx, Ctx c, String lessonId) throws Exception {
-        if (c.session().role() != Role.STUDENT)
-            return;
+        if (c.session().role() != Role.STUDENT) return;
         PracticeService service = ctx.find(PracticeService.class).orElse(null);
         if (service != null && !service.studentCanAccess(lessonId, System.currentTimeMillis())) {
             throw new labcast.common.protocol.ProtocolException(

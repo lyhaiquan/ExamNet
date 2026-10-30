@@ -27,12 +27,19 @@ class DatabaseTest {
             assertEquals(
                     23,
                     count(db, "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"));
-            assertEquals(1, count(db,
-                    "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'practice_sessions'"));
-            assertEquals(1,
+            assertEquals(
+                    1,
+                    count(
+                            db,
+                            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'practice_sessions'"));
+            assertEquals(
+                    1,
                     count(db, "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'practice_items'"));
-            assertEquals(1, count(db,
-                    "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'practice_submissions'"));
+            assertEquals(
+                    1,
+                    count(
+                            db,
+                            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'practice_submissions'"));
         }
     }
 

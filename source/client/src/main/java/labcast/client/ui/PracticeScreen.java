@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -18,6 +18,7 @@ import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -27,11 +28,10 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
-import javafx.scene.control.Alert;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import labcast.client.net.LcpClient;
@@ -60,10 +60,8 @@ public final class PracticeScreen extends VBox {
     private final Runnable onFinish;
     private final Runnable onEarlySubmit;
     private final Runnable onBack;
-    private Runnable onDetailOpened = () -> {
-    };
-    private Runnable onDetailClosed = () -> {
-    };
+    private Runnable onDetailOpened = () -> {};
+    private Runnable onDetailClosed = () -> {};
     private final List<PracticeClass> practiceClasses = new ArrayList<>();
     private long selectedPracticeClassId;
     private final Map<String, String> lessonStatuses = new HashMap<>();
@@ -96,18 +94,29 @@ public final class PracticeScreen extends VBox {
     private JsonNode teacherStudents;
     private final List<String> teacherLessonIds = new ArrayList<>();
 
-    public PracticeScreen(LcpClient client, Role role, List<JsonNode> lessons,
-            Consumer<String> openLesson, Runnable onFinish) {
+    public PracticeScreen(
+            LcpClient client, Role role, List<JsonNode> lessons, Consumer<String> openLesson, Runnable onFinish) {
         this(client, role, lessons, openLesson, onFinish, onFinish, null);
     }
 
-    public PracticeScreen(LcpClient client, Role role, List<JsonNode> lessons,
-            Consumer<String> openLesson, Runnable onFinish, Runnable onEarlySubmit) {
+    public PracticeScreen(
+            LcpClient client,
+            Role role,
+            List<JsonNode> lessons,
+            Consumer<String> openLesson,
+            Runnable onFinish,
+            Runnable onEarlySubmit) {
         this(client, role, lessons, openLesson, onFinish, onEarlySubmit, null);
     }
 
-    public PracticeScreen(LcpClient client, Role role, List<JsonNode> lessons,
-            Consumer<String> openLesson, Runnable onFinish, Runnable onEarlySubmit, Runnable onBack) {
+    public PracticeScreen(
+            LcpClient client,
+            Role role,
+            List<JsonNode> lessons,
+            Consumer<String> openLesson,
+            Runnable onFinish,
+            Runnable onEarlySubmit,
+            Runnable onBack) {
         super(12);
         this.client = client;
         this.teacher = role == Role.TEACHER;
@@ -136,8 +145,8 @@ public final class PracticeScreen extends VBox {
         earlySubmitButton.setOnAction(e -> confirmEarlySubmit());
         HBox headingTopSpacer = new HBox();
         HBox.setHgrow(headingTopSpacer, javafx.scene.layout.Priority.ALWAYS);
-        HBox headingTop = new HBox(10, backButton, headingTitle, headingState,
-                headingTopSpacer, timer, earlySubmitButton);
+        HBox headingTop =
+                new HBox(10, backButton, headingTitle, headingState, headingTopSpacer, timer, earlySubmitButton);
         headingTop.setAlignment(Pos.CENTER_LEFT);
         HBox headingTimes = new HBox(12, headingStartTime, headingEndTime);
         headingTimes.setAlignment(Pos.CENTER_LEFT);
@@ -184,8 +193,7 @@ public final class PracticeScreen extends VBox {
 
     public void setPracticeClasses(List<PracticeClass> classes) {
         practiceClasses.clear();
-        if (classes != null)
-            practiceClasses.addAll(classes);
+        if (classes != null) practiceClasses.addAll(classes);
     }
 
     public void setSelectedPracticeClass(long classId) {
@@ -193,19 +201,16 @@ public final class PracticeScreen extends VBox {
     }
 
     public void setOnDetailOpened(Runnable callback) {
-        onDetailOpened = callback == null ? () -> {
-        } : callback;
+        onDetailOpened = callback == null ? () -> {} : callback;
     }
 
     public void setOnDetailClosed(Runnable callback) {
-        onDetailClosed = callback == null ? () -> {
-        } : callback;
+        onDetailClosed = callback == null ? () -> {} : callback;
     }
 
     /** Kết thúc đợt ở phía học sinh và quay lại danh sách các đợt thực hành. */
     public void finishForStudent() {
-        if (sessionEnded)
-            return;
+        if (sessionEnded) return;
         sessionEnded = true;
         ticker.stop();
         updateEarlySubmitButton();
@@ -213,16 +218,15 @@ public final class PracticeScreen extends VBox {
     }
 
     public void submitForStudent() {
-        if (teacher || sessionEnded || practiceId == 0)
-            return;
+        if (teacher || sessionEnded || practiceId == 0) return;
         var reply = client.expect(MessageType.PRACTICE_STATE);
-        client.send(MessageType.PRACTICE_SUBMIT, new PayloadWriter().i64(practiceId).toBytes());
+        client.send(
+                MessageType.PRACTICE_SUBMIT, new PayloadWriter().i64(practiceId).toBytes());
         reply.orTimeout(10, TimeUnit.SECONDS).thenRun(() -> Platform.runLater(this::finishForStudent));
     }
 
     public void returnToList() {
-        if (!teacherDetail)
-            return;
+        if (!teacherDetail) return;
         teacherDetail = false;
         teacherPracticeId = 0;
         teacherStudents = null;
@@ -235,20 +239,19 @@ public final class PracticeScreen extends VBox {
         long requestVersion = ++listRequestVersion;
         var reply = client.expect(MessageType.PRACTICE_STATE);
         client.send(MessageType.PRACTICE_LIST, new byte[0]);
-        reply.orTimeout(10, TimeUnit.SECONDS).thenAccept(f -> javafx.application.Platform.runLater(() -> {
-            try {
-                if (requestVersion != listRequestVersion || teacherDetail)
-                    return;
-                renderList(JsonPayload.tree(f).path("sessions"));
-            } catch (Exception e) {
-                status.setText("Không tải được danh sách thực hành");
-            }
-        }));
+        reply.orTimeout(10, TimeUnit.SECONDS)
+                .thenAccept(f -> javafx.application.Platform.runLater(() -> {
+                    try {
+                        if (requestVersion != listRequestVersion || teacherDetail) return;
+                        renderList(JsonPayload.tree(f).path("sessions"));
+                    } catch (Exception e) {
+                        status.setText("Không tải được danh sách thực hành");
+                    }
+                }));
     }
 
     private void renderList(JsonNode sessions) {
-        if (teacherDetail && teacherPracticeId != 0)
-            return;
+        if (teacherDetail && teacherPracticeId != 0) return;
         teacherFilterInitialized = false;
         teacherFilterBar.setVisible(false);
         teacherFilterBar.setManaged(false);
@@ -268,8 +271,9 @@ public final class PracticeScreen extends VBox {
         headingEndTime.setManaged(false);
         headingParticipation.setVisible(false);
         headingParticipation.setManaged(false);
-        headingState.getStyleClass().removeAll("practice-state-ongoing", "practice-state-finished",
-                "practice-state-upcoming");
+        headingState
+                .getStyleClass()
+                .removeAll("practice-state-ongoing", "practice-state-finished", "practice-state-upcoming");
         updateBackButton();
         updateEarlySubmitButton();
         body.getChildren().clear();
@@ -295,8 +299,8 @@ public final class PracticeScreen extends VBox {
             stateBadge.getStyleClass().add("practice-state-" + state);
             HBox heading = new HBox(10, title, type, stateBadge);
             heading.setAlignment(Pos.CENTER_LEFT);
-            Label questionCount = new Label(
-                    s.path("questionCount").asInt(s.path("lessons").size()) + " câu hỏi · Bắt đầu "
+            Label questionCount =
+                    new Label(s.path("questionCount").asInt(s.path("lessons").size()) + " câu hỏi · Bắt đầu "
                             + format(startsAt) + " · Kết thúc " + format(closesAt));
             questionCount.getStyleClass().add("practice-session-meta");
             VBox details = new VBox(7, heading, questionCount);
@@ -317,8 +321,7 @@ public final class PracticeScreen extends VBox {
             }
             body.getChildren().add(item);
         });
-        if (sessions.isEmpty())
-            status.setText("Chưa có đợt thực hành");
+        if (sessions.isEmpty()) status.setText("Chưa có đợt thực hành");
     }
 
     private static Label badge(String text, String style) {
@@ -347,29 +350,30 @@ public final class PracticeScreen extends VBox {
         onDetailOpened.run();
         var reply = client.expect(MessageType.PRACTICE_STATE);
         client.send(MessageType.PRACTICE_START, new PayloadWriter().i64(id).toBytes());
-        reply.orTimeout(10, TimeUnit.SECONDS).thenAccept(f -> Platform.runLater(() -> {
-            try {
-                JsonNode state = JsonPayload.tree(f);
-                headingTitle.setText(state.path("name").asText("Thực hành"));
-                startsAt = state.path("startsAt").asLong();
-                closesAt = state.path("closesAt").asLong();
-                String detailState = state(startsAt, closesAt, serverNow.getAsLong());
-                headingState.setText(stateText(detailState, startsAt));
-                headingQuestionCount.setText(state.path("lessons").size() + " câu hỏi");
-                headingStartTime.setText("Bắt đầu " + format(startsAt));
-                headingEndTime.setText("Kết thúc " + format(closesAt));
-                headingQuestionCount.setVisible(true);
-                headingQuestionCount.setManaged(true);
-                headingStartTime.setVisible(true);
-                headingStartTime.setManaged(true);
-                headingEndTime.setVisible(true);
-                headingEndTime.setManaged(true);
-                updateTeacherTimer();
-                renderTeacherDetails(state);
-            } catch (Exception e) {
-                status.setText("Không tải được danh sách học sinh");
-            }
-        }));
+        reply.orTimeout(10, TimeUnit.SECONDS)
+                .thenAccept(f -> Platform.runLater(() -> {
+                    try {
+                        JsonNode state = JsonPayload.tree(f);
+                        headingTitle.setText(state.path("name").asText("Thực hành"));
+                        startsAt = state.path("startsAt").asLong();
+                        closesAt = state.path("closesAt").asLong();
+                        String detailState = state(startsAt, closesAt, serverNow.getAsLong());
+                        headingState.setText(stateText(detailState, startsAt));
+                        headingQuestionCount.setText(state.path("lessons").size() + " câu hỏi");
+                        headingStartTime.setText("Bắt đầu " + format(startsAt));
+                        headingEndTime.setText("Kết thúc " + format(closesAt));
+                        headingQuestionCount.setVisible(true);
+                        headingQuestionCount.setManaged(true);
+                        headingStartTime.setVisible(true);
+                        headingStartTime.setManaged(true);
+                        headingEndTime.setVisible(true);
+                        headingEndTime.setManaged(true);
+                        updateTeacherTimer();
+                        renderTeacherDetails(state);
+                    } catch (Exception e) {
+                        status.setText("Không tải được danh sách học sinh");
+                    }
+                }));
     }
 
     private void renderTeacherDetails(JsonNode state) {
@@ -383,12 +387,14 @@ public final class PracticeScreen extends VBox {
             studentFilter.getItems().addAll(SORT_ASC, SORT_DESC);
             state.path("lessons").forEach(lessonId -> {
                 JsonNode lesson = findLesson(lessonId.asText());
-                String name = lesson == null ? lessonId.asText() : lesson.path("ten").asText(lessonId.asText());
+                String name =
+                        lesson == null ? lessonId.asText() : lesson.path("ten").asText(lessonId.asText());
                 studentFilter.getItems().add("Bài: " + name);
             });
-            studentFilter.setValue(previousFilter != null && studentFilter.getItems().contains(previousFilter)
-                    ? previousFilter
-                    : "Tất cả");
+            studentFilter.setValue(
+                    previousFilter != null && studentFilter.getItems().contains(previousFilter)
+                            ? previousFilter
+                            : "Tất cả");
             teacherFilterBar.getChildren().setAll(studentFilter, deletePracticeButton);
             teacherFilterBar.setMaxWidth(Double.MAX_VALUE);
             teacherFilterBar.setVisible(true);
@@ -401,64 +407,65 @@ public final class PracticeScreen extends VBox {
     }
 
     private void confirmDeletePractice() {
-        if (!teacher || !teacherDetail || teacherPracticeId == 0)
-            return;
+        if (!teacher || !teacherDetail || teacherPracticeId == 0) return;
         if ("ongoing".equals(state(startsAt, closesAt, serverNow.getAsLong()))) {
             status.setText("Không thể xóa đợt thực hành đang diễn ra");
             return;
         }
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
+        Alert confirmation = new Alert(
+                Alert.AlertType.CONFIRMATION,
                 "Bạn có chắc chắn muốn xóa bài thực hành này không?\n"
                         + "Danh sách bài và dữ liệu theo dõi của đợt này sẽ bị xóa.",
-                ButtonType.OK, ButtonType.CANCEL);
+                ButtonType.OK,
+                ButtonType.CANCEL);
         confirmation.setTitle("Xác nhận xóa bài thực hành");
         confirmation.setHeaderText("Xóa bài thực hành");
         Theme.apply(confirmation.getDialogPane());
         confirmation.getDialogPane().getStyleClass().add("practice-dialog");
         confirmation.getDialogPane().lookupButton(ButtonType.OK).getStyleClass().add("primary");
-        if (getScene() != null)
-            confirmation.initOwner(getScene().getWindow());
+        if (getScene() != null) confirmation.initOwner(getScene().getWindow());
         confirmation.showAndWait().ifPresent(result -> {
-            if (result != ButtonType.OK)
-                return;
+            if (result != ButtonType.OK) return;
             var reply = client.expect(MessageType.PRACTICE_STATE, MessageType.ERROR);
-            client.send(MessageType.PRACTICE_DELETE, new PayloadWriter().i64(teacherPracticeId).toBytes());
-            reply.orTimeout(10, TimeUnit.SECONDS).whenComplete((frame, error) -> Platform.runLater(() -> {
-                if (error != null || frame.type() != MessageType.PRACTICE_STATE) {
-                    status.setText("Không xóa được bài thực hành");
-                    return;
-                }
-                teacherDetail = false;
-                teacherPracticeId = 0;
-                teacherStudents = null;
-                teacherFilterInitialized = false;
-                onDetailClosed.run();
-                load();
-            }));
+            client.send(
+                    MessageType.PRACTICE_DELETE,
+                    new PayloadWriter().i64(teacherPracticeId).toBytes());
+            reply.orTimeout(10, TimeUnit.SECONDS)
+                    .whenComplete((frame, error) -> Platform.runLater(() -> {
+                        if (error != null || frame.type() != MessageType.PRACTICE_STATE) {
+                            status.setText("Không xóa được bài thực hành");
+                            return;
+                        }
+                        teacherDetail = false;
+                        teacherPracticeId = 0;
+                        teacherStudents = null;
+                        teacherFilterInitialized = false;
+                        onDetailClosed.run();
+                        load();
+                    }));
         });
     }
 
     private void renderTeacherStudents() {
-        if (teacherStudents == null)
-            return;
+        if (teacherStudents == null) return;
         body.getChildren().clear();
         String filter = studentFilter.getValue();
         List<JsonNode> visibleStudents = new ArrayList<>();
         teacherStudents.forEach(student -> {
             boolean active = student.path("active").asBoolean(false);
-            if (("Đang tham gia".equals(filter) && !active) || ("Chưa tham gia".equals(filter) && active))
-                return;
+            if (("Đang tham gia".equals(filter) && !active) || ("Chưa tham gia".equals(filter) && active)) return;
             if (filter != null && filter.startsWith("Bài: ")) {
                 int lessonIndex = studentFilter.getItems().indexOf(filter) - 5;
-                if (lessonIndex < 0 || lessonIndex >= teacherLessonIds.size()
-                        || !student.path("completedLessons").has(teacherLessonIds.get(lessonIndex)))
-                    return;
+                if (lessonIndex < 0
+                        || lessonIndex >= teacherLessonIds.size()
+                        || !student.path("completedLessons").has(teacherLessonIds.get(lessonIndex))) return;
             }
             visibleStudents.add(student);
         });
         if (SORT_ASC.equals(filter) || SORT_DESC.equals(filter)) {
             visibleStudents.sort((left, right) -> {
-                int comparison = Integer.compare(left.path("completed").asInt(), right.path("completed").asInt());
+                int comparison = Integer.compare(
+                        left.path("completed").asInt(), right.path("completed").asInt());
                 return SORT_DESC.equals(filter) ? -comparison : comparison;
             });
         }
@@ -485,8 +492,7 @@ public final class PracticeScreen extends VBox {
         if (teacherDetail) {
             long activeCount = 0;
             for (JsonNode student : teacherStudents) {
-                if (student.path("active").asBoolean(false))
-                    activeCount++;
+                if (student.path("active").asBoolean(false)) activeCount++;
             }
             boolean ongoing = "ongoing".equals(state(startsAt, closesAt, serverNow.getAsLong()));
             headingParticipation.setVisible(ongoing);
@@ -507,8 +513,7 @@ public final class PracticeScreen extends VBox {
     }
 
     private void updateTeacherTimer() {
-        if (!teacherDetail)
-            return;
+        if (!teacherDetail) return;
         long left = closesAt - serverNow.getAsLong();
         long untilStart = startsAt - serverNow.getAsLong();
         if (untilStart > 0) {
@@ -535,8 +540,8 @@ public final class PracticeScreen extends VBox {
     }
 
     private void updateDeletePracticeButton() {
-        boolean canDelete = teacher && teacherDetail
-                && !"ongoing".equals(state(startsAt, closesAt, serverNow.getAsLong()));
+        boolean canDelete =
+                teacher && teacherDetail && !"ongoing".equals(state(startsAt, closesAt, serverNow.getAsLong()));
         deletePracticeButton.setVisible(canDelete);
         deletePracticeButton.setManaged(canDelete);
     }
@@ -548,7 +553,8 @@ public final class PracticeScreen extends VBox {
 
     private void touchPractice() {
         var reply = client.expect(MessageType.PRACTICE_STATE);
-        client.send(MessageType.PRACTICE_START, new PayloadWriter().i64(practiceId).toBytes());
+        client.send(
+                MessageType.PRACTICE_START, new PayloadWriter().i64(practiceId).toBytes());
         reply.orTimeout(5, TimeUnit.SECONDS).exceptionally(error -> null);
     }
 
@@ -653,14 +659,21 @@ public final class PracticeScreen extends VBox {
                 e.consume();
                 return;
             }
-            create(name.getText(), "Kiểm tra".equals(practiceType.getValue()) ? "QUIZ" : "PRACTICE",
-                    classChoice.getValue().id(), ids, date, hour, minute, duration);
+            create(
+                    name.getText(),
+                    "Kiểm tra".equals(practiceType.getValue()) ? "QUIZ" : "PRACTICE",
+                    classChoice.getValue().id(),
+                    ids,
+                    date,
+                    hour,
+                    minute,
+                    duration);
         });
         dialog.showAndWait();
     }
 
-    private void showLessonPicker(List<JsonNode> selectedLessons, VBox selectedList, Label selectedHint,
-            Button chooseButton) {
+    private void showLessonPicker(
+            List<JsonNode> selectedLessons, VBox selectedList, Label selectedHint, Button chooseButton) {
         Dialog<Void> picker = new Dialog<>();
         picker.setTitle("Chọn bài tập");
         picker.setHeaderText("Chọn các bài sẽ có trong đợt thực hành");
@@ -675,7 +688,8 @@ public final class PracticeScreen extends VBox {
             if (!"bai-tap".equals(lesson.path("loai").asText())) {
                 continue;
             }
-            CheckBox choice = new CheckBox(lesson.path("id").asText() + " · " + lesson.path("ten").asText());
+            CheckBox choice = new CheckBox(
+                    lesson.path("id").asText() + " · " + lesson.path("ten").asText());
             choice.setSelected(selectedLessons.contains(lesson));
             choices.add(choice);
             choicesBox.getChildren().add(choice);
@@ -692,8 +706,7 @@ public final class PracticeScreen extends VBox {
         pane.lookupButton(ok).addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
             selectedLessons.clear();
             for (int i = 0; i < choices.size(); i++) {
-                if (choices.get(i).isSelected())
-                    selectedLessons.add(lessons.get(i));
+                if (choices.get(i).isSelected()) selectedLessons.add(lessons.get(i));
             }
             selectedList.getChildren().clear();
             if (selectedLessons.isEmpty()) {
@@ -733,8 +746,14 @@ public final class PracticeScreen extends VBox {
         return field;
     }
 
-    private void create(String name, String type, long classId, List<String> lessonIds, DatePicker date,
-            TextField hour, TextField minute,
+    private void create(
+            String name,
+            String type,
+            long classId,
+            List<String> lessonIds,
+            DatePicker date,
+            TextField hour,
+            TextField minute,
             TextField duration) {
         ObjectNode n = JsonPayload.MAPPER.createObjectNode();
         ArrayNode ids = n.putArray("lessons");
@@ -743,12 +762,18 @@ public final class PracticeScreen extends VBox {
             int hourValue = Integer.parseInt(hour.getText());
             int minuteValue = Integer.parseInt(minute.getText());
             int durationValue = Integer.parseInt(duration.getText());
-            if (hourValue < 0 || hourValue > 23 || minuteValue < 0 || minuteValue > 59
-                    || durationValue < 1 || durationValue > 24 * 60) {
+            if (hourValue < 0
+                    || hourValue > 23
+                    || minuteValue < 0
+                    || minuteValue > 59
+                    || durationValue < 1
+                    || durationValue > 24 * 60) {
                 throw new IllegalArgumentException("Ngoài giới hạn");
             }
             long at = LocalDateTime.of(date.getValue(), java.time.LocalTime.of(hourValue, minuteValue))
-                    .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli();
             n.put("startsAt", at);
             n.put("durationMs", durationValue * 60_000L);
             n.put("name", name.strip());
@@ -758,7 +783,7 @@ public final class PracticeScreen extends VBox {
             client.send(JsonPayload.frame(MessageType.PRACTICE_CREATE, n));
             reply.orTimeout(10, TimeUnit.SECONDS)
                     .thenRun(() -> javafx.application.Platform.runLater(() -> {
-                    status.setText("");
+                        status.setText("");
                         load();
                     }));
         } catch (Exception e) {
@@ -767,10 +792,8 @@ public final class PracticeScreen extends VBox {
     }
 
     private static String state(long startsAt, long closesAt, long now) {
-        if (now < startsAt)
-            return "upcoming";
-        if (now < closesAt)
-            return "ongoing";
+        if (now < startsAt) return "upcoming";
+        if (now < closesAt) return "ongoing";
         return "finished";
     }
 
@@ -783,59 +806,63 @@ public final class PracticeScreen extends VBox {
     }
 
     private void join(long id) {
-        if (teacher)
-            return;
+        if (teacher) return;
         var reply = client.expect(MessageType.PRACTICE_STATE);
         client.send(MessageType.PRACTICE_START, new PayloadWriter().i64(id).toBytes());
-        reply.orTimeout(10, TimeUnit.SECONDS).thenAccept(f -> javafx.application.Platform.runLater(() -> {
-            try {
-                JsonNode n = JsonPayload.tree(f);
-                practiceId = n.path("id").asLong();
-                sessionEnded = false;
-                onDetailOpened.run();
-                updateBackButton();
-                updateEarlySubmitButton();
-                closesAt = n.path("closesAt").asLong();
-                body.getChildren().clear();
-                n.path("lessons").forEach(l -> {
-                    String lessonId = l.asText();
-                    JsonNode lesson = findLesson(lessonId);
-                    String name = lesson == null ? lessonId : lesson.path("ten").asText(lessonId);
-                    String subject = lesson == null ? "" : lesson.path("mon").asText("").toUpperCase();
-                    Label idLabel = new Label(lessonId);
-                    idLabel.getStyleClass().add("practice-lesson-id");
-                    Label typeLabel = new Label(subject.isBlank() ? "BÀI TẬP" : subject);
-                    typeLabel.getStyleClass().add("practice-lesson-type");
-                    Label nameLabel = new Label(name);
-                    nameLabel.getStyleClass().add("practice-lesson-name");
-                    String lessonStatus = lessonStatuses.get(lessonId);
-                    Label check = new Label("correct".equals(lessonStatus) ? "✓"
-                            : "wrong".equals(lessonStatus) ? "✕" : "");
-                    check.getStyleClass().add("practice-lesson-check");
-                    HBox card = new HBox(10, idLabel, typeLabel, nameLabel, check);
-                    card.setAlignment(Pos.CENTER_LEFT);
-                    card.setMaxWidth(Double.MAX_VALUE);
-                    card.setUserData(lessonId);
-                    card.getStyleClass().add("practice-lesson-card");
-                    if ("correct".equals(lessonStatus)) {
-                        card.getStyleClass().add("practice-lesson-correct");
-                    } else if ("wrong".equals(lessonStatus)) {
-                        card.getStyleClass().add("practice-lesson-wrong");
+        reply.orTimeout(10, TimeUnit.SECONDS)
+                .thenAccept(f -> javafx.application.Platform.runLater(() -> {
+                    try {
+                        JsonNode n = JsonPayload.tree(f);
+                        practiceId = n.path("id").asLong();
+                        sessionEnded = false;
+                        onDetailOpened.run();
+                        updateBackButton();
+                        updateEarlySubmitButton();
+                        closesAt = n.path("closesAt").asLong();
+                        body.getChildren().clear();
+                        n.path("lessons").forEach(l -> {
+                            String lessonId = l.asText();
+                            JsonNode lesson = findLesson(lessonId);
+                            String name = lesson == null
+                                    ? lessonId
+                                    : lesson.path("ten").asText(lessonId);
+                            String subject = lesson == null
+                                    ? ""
+                                    : lesson.path("mon").asText("").toUpperCase();
+                            Label idLabel = new Label(lessonId);
+                            idLabel.getStyleClass().add("practice-lesson-id");
+                            Label typeLabel = new Label(subject.isBlank() ? "BÀI TẬP" : subject);
+                            typeLabel.getStyleClass().add("practice-lesson-type");
+                            Label nameLabel = new Label(name);
+                            nameLabel.getStyleClass().add("practice-lesson-name");
+                            String lessonStatus = lessonStatuses.get(lessonId);
+                            Label check = new Label(
+                                    "correct".equals(lessonStatus) ? "✓" : "wrong".equals(lessonStatus) ? "✕" : "");
+                            check.getStyleClass().add("practice-lesson-check");
+                            HBox card = new HBox(10, idLabel, typeLabel, nameLabel, check);
+                            card.setAlignment(Pos.CENTER_LEFT);
+                            card.setMaxWidth(Double.MAX_VALUE);
+                            card.setUserData(lessonId);
+                            card.getStyleClass().add("practice-lesson-card");
+                            if ("correct".equals(lessonStatus)) {
+                                card.getStyleClass().add("practice-lesson-correct");
+                            } else if ("wrong".equals(lessonStatus)) {
+                                card.getStyleClass().add("practice-lesson-wrong");
+                            }
+                            card.setOnMouseClicked(e -> openLesson.accept(lessonId));
+                            body.getChildren().add(card);
+                        });
+                        ticker.playFromStart();
+                        tick();
+                    } catch (Exception e) {
+                        status.setText("Không vào được đợt thực hành");
                     }
-                    card.setOnMouseClicked(e -> openLesson.accept(lessonId));
-                    body.getChildren().add(card);
-                });
-                ticker.playFromStart();
-                tick();
-            } catch (Exception e) {
-                status.setText("Không vào được đợt thực hành");
-            }
-        }));
+                }));
     }
 
     private void updateBackButton() {
-        boolean canGoBack = onBack != null
-                && ((teacher && teacherDetail) || (!teacher && (practiceId == 0 || sessionEnded)));
+        boolean canGoBack =
+                onBack != null && ((teacher && teacherDetail) || (!teacher && (practiceId == 0 || sessionEnded)));
         backButton.setVisible(canGoBack);
         backButton.setManaged(canGoBack);
     }
@@ -866,8 +893,7 @@ public final class PracticeScreen extends VBox {
 
     private JsonNode findLesson(String id) {
         for (JsonNode lesson : lessons) {
-            if (id.equals(lesson.path("id").asText()))
-                return lesson;
+            if (id.equals(lesson.path("id").asText())) return lesson;
         }
         return null;
     }

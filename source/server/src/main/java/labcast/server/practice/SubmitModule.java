@@ -132,8 +132,8 @@ public final class SubmitModule implements ServerModule {
             return;
         }
         try {
-            long left = isolatedSubmission ? 0
-                    : progress.cooldownLeft(s.userId(), lessonId, System.currentTimeMillis());
+            long left =
+                    isolatedSubmission ? 0 : progress.cooldownLeft(s.userId(), lessonId, System.currentTimeMillis());
             if (left > 0) {
                 inFlight.remove(key);
                 c.error(ErrorCode.COOLDOWN, "Chờ " + (left + 999) / 1000 + " s nữa mới được nộp lại", (int) left);
@@ -168,10 +168,10 @@ public final class SubmitModule implements ServerModule {
                                 LOG.log(Level.WARNING, "Không chấm được bài " + lessonId, cause);
                                 s.send(
                                         new ErrorMessage(
-                                                ErrorCode.SANDBOX_DOWN,
-                                                "Server chưa chấm được bài (không tính lượt nộp): "
-                                                        + cause.getMessage(),
-                                                0)
+                                                        ErrorCode.SANDBOX_DOWN,
+                                                        "Server chưa chấm được bài (không tính lượt nộp): "
+                                                                + cause.getMessage(),
+                                                        0)
                                                 .toFrame(),
                                         Priority.NORMAL);
                                 return;

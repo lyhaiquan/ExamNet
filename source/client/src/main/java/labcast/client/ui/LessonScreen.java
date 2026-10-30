@@ -93,6 +93,7 @@ public final class LessonScreen extends BorderPane {
     private Label fileName;
     /** Chiếu cho cả lớp (chỉ giáo viên, khi app có phần nhận chiếu); null nếu không chiếu được. */
     private final CastSession cast;
+
     private final boolean practiceMode;
     private final Runnable earlySubmit;
 

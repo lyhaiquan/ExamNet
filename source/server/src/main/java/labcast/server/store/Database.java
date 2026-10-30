@@ -77,11 +77,10 @@ public final class Database implements AutoCloseable {
             st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN class_id INTEGER REFERENCES classes(id)");
         if (!hasType)
             st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN type TEXT NOT NULL DEFAULT 'PRACTICE'");
-        st.executeUpdate(
-                "UPDATE practice_sessions SET class_id = ("
-                        + "SELECT id FROM classes WHERE classes.teacher_id = practice_sessions.teacher_id "
-                        + "ORDER BY id LIMIT 1"
-                        + ") WHERE class_id IS NULL");
+        st.executeUpdate("UPDATE practice_sessions SET class_id = ("
+                + "SELECT id FROM classes WHERE classes.teacher_id = practice_sessions.teacher_id "
+                + "ORDER BY id LIMIT 1"
+                + ") WHERE class_id IS NULL");
     }
 
     /**

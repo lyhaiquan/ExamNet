@@ -4,10 +4,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import labcast.server.store.Database;
 
@@ -16,12 +16,11 @@ import labcast.server.store.Database;
  * sổ thời gian.
  */
 public final class PracticeService {
-    public record StudentProgress(String fullName, String username, int completed, int total, boolean active,
-            Set<String> completedLessons) {
-    }
+    public record StudentProgress(
+            String fullName, String username, int completed, int total, boolean active, Set<String> completedLessons) {}
 
-    public record Session(long id, long classId, String name, String type, long startsAt, long closesAt,
-            List<String> lessons) {
+    public record Session(
+            long id, long classId, String name, String type, long startsAt, long closesAt, List<String> lessons) {
         public boolean open(long now) {
             return now >= startsAt && now < closesAt;
         }
@@ -39,7 +38,13 @@ public final class PracticeService {
         this.db = db;
     }
 
-    public long create(long teacherId, long classId, String name, String type, List<String> lessonIds, long startsAt,
+    public long create(
+            long teacherId,
+            long classId,
+            String name,
+            String type,
+            List<String> lessonIds,
+            long startsAt,
             long durationMs,
             long now)
             throws SQLException {
@@ -52,7 +57,9 @@ public final class PracticeService {
         if (!"PRACTICE".equals(type) && !"QUIZ".equals(type)) {
             throw new IllegalArgumentException("Loại đợt thực hành không hợp lệ");
         }
-        if (lessonIds == null || lessonIds.isEmpty() || lessonIds.stream().distinct().count() != lessonIds.size()) {
+        if (lessonIds == null
+                || lessonIds.isEmpty()
+                || lessonIds.stream().distinct().count() != lessonIds.size()) {
             throw new IllegalArgumentException("Đợt thực hành phải có ít nhất một bài khác nhau");
         }
         if (durationMs < 60_000 || durationMs > 24L * 60L * 60L * 1000L) {
@@ -62,13 +69,12 @@ public final class PracticeService {
             throw new IllegalArgumentException("Giờ bắt đầu đã ở trong quá khứ");
         }
         return db.tx(c -> {
-            try (PreparedStatement owner = c.prepareStatement(
-                    "SELECT 1 FROM classes WHERE id = ? AND teacher_id = ?")) {
+            try (PreparedStatement owner =
+                    c.prepareStatement("SELECT 1 FROM classes WHERE id = ? AND teacher_id = ?")) {
                 owner.setLong(1, classId);
                 owner.setLong(2, teacherId);
                 try (ResultSet rs = owner.executeQuery()) {
-                    if (!rs.next())
-                        throw new IllegalArgumentException("Lớp thực hành không thuộc giáo viên");
+                    if (!rs.next()) throw new IllegalArgumentException("Lớp thực hành không thuộc giáo viên");
                 }
             }
             long id;
@@ -106,11 +112,17 @@ public final class PracticeService {
         return db.read(c -> {
             List<Session> out = new ArrayList<>();
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT id, class_id, name, type, starts_at, closes_at FROM practice_sessions ORDER BY starts_at DESC");
+                            "SELECT id, class_id, name, type, starts_at, closes_at FROM practice_sessions ORDER BY starts_at DESC");
                     ResultSet rs = ps.executeQuery()) {
                 while (rs.next())
-                    out.add(load(c, rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
-                            rs.getLong(5), rs.getLong(6)));
+                    out.add(load(
+                            c,
+                            rs.getLong(1),
+                            rs.getLong(2),
+                            rs.getString(3),
+                            rs.getString(4),
+                            rs.getLong(5),
+                            rs.getLong(6)));
             }
             return out;
         });
@@ -123,12 +135,11 @@ public final class PracticeService {
      */
     public boolean studentEnrolled(long practiceId, long userId) throws SQLException {
         return db.read(c -> {
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT EXISTS("
-                            + "SELECT 1 FROM practice_sessions ps "
-                            + "JOIN enrollments e ON e.class_id = ps.class_id "
-                            + "WHERE ps.id = ? AND e.user_id = ?"
-                            + ")")) {
+            try (PreparedStatement ps = c.prepareStatement("SELECT EXISTS("
+                    + "SELECT 1 FROM practice_sessions ps "
+                    + "JOIN enrollments e ON e.class_id = ps.class_id "
+                    + "WHERE ps.id = ? AND e.user_id = ?"
+                    + ")")) {
                 ps.setLong(1, practiceId);
                 ps.setLong(2, userId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -144,8 +155,9 @@ public final class PracticeService {
                     "SELECT class_id, name, type, starts_at, closes_at FROM practice_sessions WHERE id = ?")) {
                 ps.setLong(1, id);
                 try (ResultSet rs = ps.executeQuery()) {
-                    return rs.next() ? load(c, id, rs.getLong(1), rs.getString(2), rs.getString(3),
-                            rs.getLong(4), rs.getLong(5)) : null;
+                    return rs.next()
+                            ? load(c, id, rs.getLong(1), rs.getString(2), rs.getString(3), rs.getLong(4), rs.getLong(5))
+                            : null;
                 }
             }
         });
@@ -153,8 +165,8 @@ public final class PracticeService {
 
     public void delete(long practiceId, long teacherId) throws SQLException {
         db.tx(c -> {
-            try (PreparedStatement ps = c.prepareStatement(
-                    "DELETE FROM practice_sessions WHERE id = ? AND teacher_id = ?")) {
+            try (PreparedStatement ps =
+                    c.prepareStatement("DELETE FROM practice_sessions WHERE id = ? AND teacher_id = ?")) {
                 ps.setLong(1, practiceId);
                 ps.setLong(2, teacherId);
                 if (ps.executeUpdate() == 0)
@@ -168,20 +180,17 @@ public final class PracticeService {
         return db.read(c -> {
             List<StudentProgress> out = new ArrayList<>();
             long classId;
-            try (PreparedStatement classQuery = c.prepareStatement(
-                    "SELECT COALESCE(ps.class_id, ("
-                            + "SELECT id FROM classes WHERE teacher_id = ps.teacher_id ORDER BY id LIMIT 1"
-                            + ")) FROM practice_sessions ps WHERE ps.id = ? AND ps.teacher_id = ?")) {
+            try (PreparedStatement classQuery = c.prepareStatement("SELECT COALESCE(ps.class_id, ("
+                    + "SELECT id FROM classes WHERE teacher_id = ps.teacher_id ORDER BY id LIMIT 1"
+                    + ")) FROM practice_sessions ps WHERE ps.id = ? AND ps.teacher_id = ?")) {
                 classQuery.setLong(1, practiceId);
                 classQuery.setLong(2, teacherId);
                 try (ResultSet classRows = classQuery.executeQuery()) {
-                    if (!classRows.next())
-                        return out;
+                    if (!classRows.next()) return out;
                     classId = classRows.getLong(1);
                 }
             }
-            if (classId <= 0)
-                return out;
+            if (classId <= 0) return out;
             String sql = "SELECT u.full_name, u.username, "
                     + "COUNT(DISTINCT CASE WHEN sub.kind = 'SUBMIT' AND sub.verdict = 'OK' THEN sub.lesson_id END), "
                     + "(SELECT COUNT(*) FROM practice_items WHERE practice_id = ?) "
@@ -203,8 +212,8 @@ public final class PracticeService {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         long userId = rs.getLong(5);
-                        boolean active = activeStudents.getOrDefault(activeKey(practiceId, userId),
-                                0L) >= System.currentTimeMillis() - ACTIVE_WINDOW_MS;
+                        boolean active = activeStudents.getOrDefault(activeKey(practiceId, userId), 0L)
+                                >= System.currentTimeMillis() - ACTIVE_WINDOW_MS;
                         Set<String> completedLessons = new HashSet<>();
                         try (PreparedStatement completed = c.prepareStatement(
                                 "SELECT DISTINCT sub.lesson_id FROM submissions sub "
@@ -215,12 +224,16 @@ public final class PracticeService {
                             completed.setLong(2, practiceId);
                             completed.setLong(3, practiceId);
                             try (ResultSet completedRows = completed.executeQuery()) {
-                                while (completedRows.next())
-                                    completedLessons.add(completedRows.getString(1));
+                                while (completedRows.next()) completedLessons.add(completedRows.getString(1));
                             }
                         }
-                        out.add(new StudentProgress(rs.getString(1), rs.getString(2), rs.getInt(3), rs.getInt(4),
-                                active, completedLessons));
+                        out.add(new StudentProgress(
+                                rs.getString(1),
+                                rs.getString(2),
+                                rs.getInt(3),
+                                rs.getInt(4),
+                                active,
+                                completedLessons));
                     }
                 }
             }
@@ -242,10 +255,9 @@ public final class PracticeService {
 
     public void finish(long practiceId, long userId, long now) throws SQLException {
         db.tx(c -> {
-            try (PreparedStatement ps = c.prepareStatement(
-                    "INSERT OR REPLACE INTO practice_submissions"
-                            + "(practice_id, user_id, lesson_id, submitted_at) "
-                            + "SELECT ?, ?, lesson_id, ? FROM practice_items WHERE practice_id = ?")) {
+            try (PreparedStatement ps = c.prepareStatement("INSERT OR REPLACE INTO practice_submissions"
+                    + "(practice_id, user_id, lesson_id, submitted_at) "
+                    + "SELECT ?, ?, lesson_id, ? FROM practice_items WHERE practice_id = ?")) {
                 ps.setLong(1, practiceId);
                 ps.setLong(2, userId);
                 ps.setLong(3, now);
@@ -259,8 +271,7 @@ public final class PracticeService {
     public boolean finished(long practiceId, long userId) throws SQLException {
         return db.read(c -> {
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT EXISTS(SELECT 1 FROM practice_submissions "
-                            + "WHERE practice_id = ? AND user_id = ?)")) {
+                    "SELECT EXISTS(SELECT 1 FROM practice_submissions " + "WHERE practice_id = ? AND user_id = ?)")) {
                 ps.setLong(1, practiceId);
                 ps.setLong(2, userId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -274,16 +285,14 @@ public final class PracticeService {
     /** Trả false khi bài thuộc một đợt đã lên lịch nhưng chưa mở hoặc đã đóng. */
     public boolean studentCanAccess(String lessonId, long now) throws SQLException {
         return db.read(c -> {
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT s.starts_at, s.closes_at FROM practice_sessions s "
-                            + "JOIN practice_items i ON i.practice_id = s.id WHERE i.lesson_id = ?")) {
+            try (PreparedStatement ps = c.prepareStatement("SELECT s.starts_at, s.closes_at FROM practice_sessions s "
+                    + "JOIN practice_items i ON i.practice_id = s.id WHERE i.lesson_id = ?")) {
                 ps.setString(1, lessonId);
                 boolean found = false;
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         found = true;
-                        if (now >= rs.getLong(1) && now < rs.getLong(2))
-                            return true;
+                        if (now >= rs.getLong(1) && now < rs.getLong(2)) return true;
                     }
                 }
                 return !found;
@@ -291,16 +300,15 @@ public final class PracticeService {
         });
     }
 
-    private static Session load(java.sql.Connection c, long id, long classId, String name, String type, long startsAt,
-            long closesAt)
+    private static Session load(
+            java.sql.Connection c, long id, long classId, String name, String type, long startsAt, long closesAt)
             throws SQLException {
         List<String> lessons = new ArrayList<>();
-        try (PreparedStatement ps = c.prepareStatement(
-                "SELECT lesson_id FROM practice_items WHERE practice_id = ? ORDER BY position")) {
+        try (PreparedStatement ps =
+                c.prepareStatement("SELECT lesson_id FROM practice_items WHERE practice_id = ? ORDER BY position")) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next())
-                    lessons.add(rs.getString(1));
+                while (rs.next()) lessons.add(rs.getString(1));
             }
         }
         return new Session(id, classId, name, type, startsAt, closesAt, List.copyOf(lessons));

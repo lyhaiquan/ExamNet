@@ -184,7 +184,7 @@ public final class RunModule implements ServerModule {
         // Giới hạn thời gian, dung lượng và quyền truy cập giống Chạy thử Python.
         Job job = new Job(code, input, lineTrace, 3000, "playground", List.of(), lineTrace, lang);
         List<String> pending = new ArrayList<>();
-        int[] part = { 0 };
+        int[] part = {0};
         Consumer<Boolean> sendChunk = last -> {
             byte[] lines;
             synchronized (pending) {
@@ -208,8 +208,7 @@ public final class RunModule implements ServerModule {
                 pending.add(line);
                 flush = pending.size() >= LINES_PER_CHUNK;
             }
-            if (flush)
-                sendChunk.accept(false);
+            if (flush) sendChunk.accept(false);
         };
         runs.run(s.userId(), job, onLine).whenComplete((out, err) -> {
             sendChunk.accept(true);

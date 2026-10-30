@@ -12,8 +12,8 @@ import labcast.common.protocol.ProtocolException;
 import labcast.server.ServerContext;
 import labcast.server.ServerModule;
 import labcast.server.classroom.ClassEvents;
-import labcast.server.session.Session;
 import labcast.server.practice.PracticeModule;
+import labcast.server.session.Session;
 
 /** Dòng code tin cậy (ĐG2). Chủ: Người 1. */
 public final class JournalModule implements ServerModule {
@@ -27,7 +27,8 @@ public final class JournalModule implements ServerModule {
     public void install(ServerContext ctx) {
         // Code ban đầu lấy qua dịch vụ của module bài học; chưa có module đó thì là
         // chuỗi rỗng.
-        StarterCode starter = lessonId -> ctx.find(StarterCode.class).map(s -> s.of(lessonId)).orElse("");
+        StarterCode starter =
+                lessonId -> ctx.find(StarterCode.class).map(s -> s.of(lessonId)).orElse("");
         CodeStore store = new CodeStore(ctx.db(), starter, System::currentTimeMillis);
         ctx.register(CodeStore.class, store);
         ctx.sessions().setCodeSeqLookup(store::lastSeq);

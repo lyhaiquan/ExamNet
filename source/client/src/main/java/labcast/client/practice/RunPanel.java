@@ -89,18 +89,16 @@ public final class RunPanel extends VBox {
     private final PauseTransition timeout = new PauseTransition(javafx.util.Duration.seconds(45));
 
     private Language language = Language.PYTHON;
-    private IntConsumer onErrorLine = line -> {
-    };
-    private Consumer<JsonNode> onSubmitFinished = result -> {
-    };
+    private IntConsumer onErrorLine = line -> {};
+    private Consumer<JsonNode> onSubmitFinished = result -> {};
     private boolean isolatedSubmission;
     /**
      * Chấm chạy cả test ẩn, lần đầu còn phải sinh test ẩn: chờ lâu hơn chạy thử.
      */
     private final PauseTransition submitTimeout = new PauseTransition(javafx.util.Duration.seconds(120));
 
-    private final Timeline cooldownTicker = new Timeline(
-            new KeyFrame(javafx.util.Duration.millis(250), e -> tickCooldown()));
+    private final Timeline cooldownTicker =
+            new Timeline(new KeyFrame(javafx.util.Duration.millis(250), e -> tickCooldown()));
 
     private final Consumer<Frame> onQueued = this::queued;
     private final Consumer<Frame> onChunk = this::chunk;
@@ -233,8 +231,7 @@ public final class RunPanel extends VBox {
 
     /** Gọi sau khi server trả kết quả cho một lần nộp bài. */
     public void setOnSubmitFinished(Consumer<JsonNode> callback) {
-        onSubmitFinished = callback == null ? result -> {
-        } : callback;
+        onSubmitFinished = callback == null ? result -> {} : callback;
     }
 
     public boolean lastRunLineTrace() {
@@ -395,7 +392,12 @@ public final class RunPanel extends VBox {
         output.setText("");
         client.send(
                 MessageType.SUBMIT_REQ,
-                new PayloadWriter().str(lessonId).i64(seq).str(language.code()).bool(isolatedSubmission).toBytes());
+                new PayloadWriter()
+                        .str(lessonId)
+                        .i64(seq)
+                        .str(language.code())
+                        .bool(isolatedSubmission)
+                        .toBytes());
     }
 
     /**

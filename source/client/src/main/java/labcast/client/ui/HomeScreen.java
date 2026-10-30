@@ -192,8 +192,7 @@ public final class HomeScreen extends BorderPane {
         this.selectedClassId = li.classId();
         this.exerciseCatalog = new ExerciseCatalogPane(li.role() == Role.STUDENT, this::open);
         exerciseWorkspace.setCenter(exerciseCatalog);
-        if (li.role().isStaff())
-            exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
+        if (li.role().isStaff()) exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
         this.dashboard = new DashboardHome(
                 li,
                 new DashboardHome.Actions(
@@ -261,12 +260,9 @@ public final class HomeScreen extends BorderPane {
         addExerciseButton.setId("nav-add");
         configureNavButton(exerciseButton, "M6 5 H19 V19 H6 Z M9 9 H16 M9 13 H16", "Lọc danh sách bài tập");
         practiceButton.setText(li.role().isStaff() ? "Lớp thực hành" : "Tham gia thực hành");
+        configureNavButton(practiceButton, "M5 7 H19 V17 H5 Z M9 11 L11 13 L15 9", "Mở lớp học và thực hành");
         configureNavButton(
-                practiceButton, "M5 7 H19 V17 H5 Z M9 11 L11 13 L15 9", "Mở lớp học và thực hành");
-        configureNavButton(
-                practiceSessionsButton,
-                "M4 5 H20 V19 H4 Z M8 9 H16 M8 13 H16",
-                "Mở danh sách các đợt thực hành");
+                practiceSessionsButton, "M4 5 H20 V19 H4 Z M8 9 H16 M8 13 H16", "Mở danh sách các đợt thực hành");
         configureNavButton(
                 playgroundButton, "M8 7 L3 12 L8 17 M16 7 L21 12 L16 17 M14 5 L10 19", "Mở trình soạn thảo code tự do");
         configureNavButton(addExerciseButton, "M12 5 V19 M5 12 H19", "Tạo file bài học mới cho LabCast Server");
@@ -354,8 +350,7 @@ public final class HomeScreen extends BorderPane {
         lessonSearch.setId("lesson-search");
         lessonSearch.getStyleClass().add("lesson-search");
         lessonSearch.setOnKeyPressed(e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE)
-                lessonSearch.clear();
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) lessonSearch.clear();
         });
         lessonSearch.textProperty().addListener((obs, old, val) -> rebuildSidebar());
 
@@ -385,8 +380,7 @@ public final class HomeScreen extends BorderPane {
                 setText(null);
                 setGraphic(null);
                 getStyleClass().removeAll("lesson-tree-item", "lesson-tree-group");
-                if (empty || row == null)
-                    return;
+                if (empty || row == null) return;
                 if (row.isLesson()) {
                     getStyleClass().add("lesson-tree-item");
                     setGraphic(lessonCell(row.lesson()));
@@ -408,8 +402,7 @@ public final class HomeScreen extends BorderPane {
                     return;
                 }
                 String id = lesson.path("id").asText();
-                if (!id.equals(openLesson.get()))
-                    open(id);
+                if (!id.equals(openLesson.get())) open(id);
             }
         });
         lessonProgress.getStyleClass().add("sidebar-progress-text");
@@ -442,15 +435,13 @@ public final class HomeScreen extends BorderPane {
         sidebarResizeHandle.setMaxWidth(6);
         sidebarResizeHandle.setCursor(Cursor.H_RESIZE);
         sidebarResizeHandle.setOnMousePressed(e -> {
-            if (!e.isPrimaryButtonDown())
-                return;
+            if (!e.isPrimaryButtonDown()) return;
             sidebarDragStartX = e.getScreenX();
             sidebarDragStartWidth = sidebar.getWidth();
             e.consume();
         });
         sidebarResizeHandle.setOnMouseDragged(e -> {
-            if (!e.isPrimaryButtonDown())
-                return;
+            if (!e.isPrimaryButtonDown()) return;
             double candidate = sidebarDragStartWidth + e.getScreenX() - sidebarDragStartX;
             // Giữ đủ chỗ cho Code Editor và Đề bài khi kéo.
             double maxWidth = Math.max(180, Math.min(480, getWidth() - 380));
@@ -492,8 +483,7 @@ public final class HomeScreen extends BorderPane {
         client.on(
                 MessageType.SUBMIT_RESULT,
                 f -> Platform.runLater(() -> {
-                    if (!loggedOut)
-                        loadLessons();
+                    if (!loggedOut) loadLessons();
                 }));
         if (cast != null && li.role() == Role.STUDENT) {
             cast.onChange(this::onCastChange);
@@ -520,8 +510,7 @@ public final class HomeScreen extends BorderPane {
         if (current != null) {
             closeLesson();
         }
-        if (playgroundOpen)
-            hidePlayground();
+        if (playgroundOpen) hidePlayground();
         if (castView == null) {
             castView = new CastView(cast, this::lessonName, this::hideCast);
         }
@@ -613,8 +602,7 @@ public final class HomeScreen extends BorderPane {
             current = null;
             openLesson.set(null);
         }
-        if (playgroundOpen)
-            hidePlayground();
+        if (playgroundOpen) hidePlayground();
         if (castShown) {
             cast.detachScreen();
             castShown = false;
@@ -624,8 +612,7 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void showLessonCategory(Nav category) {
-        if (category != Nav.EXERCISES)
-            return;
+        if (category != Nav.EXERCISES) return;
         leaveActiveScreen();
         activeNav = Nav.EXERCISES;
         exerciseCatalog.select(null);
@@ -663,8 +650,7 @@ public final class HomeScreen extends BorderPane {
         practiceRoomsScreen.onJoined(title -> reportActivity("Thực hành: " + title, ""));
         practiceRoomsScreen.onClassChanged(id -> {
             selectedClassId = id;
-            if (li.role().isStaff())
-                loadClasses();
+            if (li.role().isStaff()) loadClasses();
             loadLessons();
         });
         practiceRoomsScreen.onClassesLoaded(this::updateClassOptions);
@@ -675,8 +661,7 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void showAccounts() {
-        if (li.role() != Role.ADMIN)
-            return;
+        if (li.role() != Role.ADMIN) return;
         leaveActiveScreen();
         activeNav = Nav.ACCOUNTS;
         setCenter(new AccountsScreen(li.client()));
@@ -696,8 +681,7 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void showStudents() {
-        if (!li.role().isStaff())
-            return;
+        if (!li.role().isStaff()) return;
         leaveActiveScreen();
         activeNav = Nav.STUDENTS;
         studentManagementScreen = new StudentManagementScreen(li.client());
@@ -711,8 +695,7 @@ public final class HomeScreen extends BorderPane {
             alert(Alert.AlertType.INFORMATION, "Chỉ giáo viên có thể tạo bài tập mới.");
             return;
         }
-        if (addExerciseScreen == null)
-            addExerciseScreen = new AddExerciseScreen();
+        if (addExerciseScreen == null) addExerciseScreen = new AddExerciseScreen();
         addExerciseScreen.setLessons(allLessons);
         leaveActiveScreen();
         activeNav = Nav.ADD_EXERCISE;
@@ -728,8 +711,7 @@ public final class HomeScreen extends BorderPane {
         li.client().send(MessageType.CLASS_LIST_REQ, new byte[0]);
         reply.orTimeout(10, TimeUnit.SECONDS)
                 .whenComplete((f, err) -> Platform.runLater(() -> {
-                    if (loggedOut)
-                        return;
+                    if (loggedOut) return;
                     if (err != null || f.type() != MessageType.CLASS_LIST_DATA) {
                         setStatus("Không tải được danh sách lớp (hãy cập nhật Server)", "warn");
                         return;
@@ -774,13 +756,11 @@ public final class HomeScreen extends BorderPane {
         dashboard.setClasses(classList, selectedClassId);
         // Quản trị đăng nhập chưa gắn lớp nào: chọn sẵn lớp đầu để các màn theo lớp có
         // dữ liệu.
-        if (selectedClassId <= 0 && classSelector.getValue() != null)
-            selectClass(classSelector.getValue());
+        if (selectedClassId <= 0 && classSelector.getValue() != null) selectClass(classSelector.getValue());
     }
 
     private void selectClass(ClassOption option) {
-        if (loadingClasses || option == null || option.id() == selectedClassId)
-            return;
+        if (loadingClasses || option == null || option.id() == selectedClassId) return;
         var reply = li.client().expect(MessageType.CLASS_SELECT_RESULT, MessageType.ERROR);
         li.client()
                 .send(
@@ -788,8 +768,7 @@ public final class HomeScreen extends BorderPane {
                         new PayloadWriter().i64(option.id()).toBytes());
         reply.orTimeout(10, TimeUnit.SECONDS)
                 .whenComplete((f, err) -> Platform.runLater(() -> {
-                    if (loggedOut)
-                        return;
+                    if (loggedOut) return;
                     if (err != null || f.type() != MessageType.CLASS_SELECT_RESULT) {
                         setStatus("Không thể chọn lớp " + option.name(), "error");
                         loadClasses();
@@ -797,21 +776,16 @@ public final class HomeScreen extends BorderPane {
                     }
                     selectedClassId = option.id();
                     Nav destination = activeNav;
-                    if (destination == Nav.HOME)
-                        showHome();
-                    else if (destination == Nav.PRACTICE)
-                        showPracticeRooms();
-                    else if (destination == Nav.STUDENTS)
-                        showStudents();
-                    else if (destination == Nav.EXERCISES)
-                        showLessonCategory(Nav.EXERCISES);
+                    if (destination == Nav.HOME) showHome();
+                    else if (destination == Nav.PRACTICE) showPracticeRooms();
+                    else if (destination == Nav.STUDENTS) showStudents();
+                    else if (destination == Nav.EXERCISES) showLessonCategory(Nav.EXERCISES);
                     loadLessons();
                 }));
     }
 
     private void reportActivity(String screen, String lessonId) {
-        if (li.role() != Role.STUDENT || loggedOut)
-            return;
+        if (li.role() != Role.STUDENT || loggedOut) return;
         li.client()
                 .send(
                         MessageType.STUDENT_ACTIVITY,
@@ -827,8 +801,7 @@ public final class HomeScreen extends BorderPane {
      * editor.
      */
     private void showPlayground() {
-        if (practiceLocked)
-            return;
+        if (practiceLocked) return;
         lessonRequestVersion++; // Vô hiệu phản hồi mở bài đang chờ.
         try {
             if (playground == null) {
@@ -866,21 +839,17 @@ public final class HomeScreen extends BorderPane {
 
     /** Khi chọn bài DSA/SQL khác, quay lại luồng chọn bài bình thường. */
     private void hidePlayground() {
-        if (!playgroundOpen)
-            return;
+        if (!playgroundOpen) return;
         playgroundOpen = false;
-        if (playground != null)
-            playground.saveDraft();
+        if (playground != null) playground.saveDraft();
         refreshNavigation();
         refreshPlaygroundButton();
-        if (current == null && !castShown)
-            setCenter(emptyState());
+        if (current == null && !castShown) setCenter(emptyState());
     }
 
     private void refreshPlaygroundButton() {
         playgroundButton.getStyleClass().remove("sidebar-playground-active");
-        if (playgroundOpen)
-            playgroundButton.getStyleClass().add("sidebar-playground-active");
+        if (playgroundOpen) playgroundButton.getStyleClass().add("sidebar-playground-active");
     }
 
     /** Tên bài theo mã, lấy từ danh sách bài bên trái. */
@@ -919,15 +888,14 @@ public final class HomeScreen extends BorderPane {
         sidebarResizeHandle.setVisible(expanded);
         sidebarResizeHandle.setManaged(expanded);
 
-        for (javafx.scene.Node node : new javafx.scene.Node[] { sidebarHeading, sidebarHeaderGap, lessonCount,
-                sidebarBody }) {
+        for (javafx.scene.Node node :
+                new javafx.scene.Node[] {sidebarHeading, sidebarHeaderGap, lessonCount, sidebarBody}) {
             node.setVisible(expanded);
             node.setManaged(expanded);
         }
 
         sidebar.getStyleClass().remove("sidebar-collapsed");
-        if (!expanded)
-            sidebar.getStyleClass().add("sidebar-collapsed");
+        if (!expanded) sidebar.getStyleClass().add("sidebar-collapsed");
         // Cả hai trạng thái đều dùng biểu tượng PanelLeft, không đổi sang emoji.
         sidebarToggle.setAccessibleText(expanded ? "Thu gọn bài học" : "Mở bài học");
         sidebarToggle.getTooltip().setText(expanded ? "Thu gọn danh sách bài" : "Mở danh sách bài");
@@ -996,8 +964,7 @@ public final class HomeScreen extends BorderPane {
             importBtn.setOnAction(e -> importRoster());
             bar.getChildren().add(uploadBtn);
             // tài khoản học viên do quản trị tạo: giáo viên không nhập CSV
-            if (li.role() == Role.ADMIN)
-                bar.getChildren().add(importBtn);
+            if (li.role() == Role.ADMIN) bar.getChildren().add(importBtn);
         }
         // Bấm vào tên mình: menu mật khẩu (ai cũng tự đổi được; giáo viên, quản trị đặt
         // lại cho người khác)
@@ -1068,13 +1035,11 @@ public final class HomeScreen extends BorderPane {
             iconText = switch (value) {
                 case "MASTERED" -> "✓";
                 case "OPEN" -> "●";
-                default -> "○";
-            };
+                default -> "○";};
             fullStatus = switch (value) {
                 case "MASTERED" -> "Đã hoàn thành";
                 case "OPEN" -> "Đang học";
-                default -> "Chưa có kết quả";
-            };
+                default -> "Chưa có kết quả";};
         }
 
         Label state = new Label(iconText);
@@ -1160,16 +1125,14 @@ public final class HomeScreen extends BorderPane {
     }
 
     private static String chapterName(String text) {
-        if (text == null || text.isBlank())
-            return "Khác";
+        if (text == null || text.isBlank()) return "Khác";
         String pretty = LessonScreen.chapterLabel(text);
         return Character.toUpperCase(pretty.charAt(0)) + pretty.substring(1);
     }
 
     /** Nhóm DSA/SQL → chương → bài, hỗ trợ lọc nhưng không làm mất dữ liệu gốc. */
     private void rebuildSidebar() {
-        if (rebuildingSidebar)
-            return;
+        if (rebuildingSidebar) return;
         rebuildingSidebar = true;
         try {
             String query = normalize(lessonSearch.getText());
@@ -1178,27 +1141,22 @@ public final class HomeScreen extends BorderPane {
             int done = 0;
             List<JsonNode> ordered = new ArrayList<>(allLessons);
             ordered.sort(Comparator.comparingInt((JsonNode l) -> {
-                int i = LessonScreen.CHAPTERS.indexOf(l.path("chuong").asText());
-                return i < 0 ? Integer.MAX_VALUE : i;
-            })
+                        int i = LessonScreen.CHAPTERS.indexOf(l.path("chuong").asText());
+                        return i < 0 ? Integer.MAX_VALUE : i;
+                    })
                     .thenComparingInt(l -> LessonScreen.loaiRank(l.path("loai").asText())));
             for (JsonNode lesson : ordered) {
-                if ("MASTERED".equals(lesson.path("status").asText()))
-                    done++;
+                if ("MASTERED".equals(lesson.path("status").asText())) done++;
                 String statusValue = lesson.path("status").asText("NOT_STARTED");
-                if ("Đã hoàn thành".equals(selection) && !"MASTERED".equals(statusValue))
-                    continue;
-                if ("Đang học".equals(selection) && !"OPEN".equals(statusValue))
-                    continue;
+                if ("Đã hoàn thành".equals(selection) && !"MASTERED".equals(statusValue)) continue;
+                if ("Đang học".equals(selection) && !"OPEN".equals(statusValue)) continue;
                 if ("Chưa có kết quả".equals(selection)
                         && !"NOT_STARTED".equals(statusValue)
-                        && !"LOCKED".equals(statusValue))
-                    continue;
+                        && !"LOCKED".equals(statusValue)) continue;
                 String haystack = normalize(lesson.path("ten").asText() + " "
                         + lesson.path("id").asText() + " " + lesson.path("mon").asText()
                         + " " + lesson.path("chuong").asText());
-                if (!query.isEmpty() && !haystack.contains(query))
-                    continue;
+                if (!query.isEmpty() && !haystack.contains(query)) continue;
                 String mon = lesson.path("mon").asText("khac").toUpperCase(Locale.ROOT);
                 String chapter = lesson.path("chuong").asText("khac");
                 groups.computeIfAbsent(mon, k -> new LinkedHashMap<>())
@@ -1216,12 +1174,11 @@ public final class HomeScreen extends BorderPane {
                         .mapToInt(List::size)
                         .sum();
                 String monKey = "mon:" + subject.getKey();
-                TreeItem<SidebarRow> mon = new TreeItem<>(
-                        new SidebarRow(subject.getKey() + "  ·  " + subjectCount, monKey, null));
+                TreeItem<SidebarRow> mon =
+                        new TreeItem<>(new SidebarRow(subject.getKey() + "  ·  " + subjectCount, monKey, null));
                 mon.setExpanded(!collapsedGroups.contains(monKey) || !query.isEmpty());
                 mon.expandedProperty().addListener((obs, old, val) -> {
-                    if (query.isEmpty())
-                        rememberCollapse(monKey, val);
+                    if (query.isEmpty()) rememberCollapse(monKey, val);
                 });
                 for (var chapter : subject.getValue().entrySet()) {
                     String chapterKey = monKey + ":" + chapter.getKey();
@@ -1232,11 +1189,11 @@ public final class HomeScreen extends BorderPane {
                             null));
                     group.setExpanded(!collapsedGroups.contains(chapterKey) || !query.isEmpty());
                     group.expandedProperty().addListener((obs, old, val) -> {
-                        if (query.isEmpty())
-                            rememberCollapse(chapterKey, val);
+                        if (query.isEmpty()) rememberCollapse(chapterKey, val);
                     });
                     for (JsonNode l : chapter.getValue()) {
-                        TreeItem<SidebarRow> leaf = new TreeItem<>(new SidebarRow(l.path("ten").asText(), null, l));
+                        TreeItem<SidebarRow> leaf =
+                                new TreeItem<>(new SidebarRow(l.path("ten").asText(), null, l));
                         group.getChildren().add(leaf);
                         visible++;
                     }
@@ -1267,10 +1224,8 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void rememberCollapse(String key, boolean expanded) {
-        if (expanded)
-            collapsedGroups.remove(key);
-        else
-            collapsedGroups.add(key);
+        if (expanded) collapsedGroups.remove(key);
+        else collapsedGroups.add(key);
     }
 
     private static VBox emptyState() {
@@ -1305,8 +1260,7 @@ public final class HomeScreen extends BorderPane {
 
     /** Nút "Đóng bài": về màn chọn bài, thả khoá toàn màn hình. */
     public void closeLesson() {
-        if (practiceLocked)
-            return;
+        if (practiceLocked) return;
         lessonRequestVersion++;
         if (current != null) {
             current.dispose();
@@ -1321,8 +1275,7 @@ public final class HomeScreen extends BorderPane {
         // Đóng bài thì khôi phục danh sách để chọn bài tiếp theo.
         sidebarUserChoice = null;
         updateSidebar();
-        if (!loggedOut)
-            loadLessons(); // Đồng bộ trạng thái MASTERED sau khi nộp bài
+        if (!loggedOut) loadLessons(); // Đồng bộ trạng thái MASTERED sau khi nộp bài
     }
 
     /**
@@ -1375,13 +1328,11 @@ public final class HomeScreen extends BorderPane {
             try {
                 JsonNode list = JsonPayload.tree(f).path("lessons");
                 Platform.runLater(() -> {
-                    if (loggedOut)
-                        return;
+                    if (loggedOut) return;
                     allLessons.clear();
                     list.forEach(allLessons::add);
                     rebuildSidebar();
-                    if (practiceRoomsScreen != null)
-                        practiceRoomsScreen.setAvailableLessons(allLessons);
+                    if (practiceRoomsScreen != null) practiceRoomsScreen.setAvailableLessons(allLessons);
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> setStatus("Không đọc được danh sách bài", "error"));
@@ -1399,23 +1350,17 @@ public final class HomeScreen extends BorderPane {
             }
         }
         // Chỉ bấm vào một bài mới gửi LESSON_FETCH. Code tự do không đi qua đây.
-        if (playgroundOpen)
-            hidePlayground();
-        if (activeNav != Nav.EXERCISES)
-            return;
+        if (playgroundOpen) hidePlayground();
+        if (activeNav != Nav.EXERCISES) return;
         open(lessonId, false);
     }
 
     private void open(String lessonId, boolean practiceMode) {
         // Chỉ bấm vào một bài mới gửi LESSON_FETCH. Code tự do không đi qua đây.
-        if (practiceLocked && !practiceMode)
-            return;
-        if (playgroundOpen)
-            hidePlayground();
-        if (!practiceMode && activeNav == Nav.HOME)
-            showLessonCategory(Nav.EXERCISES);
-        if (!practiceMode && activeNav != Nav.EXERCISES)
-            return;
+        if (practiceLocked && !practiceMode) return;
+        if (playgroundOpen) hidePlayground();
+        if (!practiceMode && activeNav == Nav.HOME) showLessonCategory(Nav.EXERCISES);
+        if (!practiceMode && activeNav != Nav.EXERCISES) return;
         long requestVersion = ++lessonRequestVersion;
         LcpClient c = li.client();
         var reply = c.expect(MessageType.LESSON_DATA, MessageType.ERROR);
@@ -1423,8 +1368,7 @@ public final class HomeScreen extends BorderPane {
         setStatus("Đang mở bài…", null);
         reply.orTimeout(30, TimeUnit.SECONDS)
                 .whenComplete((f, err) -> Platform.runLater(() -> {
-                    if (loggedOut || playgroundOpen || requestVersion != lessonRequestVersion)
-                        return;
+                    if (loggedOut || playgroundOpen || requestVersion != lessonRequestVersion) return;
                     if (err != null || f.type() != MessageType.LESSON_DATA) {
                         setStatus("Không mở được bài " + lessonId, "error");
                         return;
@@ -1441,8 +1385,15 @@ public final class HomeScreen extends BorderPane {
                         }
                         exerciseCatalog.select(lessonId);
                         Runnable onClose = practiceMode ? this::returnToPracticeLessons : this::closeLesson;
-                        current = new LessonScreen(c, journal, lesson, li.role() == Role.STUDENT, onClose, cast,
-                                practiceMode, practiceMode ? this::onPracticeSubmit : null,
+                        current = new LessonScreen(
+                                c,
+                                journal,
+                                lesson,
+                                li.role() == Role.STUDENT,
+                                onClose,
+                                cast,
+                                practiceMode,
+                                practiceMode ? this::onPracticeSubmit : null,
                                 practiceMode ? this::finishPractice : null);
                         setCenter(current);
                         openLesson.set(lessonId);
@@ -1456,17 +1407,22 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void showPractice() {
-        if (practiceLocked)
-            return;
+        if (practiceLocked) return;
         leaveActiveScreen();
-        if (practice != null)
-            practice.dispose();
+        if (practice != null) practice.dispose();
         activeNav = Nav.PRACTICE_SESSIONS;
         refreshNavigation();
         practiceOpen = true;
-        practice = new PracticeScreen(li.client(), li.role(), allLessons, this::openPracticeLesson,
-                this::finishPractice, this::finishPractice, this::backFromPractice);
-        // Đợt thực hành tính giờ theo đồng hồ server đã đồng bộ, không theo giờ máy (các máy lệch giờ vẫn đóng ca đúng lúc)
+        practice = new PracticeScreen(
+                li.client(),
+                li.role(),
+                allLessons,
+                this::openPracticeLesson,
+                this::finishPractice,
+                this::finishPractice,
+                this::backFromPractice);
+        // Đợt thực hành tính giờ theo đồng hồ server đã đồng bộ, không theo giờ máy (các máy lệch giờ vẫn đóng ca đúng
+        // lúc)
         practice.setClock(cast != null ? cast::serverNow : System::currentTimeMillis);
         practice.setPracticeClasses(classSelector.getItems().stream()
                 .map(option -> new PracticeScreen.PracticeClass(option.id(), option.name()))
@@ -1509,7 +1465,8 @@ public final class HomeScreen extends BorderPane {
 
     private void onPracticeSubmit(JsonNode result) {
         if (practice != null) {
-            practice.updateLessonStatus(result.path("lessonId").asText(),
+            practice.updateLessonStatus(
+                    result.path("lessonId").asText(),
                     "OK".equals(result.path("verdict").asText()));
         }
         returnToPracticeLessons();
@@ -1598,10 +1555,8 @@ public final class HomeScreen extends BorderPane {
                                         : ErrorMessage.from(f).message();
                         alert(Alert.AlertType.INFORMATION, msg);
                         if (f != null && f.type() == MessageType.ADMIN_OK) {
-                            if (studentManagementScreen != null)
-                                studentManagementScreen.reload();
-                            if (practiceRoomsScreen != null)
-                                practiceRoomsScreen.reload();
+                            if (studentManagementScreen != null) studentManagementScreen.reload();
+                            if (practiceRoomsScreen != null) practiceRoomsScreen.reload();
                         }
                     } catch (Exception e) {
                         alert(Alert.AlertType.ERROR, e.getMessage());
@@ -1630,10 +1585,8 @@ public final class HomeScreen extends BorderPane {
             return;
         }
         RosterImportDialog.show(getScene().getWindow(), li.client(), target.name(), rows, () -> {
-            if (studentManagementScreen != null)
-                studentManagementScreen.reload();
-            if (practiceRoomsScreen != null)
-                practiceRoomsScreen.reload();
+            if (studentManagementScreen != null) studentManagementScreen.reload();
+            if (practiceRoomsScreen != null) practiceRoomsScreen.reload();
         });
     }
 
