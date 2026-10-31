@@ -97,6 +97,12 @@ public final class HomeScreen extends BorderPane {
     // Mục Code tự do là chức năng độc lập nằm trong SIDEBAR (không thuộc bài học).
     private final Button homeButton = new Button("Trang chủ");
     private final Button playgroundButton = new Button("Code tự do");
+
+    /** Quản trị không có "Code tự do": việc của họ là quản lý, không phải viết code. */
+    static boolean hasPlayground(Role role) {
+        return role != Role.ADMIN;
+    }
+
     private final Button exerciseButton = new Button("Bài tập");
     private final Button practiceButton = new Button("Thực hành");
     private final Button addExerciseButton = new Button("Thêm bài tập");
@@ -287,9 +293,7 @@ public final class HomeScreen extends BorderPane {
                             practiceButton,
                             navSection("Nội dung"),
                             exerciseButton,
-                            addExerciseButton,
-                            navSection("Công cụ"),
-                            playgroundButton);
+                            addExerciseButton);
         } else if (li.role().isStaff()) {
             menu.getChildren()
                     .addAll(
