@@ -155,6 +155,33 @@ CREATE TABLE IF NOT EXISTS audit_log (
 -- ---------------------------------------------------------------------
 -- Bài học, tiến độ, đề biến thể, bài nộp — chủ: Người 3
 -- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS practice_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL REFERENCES users(id),
+    class_id INTEGER REFERENCES classes(id),
+    name TEXT NOT NULL DEFAULT 'Đợt thực hành',
+    type TEXT NOT NULL DEFAULT 'PRACTICE',
+    starts_at INTEGER NOT NULL,
+    closes_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS practice_items (
+    practice_id INTEGER NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL CHECK (position BETWEEN 0 AND 4),
+    lesson_id TEXT NOT NULL REFERENCES lessons(id),
+    PRIMARY KEY (practice_id, position),
+    UNIQUE (practice_id, lesson_id)
+);
+
+CREATE TABLE IF NOT EXISTS practice_submissions (
+    practice_id INTEGER NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    lesson_id TEXT NOT NULL REFERENCES lessons(id),
+    submitted_at INTEGER NOT NULL,
+    PRIMARY KEY (practice_id, user_id, lesson_id)
+);
+
 CREATE TABLE IF NOT EXISTS lessons (
     id            TEXT    PRIMARY KEY,  -- ví dụ dsa.sap-xep.noi-bot
     mon           TEXT    NOT NULL CHECK (mon IN ('dsa', 'sql')),

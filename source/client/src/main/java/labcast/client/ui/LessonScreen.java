@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -93,6 +94,9 @@ public final class LessonScreen extends BorderPane {
     /** Chiếu cho cả lớp (chỉ giáo viên, khi app có phần nhận chiếu); null nếu không chiếu được. */
     private final CastSession cast;
 
+    private final boolean practiceMode;
+    private final Runnable earlySubmit;
+
     private final PresenterController presenter;
     private final Button castBtn = new Button(CAST_START);
     private final Button demoBtn = new Button("↺ Xem lời giải mẫu");
@@ -107,7 +111,7 @@ public final class LessonScreen extends BorderPane {
      */
     public LessonScreen(
             LcpClient client, JournalClient journal, JsonNode lesson, boolean studentMode, Runnable onClose) {
-        this(client, journal, lesson, studentMode, onClose, null);
+        this(client, journal, lesson, studentMode, onClose, null, false, null, null);
     }
 
     /** @param cast phiên chiếu của app; giáo viên có thêm nút "Chiếu cho lớp" khi khác null */
@@ -118,7 +122,23 @@ public final class LessonScreen extends BorderPane {
             boolean studentMode,
             Runnable onClose,
             CastSession cast) {
+        this(client, journal, lesson, studentMode, onClose, cast, false, null, null);
+    }
+
+    /** Màn code khi đang ở trong một đợt thực hành. */
+    public LessonScreen(
+            LcpClient client,
+            JournalClient journal,
+            JsonNode lesson,
+            boolean studentMode,
+            Runnable onClose,
+            CastSession cast,
+            boolean practiceMode,
+            Consumer<JsonNode> onSubmitFinished,
+            Runnable earlySubmit) {
         this.cast = studentMode ? null : cast;
+        this.practiceMode = practiceMode;
+        this.earlySubmit = earlySubmit;
         this.client = client;
         this.journal = journal;
         this.presenter = new PresenterController(r -> client.send(MessageType.CAST_CONTROL, r.encode()));
@@ -153,7 +173,7 @@ public final class LessonScreen extends BorderPane {
         tags.setMinWidth(Region.USE_PREF_SIZE);
         Region headGap = new Region();
         HBox.setHgrow(headGap, Priority.ALWAYS);
-        Button closeBtn = new Button("✕  Đóng bài");
+        Button closeBtn = new Button(practiceMode ? "←  Danh sách bài" : "✕  Đóng bài");
         closeBtn.setId("close-lesson");
         closeBtn.getStyleClass().add("lesson-close-modern");
         closeBtn.setOnAction(e -> onClose.run());
@@ -308,7 +328,11 @@ public final class LessonScreen extends BorderPane {
         List<String> testIds = new ArrayList<>();
         lesson.path("testXem").forEach(t -> testIds.add(t.path("id").asText()));
         runPanel = new RunPanel(client, lessonId, testIds, editor::flush, this::showStudentTrace);
+        runPanel.setIsolatedSubmission(practiceMode);
         runPanel.setOnErrorLine(editor::highlightTraceLine);
+        if (onSubmitFinished != null) {
+            runPanel.setOnSubmitFinished(onSubmitFinished);
+        }
         runPanel.getStyleClass().add("card");
         runPanel.enableLineTrace(!sql);
 

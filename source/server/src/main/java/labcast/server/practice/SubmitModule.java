@@ -41,21 +41,31 @@ import labcast.server.sqlviz.SqlLab;
 /**
  * Nộp bài (spec §8.2, task 3.8). Chủ: Người 3.
  *
- * <p>{@code SUBMIT_REQ(str lessonId, i64 codeSeq, str lang)} → {@code SUBMIT_RESULT JSON{verdict, message, score,
- * cooldownMs, mastered, unlocked, failedTest, tests:[{id, hidden, verdict, timeMs, error?}]}}. Test ẩn chỉ
- * có id, verdict, thời gian. {@code lang} có thể thiếu (client cũ): Python. Code chấm là bản đang lưu của khoá
+ * <p>
+ * {@code SUBMIT_REQ(str lessonId, i64 codeSeq, str lang)} →
+ * {@code SUBMIT_RESULT JSON{verdict, message, score,
+ * cooldownMs, mastered, unlocked, failedTest, tests:[{id, hidden, verdict, timeMs, error?}]}}.
+ * Test ẩn chỉ
+ * có id, verdict, thời gian. {@code lang} có thể thiếu (client cũ): Python.
+ * Code chấm là bản đang lưu của khoá
  * tài liệu ở ngôn ngữ đó; tiến độ vẫn ghi theo mã bài.
  *
  * <ul>
- *   <li>Đang phải chờ sau lần nộp sai → {@code ERROR(COOLDOWN, retryAfterMs)}.
- *   <li>Lượt nộp trước (của bất kỳ bài nào) chưa chấm xong → {@code ERROR(RATE_LIMITED)}: gửi dồn 10 lượt
- *       cùng lúc không lọt qua được kiểm thời gian chờ, và mỗi người chỉ chiếm một chỗ chấm (nộp 5 bài cùng
- *       lúc không chiếm 5 luồng chạy code của cả lớp).
- *   <li>Lỗi hạ tầng (Docker, Python, bài hỏng) → {@code ERROR(SANDBOX_DOWN)}, KHÔNG tính là nộp sai.
+ * <li>Đang phải chờ sau lần nộp sai → {@code ERROR(COOLDOWN, retryAfterMs)}.
+ * <li>Lượt nộp trước (của bất kỳ bài nào) chưa chấm xong →
+ * {@code ERROR(RATE_LIMITED)}: gửi dồn 10 lượt
+ * cùng lúc không lọt qua được kiểm thời gian chờ, và mỗi người chỉ chiếm một
+ * chỗ chấm (nộp 5 bài cùng
+ * lúc không chiếm 5 luồng chạy code của cả lớp).
+ * <li>Lỗi hạ tầng (Docker, Python, bài hỏng) → {@code ERROR(SANDBOX_DOWN)},
+ * KHÔNG tính là nộp sai.
  * </ul>
  *
- * <p>Chấm xong thì gọi {@code ClassEvents.publish} (đúng → {@code DA_QUA}, xoá cờ dán khối lớn của bài). Chưa gọi
- * {@code CodeStore.checkpoint} (task 1.7) vì phần đó chưa có; kết quả đã nằm trong bảng {@code submissions}.
+ * <p>
+ * Chấm xong thì gọi {@code ClassEvents.publish} (đúng → {@code DA_QUA}, xoá cờ
+ * dán khối lớn của bài). Chưa gọi
+ * {@code CodeStore.checkpoint} (task 1.7) vì phần đó chưa có; kết quả đã nằm
+ * trong bảng {@code submissions}.
  */
 public final class SubmitModule implements ServerModule {
     private static final Logger LOG = Logger.getLogger(SubmitModule.class.getName());
@@ -81,7 +91,10 @@ public final class SubmitModule implements ServerModule {
         ctx.router().on(MessageType.SUBMIT_REQ, this::submit);
     }
 
-    /** {@code .labcast-cache} cạnh file database; database trong bộ nhớ (test) thì thư mục tạm. */
+    /**
+     * {@code .labcast-cache} cạnh file database; database trong bộ nhớ (test) thì
+     * thư mục tạm.
+     */
     static Path cacheDir(ServerContext ctx) {
         String db = ctx.config().db();
         try {
@@ -100,28 +113,34 @@ public final class SubmitModule implements ServerModule {
         String lessonId = r.str();
         long codeSeq = r.i64();
         String langCode = r.hasRemaining() ? r.str() : "";
+        boolean isolatedSubmission = r.hasRemaining() && r.bool();
         Session s = c.session();
         LessonRepository repo = ctx.require(LessonRepository.class);
         Lesson l = repo.get(lessonId)
                 .orElseThrow(() -> new ProtocolException(ErrorCode.NOT_FOUND, "Không có bài " + lessonId));
+        PracticeModule.requireOpen(ctx, c, lessonId);
         Language lang = RunModule.language(l, langCode);
         String docKey = Language.docKey(lessonId, lang);
 
-        // Giữ chỗ TRƯỚC rồi mới đọc thời gian chờ: đọc trước thì một lượt có thể thấy "không phải chờ" trong
-        // lúc lượt trước còn đang chấm, rồi lọt vào ngay khi lượt trước vừa nhả chỗ (trước khi kịp ghi chờ).
+        // Giữ chỗ TRƯỚC rồi mới đọc thời gian chờ: đọc trước thì một lượt có thể thấy
+        // "không phải chờ" trong
+        // lúc lượt trước còn đang chấm, rồi lọt vào ngay khi lượt trước vừa nhả chỗ
+        // (trước khi kịp ghi chờ).
         long key = s.userId();
         if (!inFlight.add(key)) {
             c.error(ErrorCode.RATE_LIMITED, "Lượt nộp trước đang được chấm", 2_000);
             return;
         }
         try {
-            long left = progress.cooldownLeft(s.userId(), lessonId, System.currentTimeMillis());
+            long left =
+                    isolatedSubmission ? 0 : progress.cooldownLeft(s.userId(), lessonId, System.currentTimeMillis());
             if (left > 0) {
                 inFlight.remove(key);
                 c.error(ErrorCode.COOLDOWN, "Chờ " + (left + 999) / 1000 + " s nữa mới được nộp lại", (int) left);
                 return;
             }
-            // Chấm đúng phiên bản code học viên đang thấy: delta có thể còn trên đường tới, chờ tối đa 1 s.
+            // Chấm đúng phiên bản code học viên đang thấy: delta có thể còn trên đường tới,
+            // chờ tối đa 1 s.
             CodeStore store = ctx.require(CodeStore.class);
             CodeStore.Snapshot snap = store.current(s.userId(), docKey);
             for (int i = 0; i < 20 && snap.seq() < codeSeq; i++) {
@@ -133,7 +152,8 @@ public final class SubmitModule implements ServerModule {
             ctx.require(RunService.class)
                     .submit(() -> {
                         if (l.isSql()) {
-                            // Bài SQL: so với đáp án trên dữ liệu mẫu và các database ẩn; không qua sandbox Python
+                            // Bài SQL: so với đáp án trên dữ liệu mẫu và các database ẩn; không qua sandbox
+                            // Python
                             return ctx.require(SqlLab.class).grade(l, code, preparer.prepareSql(l));
                         }
                         LessonPreparer.Prepared prep = preparer.prepare(l);
@@ -156,7 +176,7 @@ public final class SubmitModule implements ServerModule {
                                         Priority.NORMAL);
                                 return;
                             }
-                            reply(s, l, seq, res);
+                            reply(s, l, seq, res, isolatedSubmission);
                         } finally {
                             inFlight.remove(key);
                         }
@@ -167,7 +187,10 @@ public final class SubmitModule implements ServerModule {
         }
     }
 
-    /** Test cố định (xem được nếu nằm trong {@code test_xem}, còn lại ẩn) rồi test ẩn sinh từ {@code sinh_test.py}. */
+    /**
+     * Test cố định (xem được nếu nằm trong {@code test_xem}, còn lại ẩn) rồi test
+     * ẩn sinh từ {@code sinh_test.py}.
+     */
     static List<Grader.TestCase> tests(LessonRepository repo, Lesson l, LessonPreparer.Prepared prep) {
         List<Grader.TestCase> out = new ArrayList<>();
         for (String id : repo.fixedTestIds(l.id())) {
@@ -183,10 +206,10 @@ public final class SubmitModule implements ServerModule {
         return out;
     }
 
-    private void reply(Session s, Lesson l, long seq, Grader.Result res) {
+    private void reply(Session s, Lesson l, long seq, Grader.Result res, boolean isolatedSubmission) {
         ProgressService.SubmitOutcome out;
         try {
-            out = progress.record(s.userId(), l, seq, res, System.currentTimeMillis());
+            out = progress.record(s.userId(), l, seq, res, System.currentTimeMillis(), isolatedSubmission);
         } catch (Exception e) {
             LOG.log(Level.WARNING, "Không ghi được tiến độ", e);
             s.send(new ErrorMessage(ErrorCode.INTERNAL, "Không ghi được kết quả nộp", 0).toFrame(), Priority.NORMAL);

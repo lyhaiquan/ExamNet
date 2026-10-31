@@ -35,8 +35,10 @@ import labcast.common.trace.Trace;
 import labcast.common.trace.TraceReader;
 
 /**
- * Nút Chạy thử và kết quả từng test. Gửi {@code RUN_REQ(lessonId, codeSeq, testId)}, gom các {@code
- * TRACE_CHUNK} của lượt chạy, rồi đưa trace của chính code học viên cho trình phát. Chủ: Người 3.
+ * Nút Chạy thử và kết quả từng test. Gửi
+ * {@code RUN_REQ(lessonId, codeSeq, testId)}, gom các {@code
+ * TRACE_CHUNK} của lượt chạy, rồi đưa trace của chính code học viên cho trình
+ * phát. Chủ: Người 3.
  */
 public final class RunPanel extends VBox {
     private static final String SUBMIT_TEXT = "⬆ Nộp bài";
@@ -62,21 +64,37 @@ public final class RunPanel extends VBox {
     private final TextArea output = new TextArea();
     private final List<String> lines = new ArrayList<>();
     private volatile long runId = -1;
-    /** Đang chờ kết quả. Bất kỳ ERROR nào tới lúc này (SANDBOX_DOWN, NOT_FOUND…) kết thúc lượt chạy. */
+    /**
+     * Đang chờ kết quả. Bất kỳ ERROR nào tới lúc này (SANDBOX_DOWN, NOT_FOUND…) kết
+     * thúc lượt chạy.
+     */
     private volatile boolean inFlight;
-    /** Đang chờ chấm bài nộp. Chạy thử và nộp không chạy cùng lúc, nên ERROR tới thuộc về việc đang chờ. */
+    /**
+     * Đang chờ chấm bài nộp. Chạy thử và nộp không chạy cùng lúc, nên ERROR tới
+     * thuộc về việc đang chờ.
+     */
     private volatile boolean submitting;
     /** Mốc (ms, đồng hồ máy này) được nộp lại sau lần nộp sai; 0 = nộp được. */
     private long cooldownUntil;
-    /** Mốc được chạy thử lại sau khi server báo chạy nhanh quá (6 lượt/phút); 0 = chạy được. */
+    /**
+     * Mốc được chạy thử lại sau khi server báo chạy nhanh quá (6 lượt/phút); 0 =
+     * chạy được.
+     */
     private long runCooldownUntil;
 
-    /** Chạy từng dòng Java dưới debugger có thể mất cỡ 20 s (hai JVM, mỗi dòng một lần dừng). */
+    /**
+     * Chạy từng dòng Java dưới debugger có thể mất cỡ 20 s (hai JVM, mỗi dòng một
+     * lần dừng).
+     */
     private final PauseTransition timeout = new PauseTransition(javafx.util.Duration.seconds(45));
 
     private Language language = Language.PYTHON;
     private IntConsumer onErrorLine = line -> {};
-    /** Chấm chạy cả test ẩn, lần đầu còn phải sinh test ẩn: chờ lâu hơn chạy thử. */
+    private Consumer<JsonNode> onSubmitFinished = result -> {};
+    private boolean isolatedSubmission;
+    /**
+     * Chấm chạy cả test ẩn, lần đầu còn phải sinh test ẩn: chờ lâu hơn chạy thử.
+     */
     private final PauseTransition submitTimeout = new PauseTransition(javafx.util.Duration.seconds(120));
 
     private final Timeline cooldownTicker =
@@ -89,8 +107,9 @@ public final class RunPanel extends VBox {
     private final Consumer<Frame> onSubmitResult = this::submitResult;
 
     /**
-     * @param flushCode xả delta đang gộp trong ô soạn, trả seq code cuối — server chạy đúng phiên bản đó
-     * @param onTrace nhận trace của lượt chạy (gọi trên luồng giao diện)
+     * @param flushCode xả delta đang gộp trong ô soạn, trả seq code cuối — server
+     *                  chạy đúng phiên bản đó
+     * @param onTrace   nhận trace của lượt chạy (gọi trên luồng giao diện)
      */
     public RunPanel(
             LcpClient client, String lessonId, List<String> testIds, LongSupplier flushCode, Consumer<Trace> onTrace) {
@@ -188,7 +207,9 @@ public final class RunPanel extends VBox {
         traceBtn.setManaged(enabled);
     }
 
-    /** Ngôn ngữ của code đang soạn: gửi kèm Chạy thử, Trace từng dòng và Nộp bài. */
+    /**
+     * Ngôn ngữ của code đang soạn: gửi kèm Chạy thử, Trace từng dòng và Nộp bài.
+     */
     public void setLanguage(Language l) {
         language = l;
     }
@@ -197,9 +218,20 @@ public final class RunPanel extends VBox {
         return language;
     }
 
-    /** Nhận số dòng lỗi (1-based) khi lượt chạy báo được dòng, kể cả lỗi biên dịch. */
+    public void setIsolatedSubmission(boolean isolated) {
+        isolatedSubmission = isolated;
+    }
+
+    /**
+     * Nhận số dòng lỗi (1-based) khi lượt chạy báo được dòng, kể cả lỗi biên dịch.
+     */
     public void setOnErrorLine(IntConsumer l) {
         onErrorLine = l;
+    }
+
+    /** Gọi sau khi server trả kết quả cho một lần nộp bài. */
+    public void setOnSubmitFinished(Consumer<JsonNode> callback) {
+        onSubmitFinished = callback == null ? result -> {} : callback;
     }
 
     public boolean lastRunLineTrace() {
@@ -337,7 +369,10 @@ public final class RunPanel extends VBox {
         });
     }
 
-    /** Kết thúc lượt chạy / nộp vì lỗi phía server hoặc hết giờ chờ: mở lại nút để học viên thử lại. */
+    /**
+     * Kết thúc lượt chạy / nộp vì lỗi phía server hoặc hết giờ chờ: mở lại nút để
+     * học viên thử lại.
+     */
     private void fail(String message) {
         inFlight = false;
         submitting = false;
@@ -357,7 +392,12 @@ public final class RunPanel extends VBox {
         output.setText("");
         client.send(
                 MessageType.SUBMIT_REQ,
-                new PayloadWriter().str(lessonId).i64(seq).str(language.code()).toBytes());
+                new PayloadWriter()
+                        .str(lessonId)
+                        .i64(seq)
+                        .str(language.code())
+                        .bool(isolatedSubmission)
+                        .toBytes());
     }
 
     /**
@@ -397,6 +437,7 @@ public final class RunPanel extends VBox {
             if (cd > 0) {
                 startCooldown(cd);
             }
+            onSubmitFinished.accept(r);
         });
     }
 
@@ -455,7 +496,10 @@ public final class RunPanel extends VBox {
         cooldownTicker.play();
     }
 
-    /** Đếm ngược trên nút Nộp (sau lần nộp sai) và nút Chạy thử (sau khi chạy nhanh quá). */
+    /**
+     * Đếm ngược trên nút Nộp (sau lần nộp sai) và nút Chạy thử (sau khi chạy nhanh
+     * quá).
+     */
     private void tickCooldown() {
         long now = System.currentTimeMillis();
         long left = cooldownUntil - now;
@@ -490,11 +534,16 @@ public final class RunPanel extends VBox {
         submitBtn.setDisable(busy || cooldownUntil > now);
     }
 
-    /** {@code variant}: {@code pending}, {@code ok} hoặc {@code fail} — màu ở labcast.css. */
+    /**
+     * {@code variant}: {@code pending}, {@code ok} hoặc {@code fail} — màu ở
+     * labcast.css.
+     */
     private void showVerdict(String text, String variant) {
         verdict.setText(text);
         verdict.getStyleClass().removeAll("pending", "ok", "fail");
         verdict.getStyleClass().add(variant);
+        getStyleClass().removeAll("result-pending", "result-ok", "result-fail");
+        getStyleClass().add("result-" + variant);
         verdict.setVisible(true);
     }
 }
