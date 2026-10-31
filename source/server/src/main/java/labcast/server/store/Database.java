@@ -13,9 +13,13 @@ import org.sqlite.SQLiteConfig;
 /**
  * Cơ sở dữ liệu SQLite của server (spec §15).
  *
- * <p>Giữ <b>một</b> {@link Connection} cho cả server. SQLite chỉ cho một người ghi một lúc, nên mọi
- * thao tác đi qua {@link #tx} hoặc {@link #read}, hai hàm này dùng chung một khoá. Thao tác ngắn
- * (vài câu lệnh) nên khoá không thành nút cổ chai ở quy mô một lớp ≤ 50 học viên.
+ * <p>
+ * Giữ <b>một</b> {@link Connection} cho cả server. SQLite chỉ cho một người ghi
+ * một lúc, nên mọi
+ * thao tác đi qua {@link #tx} hoặc {@link #read}, hai hàm này dùng chung một
+ * khoá. Thao tác ngắn
+ * (vài câu lệnh) nên khoá không thành nút cổ chai ở quy mô một lớp ≤ 50 học
+ * viên.
  */
 public final class Database implements AutoCloseable {
 
@@ -32,6 +36,7 @@ public final class Database implements AutoCloseable {
     }
 
     /**
+     * Mở (tạo nếu chưa có) và chạy {@code schema.sql}. {@code ":memory:"} cho test.
      * Mở (tạo nếu chưa có), đưa DB của bản trước lên lược đồ hiện tại ({@link Migrations}) rồi chạy {@code
      * schema.sql}. {@code ":memory:"} cho test.
      */
@@ -46,6 +51,7 @@ public final class Database implements AutoCloseable {
             for (String sql : SqlScript.split(loadSchema())) {
                 st.execute(sql);
             }
+            ensurePracticeSessionColumns(st);
             Migrations.markLatest(c);
         } catch (SQLException e) {
             c.close();
@@ -54,7 +60,33 @@ public final class Database implements AutoCloseable {
         return db;
     }
 
-    /** Kết nối gốc. Chỉ dùng bên trong {@link #tx}/{@link #read}, hoặc trong test chạy một luồng. */
+    private static void ensurePracticeSessionColumns(Statement st) throws SQLException {
+        boolean hasName = false;
+        boolean hasClassId = false;
+        boolean hasType = false;
+        try (var columns = st.executeQuery("PRAGMA table_info(practice_sessions)")) {
+            while (columns.next()) {
+                hasName |= "name".equals(columns.getString("name"));
+                hasClassId |= "class_id".equals(columns.getString("name"));
+                hasType |= "type".equals(columns.getString("name"));
+            }
+        }
+        if (!hasName)
+            st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN name TEXT NOT NULL DEFAULT 'Đợt thực hành'");
+        if (!hasClassId)
+            st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN class_id INTEGER REFERENCES classes(id)");
+        if (!hasType)
+            st.executeUpdate("ALTER TABLE practice_sessions ADD COLUMN type TEXT NOT NULL DEFAULT 'PRACTICE'");
+        st.executeUpdate("UPDATE practice_sessions SET class_id = ("
+                + "SELECT id FROM classes WHERE classes.teacher_id = practice_sessions.teacher_id "
+                + "ORDER BY id LIMIT 1"
+                + ") WHERE class_id IS NULL");
+    }
+
+    /**
+     * Kết nối gốc. Chỉ dùng bên trong {@link #tx}/{@link #read}, hoặc trong test
+     * chạy một luồng.
+     */
     public Connection connection() {
         return conn;
     }

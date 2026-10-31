@@ -57,6 +57,12 @@ public final class ProgressService {
 
     /** Ghi kết quả một lượt nộp đã chấm xong; trả điểm, thời gian chờ mới, đã thành thạo chưa. */
     public SubmitOutcome record(long userId, Lesson l, long codeSeq, Grader.Result res, long now) throws SQLException {
+        return record(userId, l, codeSeq, res, now, false);
+    }
+
+    public SubmitOutcome record(
+            long userId, Lesson l, long codeSeq, Grader.Result res, long now, boolean isolatedSubmission)
+            throws SQLException {
         return db.tx(c -> {
             String status = null;
             int wrong = 0;
@@ -77,16 +83,22 @@ public final class ProgressService {
                 }
             }
             SubmitOutcome out;
-            if ("MASTERED".equals(status)) {
+            if (isolatedSubmission) {
+                out = new SubmitOutcome(res.verdict() == Verdict.OK ? 100 : 0, 0, res.verdict() == Verdict.OK, 0);
+            } else if ("MASTERED".equals(status)) {
                 out = new SubmitOutcome(score == null ? 0 : score, 0, true, wrong);
             } else if (res.verdict() == Verdict.OK) {
                 int s = Math.max(40, 100 - 20 * wrong);
-                upsert(c, userId, l.id(), "MASTERED", wrong, s, null, now);
+                if (!isolatedSubmission) {
+                    upsert(c, userId, l.id(), "MASTERED", wrong, s, null, now);
+                }
                 out = new SubmitOutcome(s, 0, true, wrong);
             } else {
                 int w = wrong + 1;
                 long cd = COOLDOWN_MS[Math.min(w, COOLDOWN_MS.length) - 1];
-                upsert(c, userId, l.id(), "OPEN", w, null, now + cd, now);
+                if (!isolatedSubmission) {
+                    upsert(c, userId, l.id(), "OPEN", w, null, now + cd, now);
+                }
                 out = new SubmitOutcome(0, cd, false, w);
             }
             try (PreparedStatement ps = c.prepareStatement("INSERT INTO submissions (user_id, lesson_id, code_seq,"

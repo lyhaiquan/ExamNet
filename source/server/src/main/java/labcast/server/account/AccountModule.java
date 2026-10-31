@@ -61,8 +61,8 @@ public final class AccountModule implements ServerModule {
                 .on(MessageType.HELLO, this::hello)
                 .on(MessageType.AUTH, this::auth)
                 .on(MessageType.RESUME_REQ, this::resume)
-                // tài khoản giáo viên, học viên do quản trị tạo (AccountAdminModule, nhập CSV)
-                .on(MessageType.ADMIN_ROSTER_IMPORT, java.util.Set.of(Role.ADMIN), this::importRoster)
+                // nhập CSV học viên: giáo viên nhập vào lớp mình (chưa có thì tạo), quản trị nhập vào lớp đang chọn
+                .on(MessageType.ADMIN_ROSTER_IMPORT, Role.STAFF, this::importRoster)
                 .on(MessageType.PASSWORD_CHANGE, this::changePassword)
                 .on(MessageType.PASSWORD_RESET, Role.STAFF, this::resetPassword)
                 .on(MessageType.PASSWORD_FORGOT, this::forgotPassword)

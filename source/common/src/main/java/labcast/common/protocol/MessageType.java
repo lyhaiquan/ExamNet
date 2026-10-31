@@ -3,7 +3,9 @@ package labcast.common.protocol;
 /**
  * Loại thông điệp của LCP/1.0 — một byte trong header (spec §10.3).
  *
- * <p>File chung do leader giữ. Mỗi người một dải mã (docs/plans/README.md), KHÔNG đánh số lại mã đã
+ * <p>
+ * File chung do leader giữ. Mỗi người một dải mã (docs/plans/README.md), KHÔNG
+ * đánh số lại mã đã
  * có: app và server khác phiên bản vẫn phải hiểu nhau ở các mã cũ.
  */
 public enum MessageType {
@@ -17,7 +19,10 @@ public enum MessageType {
     HEARTBEAT_ACK(0x07),
     RESUME_REQ(0x08),
     RESUME_STATE(0x09),
-    /** {@code bool inApp, i64 clientTs, str lessonId}: học viên vừa rời app (Alt+Tab, thu nhỏ) hoặc quay lại. */
+    /**
+     * {@code bool inApp, i64 clientTs, str lessonId}: học viên vừa rời app
+     * (Alt+Tab, thu nhỏ) hoặc quay lại.
+     */
     APP_FOCUS(0x0A),
     ERROR(0x0E),
     BYE(0x0F),
@@ -53,6 +58,11 @@ public enum MessageType {
     LESSON_LIST(0x30),
     LESSON_FETCH(0x31),
     LESSON_DATA(0x32),
+    PRACTICE_LIST(0x33),
+    PRACTICE_CREATE(0x34),
+    PRACTICE_START(0x35),
+    PRACTICE_STATE(0x36),
+    PRACTICE_SUBMIT(0x37),
     PREDICT_REQ(0x38),
     PREDICT_QUESTION(0x39),
     PREDICT_ANSWER(0x3A),
@@ -80,9 +90,15 @@ public enum MessageType {
     CHECKPOINT_LIST(0x52),
     CHECKPOINT_FETCH(0x53),
     CHECKPOINT_DATA(0x54),
-    /** {@code str docKey}: hỏi code đang lưu của một khoá tài liệu (đổi ngôn ngữ trong ô code). */
+    /**
+     * {@code str docKey}: hỏi code đang lưu của một khoá tài liệu (đổi ngôn ngữ
+     * trong ô code).
+     */
     CODE_FETCH(0x55),
-    /** {@code str docKey, i64 seq, str code}: code đang lưu trên server, hoặc khung nếu chưa có. */
+    /**
+     * {@code str docKey, i64 seq, str code}: code đang lưu trên server, hoặc khung
+     * nếu chưa có.
+     */
     CODE_DATA(0x56),
     HAND_RAISE(0x58),
     HAND_LOWER(0x59),
@@ -118,11 +134,15 @@ public enum MessageType {
     PRACTICE_LESSONS_DATA(0x77),
     /** Giáo viên bỏ bài khỏi phiên: i64 roomId, str lessonId. */
     PRACTICE_UNASSIGN_REQ(0x78),
-    // 0x26, 0x27, 0x2B đã thuộc ADMIN_LESSON_* (bản #7) nên ba mã lớp/phiên này dời về đây
+    // 0x26, 0x27, 0x2B đã thuộc ADMIN_LESSON_* (bản #7) nên ba mã lớp/phiên này dời
+    // về đây
     CLASS_SELECT_RESULT(0x79),
     PRACTICE_LIST_REQ(0x7A),
     PRACTICE_LIST_DATA(0x7B),
-    // 0xA0–0xBF: giai đoạn 6 (docs/plans/giai-doan-6.md); 0x80–0x9F để dành cho đợt 2
+    /** Giáo viên xóa một đợt thực hành: i64 practiceId. */
+    PRACTICE_DELETE(0x7C),
+    // 0xA0–0xBF: giai đoạn 6 (docs/plans/giai-doan-6.md); 0x80–0x9F để dành cho đợt
+    // 2
     /** Thảo luận ở từng bài (DiscussionModule): str lessonId → DISCUSS_DATA. */
     DISCUSS_REQ(0xA0),
     DISCUSS_DATA(0xA1),
@@ -131,29 +151,45 @@ public enum MessageType {
     /** Giáo viên/quản trị: i64 id, bool hidden. */
     DISCUSS_HIDE(0xA3),
     DISCUSS_NEW(0xA4),
-    /** Thích / bỏ thích một bình luận: i64 id, bool like → DISCUSS_NEW (cập nhật số thích). */
+    /**
+     * Thích / bỏ thích một bình luận: i64 id, bool like → DISCUSS_NEW (cập nhật số
+     * thích).
+     */
     DISCUSS_LIKE(0xA5),
     /** Số liệu trang chủ theo vai trò, payload rỗng. */
     HOME_REQ(0xA8),
     /** JSON số liệu trang chủ: xem HomeModule. */
     HOME_DATA(0xA9),
-    /** Tự đổi mật khẩu: str mật khẩu cũ, str mật khẩu mới → ADMIN_OK(str thông báo) hoặc ERROR. */
+    /**
+     * Tự đổi mật khẩu: str mật khẩu cũ, str mật khẩu mới → ADMIN_OK(str thông báo)
+     * hoặc ERROR.
+     */
     PASSWORD_CHANGE(0xAA),
     /**
-     * Giáo viên/quản trị đặt lại mật khẩu người khác: str username, str mật khẩu mới → ADMIN_OK hoặc ERROR. Giáo
-     * viên chỉ đặt lại được cho học viên ghi danh trong lớp mình dạy; quản trị đặt lại được cho mọi người.
+     * Giáo viên/quản trị đặt lại mật khẩu người khác: str username, str mật khẩu
+     * mới → ADMIN_OK hoặc ERROR. Giáo
+     * viên chỉ đặt lại được cho học viên ghi danh trong lớp mình dạy; quản trị đặt
+     * lại được cho mọi người.
      */
     PASSWORD_RESET(0xAB),
     /**
-     * Quên mật khẩu, gửi trước khi đăng nhập: str username → ADMIN_OK(str). Trả lời y hệt dù tài khoản có hay
-     * không, để không dò được tên đăng nhập; có thật thì ghi yêu cầu chờ giáo viên đặt mật khẩu tạm.
+     * Quên mật khẩu, gửi trước khi đăng nhập: str username → ADMIN_OK(str). Trả lời
+     * y hệt dù tài khoản có hay
+     * không, để không dò được tên đăng nhập; có thật thì ghi yêu cầu chờ giáo viên
+     * đặt mật khẩu tạm.
      */
     PASSWORD_FORGOT(0xAC),
     /** Giáo viên/quản trị: payload rỗng → PASSWORD_REQUESTS_DATA. */
     PASSWORD_REQUESTS_REQ(0xAD),
-    /** JSON {requests:[{username, fullName, role, at}]}: yêu cầu quên mật khẩu người xem xử lý được. */
+    /**
+     * JSON {requests:[{username, fullName, role, at}]}: yêu cầu quên mật khẩu người
+     * xem xử lý được.
+     */
     PASSWORD_REQUESTS_DATA(0xAE),
-    /** Quản trị: payload rỗng → ACCOUNT_LIST_DATA (mọi tài khoản và lớp, xem AccountAdminModule). */
+    /**
+     * Quản trị: payload rỗng → ACCOUNT_LIST_DATA (mọi tài khoản và lớp, xem
+     * AccountAdminModule).
+     */
     ACCOUNT_LIST_REQ(0xAF),
     ACCOUNT_LIST_DATA(0xB0),
     /** Quản trị tạo / sửa giáo viên, học viên: JSON → ADMIN_OK(str) hoặc ERROR. */

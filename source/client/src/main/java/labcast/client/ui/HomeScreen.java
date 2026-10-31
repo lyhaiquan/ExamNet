@@ -54,8 +54,10 @@ import labcast.common.protocol.PayloadWriter;
 import labcast.common.protocol.Role;
 
 /**
- * Màn chính sau đăng nhập: danh sách bài bên trái, bài đang mở ở giữa, thanh trạng thái kết nối ở
- * trên. Giáo viên có thêm nút nhập danh sách lớp. Giai đoạn 2 tách thành màn học viên và màn giáo
+ * Màn chính sau đăng nhập: danh sách bài bên trái, bài đang mở ở giữa, thanh
+ * trạng thái kết nối ở
+ * trên. Giáo viên có thêm nút nhập danh sách lớp. Giai đoạn 2 tách thành màn
+ * học viên và màn giáo
  * viên đầy đủ (sơ đồ lớp, chiếu, câu hỏi nhanh).
  */
 public final class HomeScreen extends BorderPane {
@@ -84,6 +86,7 @@ public final class HomeScreen extends BorderPane {
     // Đường kéo ở mép phải sidebar; không làm mất nút thu gọn bên trong.
     private final Region sidebarResizeHandle = new Region();
     private final HBox sidebarFrame = new HBox();
+    private HBox topbar;
     private double sidebarUserWidth = Double.NaN;
     private double sidebarDragStartX;
     private double sidebarDragStartWidth;
@@ -108,6 +111,7 @@ public final class HomeScreen extends BorderPane {
 
     private final Button exerciseButton = new Button("Bài tập");
     private final Button practiceButton = new Button("Thực hành");
+    private final Button practiceSessionsButton = new Button("Thực hành");
     private final Button addExerciseButton = new Button("Thêm bài tập");
     private final Button manageStudentsButton = new Button("Quản lý sinh viên");
     /** Chỉ quản trị: tạo, sửa, khoá tài khoản giáo viên và học viên. */
@@ -137,6 +141,7 @@ public final class HomeScreen extends BorderPane {
         HOME,
         EXERCISES,
         PRACTICE,
+        PRACTICE_SESSIONS,
         PLAYGROUND,
         ADD_EXERCISE,
         STUDENTS,
@@ -156,7 +161,10 @@ public final class HomeScreen extends BorderPane {
     private Boolean sidebarUserChoice = null;
     private final Label status = new Label();
     private LessonScreen current;
-    /** Mã bài đang mở, null khi chưa mở bài nào. LabCastApp nghe để khoá toàn màn hình. */
+    /**
+     * Mã bài đang mở, null khi chưa mở bài nào. LabCastApp nghe để khoá toàn màn
+     * hình.
+     */
     private final ReadOnlyStringWrapper openLesson = new ReadOnlyStringWrapper();
     /** Phiên chiếu của app (ĐG1); null thì màn này không có phần chiếu. */
     private final CastSession cast;
@@ -167,14 +175,18 @@ public final class HomeScreen extends BorderPane {
     private boolean castWasActive;
     private final Runnable onLogout;
     private boolean loggedOut;
+    private PracticeScreen practice;
+    private boolean practiceOpen;
+    private boolean practiceLocked;
 
     public HomeScreen(LoginController.LoggedIn li, JournalClient journal, Runnable onSessionEnded) {
         this(li, journal, onSessionEnded, null, null);
     }
 
     /**
-     * @param cast phiên chiếu: học viên thấy màn giáo viên chiếu (tự mở khi đang không làm bài), giáo viên
-     *     có nút "Chiếu cho lớp" trong màn bài học
+     * @param cast phiên chiếu: học viên thấy màn giáo viên chiếu (tự mở khi đang
+     *             không làm bài), giáo viên
+     *             có nút "Chiếu cho lớp" trong màn bài học
      */
     public HomeScreen(LoginController.LoggedIn li, JournalClient journal, Runnable onSessionEnded, CastSession cast) {
         this(li, journal, onSessionEnded, cast, null);
@@ -213,12 +225,14 @@ public final class HomeScreen extends BorderPane {
         this.onLogout = onLogout;
         Theme.apply(this);
         getProperties().put(FocusLayer.HOST, true); // ô phóng to, chế độ tập trung nằm trên màn này
-        // Màu nhấn theo vai trò: học viên tím, giáo viên xanh lá, quản trị tím đậm (labcast-*.css).
+        // Màu nhấn theo vai trò: học viên tím, giáo viên xanh lá, quản trị tím đậm
+        // (labcast-*.css).
         getStyleClass().add("role-" + li.role().name().toLowerCase(Locale.ROOT));
         this.journal = journal;
         LcpClient client = li.client();
 
-        setTop(topBar(li));
+        topbar = topBar(li);
+        setTop(topbar);
 
         // Nút đóng/mở đặt ở góc phải ngay trong sidebar, KHÔNG nằm trên topbar.
         sidebarToggle.setId("sidebar-toggle");
@@ -259,8 +273,9 @@ public final class HomeScreen extends BorderPane {
         addExerciseButton.setId("nav-add");
         configureNavButton(exerciseButton, "M6 5 H19 V19 H6 Z M9 9 H16 M9 13 H16", "Lọc danh sách bài tập");
         practiceButton.setText(li.role().isStaff() ? "Lớp thực hành" : "Tham gia thực hành");
+        configureNavButton(practiceButton, "M5 7 H19 V17 H5 Z M9 11 L11 13 L15 9", "Mở lớp học và thực hành");
         configureNavButton(
-                practiceButton, "M5 7 H19 V17 H5 Z M9 11 L11 13 L15 9", "Danh sách lớp thực hành và các buổi học");
+                practiceSessionsButton, "M4 5 H20 V19 H4 Z M8 9 H16 M8 13 H16", "Mở danh sách các đợt thực hành");
         configureNavButton(
                 playgroundButton, "M8 7 L3 12 L8 17 M16 7 L21 12 L16 17 M14 5 L10 19", "Mở trình soạn thảo code tự do");
         configureNavButton(addExerciseButton, "M12 5 V19 M5 12 H19", "Tạo file bài học mới cho LabCast Server");
@@ -270,6 +285,7 @@ public final class HomeScreen extends BorderPane {
                 "Xem sinh viên, tiến độ và màn hình đang làm");
         exerciseButton.setOnAction(e -> showLessonCategory(Nav.EXERCISES));
         practiceButton.setOnAction(e -> showPracticeRooms());
+        practiceSessionsButton.setOnAction(e -> showPractice());
         playgroundButton.setOnAction(e -> showPlayground());
         addExerciseButton.setOnAction(e -> showAddExercise());
         manageStudentsButton.setOnAction(e -> showStudents());
@@ -305,6 +321,7 @@ public final class HomeScreen extends BorderPane {
                             classesButton,
                             manageStudentsButton,
                             practiceButton,
+                            practiceSessionsButton,
                             navSection("Nội dung"),
                             exerciseButton,
                             addExerciseButton);
@@ -315,6 +332,7 @@ public final class HomeScreen extends BorderPane {
                             homeButton,
                             exerciseButton,
                             practiceButton,
+                            practiceSessionsButton,
                             addExerciseButton,
                             navSection("Quản lý"),
                             manageStudentsButton,
@@ -327,6 +345,7 @@ public final class HomeScreen extends BorderPane {
                             homeButton,
                             exerciseButton,
                             practiceButton,
+                            practiceSessionsButton,
                             navSection("Công cụ"),
                             playgroundButton);
         }
@@ -335,6 +354,7 @@ public final class HomeScreen extends BorderPane {
             homeButton,
             exerciseButton,
             practiceButton,
+            practiceSessionsButton,
             playgroundButton,
             addExerciseButton,
             manageStudentsButton,
@@ -398,14 +418,12 @@ public final class HomeScreen extends BorderPane {
                     && node.getValue().isLesson()) {
                 JsonNode lesson = node.getValue().lesson();
                 if (li.role() == Role.STUDENT && !lesson.path("active").asBoolean(true)) {
-                    setStatus("Bài học này hiện chưa được mở", "warning");
                     return;
                 }
                 String id = lesson.path("id").asText();
                 if (!id.equals(openLesson.get())) open(id);
             }
         });
-
         lessonProgress.getStyleClass().add("sidebar-progress-text");
         progressPercent.getStyleClass().add("sidebar-progress-percent");
         Region progressGap = new Region();
@@ -492,7 +510,10 @@ public final class HomeScreen extends BorderPane {
         }
     }
 
-    /** Giáo viên bắt đầu/dừng chiếu. Học viên đang không làm bài thì tự mở màn chiếu. */
+    /**
+     * Giáo viên bắt đầu/dừng chiếu. Học viên đang không làm bài thì tự mở màn
+     * chiếu.
+     */
     private void onCastChange() {
         boolean active = cast.active();
         if (active && !castWasActive && !castShown && current == null && !playgroundOpen) {
@@ -502,7 +523,9 @@ public final class HomeScreen extends BorderPane {
         castChip.setVisible(active && !castShown);
     }
 
-    /** Mở màn chiếu; đang làm bài thì đóng bài (code đã lưu liên tục lên server). */
+    /**
+     * Mở màn chiếu; đang làm bài thì đóng bài (code đã lưu liên tục lên server).
+     */
     private void showCast() {
         if (current != null) {
             closeLesson();
@@ -554,20 +577,26 @@ public final class HomeScreen extends BorderPane {
     }
 
     private void refreshNavigation() {
-        homeButton.getStyleClass().remove("sidebar-nav-active");
-        exerciseButton.getStyleClass().remove("sidebar-nav-active");
-        practiceButton.getStyleClass().remove("sidebar-nav-active");
-        playgroundButton.getStyleClass().remove("sidebar-nav-active");
-        addExerciseButton.getStyleClass().remove("sidebar-nav-active");
-        manageStudentsButton.getStyleClass().remove("sidebar-nav-active");
-        accountsButton.getStyleClass().remove("sidebar-nav-active");
-        classesButton.getStyleClass().remove("sidebar-nav-active");
-        noticesButton.getStyleClass().remove("sidebar-nav-active");
+        for (Button b : new Button[] {
+            homeButton,
+            exerciseButton,
+            practiceButton,
+            practiceSessionsButton,
+            playgroundButton,
+            addExerciseButton,
+            manageStudentsButton,
+            accountsButton,
+            classesButton,
+            noticesButton
+        }) {
+            b.getStyleClass().remove("sidebar-nav-active");
+        }
         Button selected =
                 switch (activeNav) {
                     case HOME -> homeButton;
                     case EXERCISES -> exerciseButton;
                     case PRACTICE -> practiceButton;
+                    case PRACTICE_SESSIONS -> practiceSessionsButton;
                     case PLAYGROUND -> playgroundButton;
                     case ADD_EXERCISE -> addExerciseButton;
                     case STUDENTS -> manageStudentsButton;
@@ -785,11 +814,18 @@ public final class HomeScreen extends BorderPane {
                     && !classSelector.getItems().isEmpty()) {
                 classSelector.getSelectionModel().selectFirst();
             }
+            if (practice != null) {
+                practice.setPracticeClasses(classSelector.getItems().stream()
+                        .map(option -> new PracticeScreen.PracticeClass(option.id(), option.name()))
+                        .toList());
+                practice.setSelectedPracticeClass(selectedClassId);
+            }
         } finally {
             loadingClasses = false;
         }
         dashboard.setClasses(classList, selectedClassId);
-        // Quản trị đăng nhập chưa gắn lớp nào: chọn sẵn lớp đầu để các màn theo lớp có dữ liệu.
+        // Quản trị đăng nhập chưa gắn lớp nào: chọn sẵn lớp đầu để các màn theo lớp có
+        // dữ liệu.
         if (selectedClassId <= 0 && classSelector.getValue() != null) selectClass(classSelector.getValue());
     }
 
@@ -831,9 +867,11 @@ public final class HomeScreen extends BorderPane {
 
     /**
      * Chuyển sang editor tự do, không cần lessonId, không gửi LESSON_FETCH.
-     * Khởi tạo màn trước khi đóng bài hiện tại, tránh mất nội dung khi lỗi tạo editor.
+     * Khởi tạo màn trước khi đóng bài hiện tại, tránh mất nội dung khi lỗi tạo
+     * editor.
      */
     private void showPlayground() {
+        if (practiceLocked) return;
         lessonRequestVersion++; // Vô hiệu phản hồi mở bài đang chờ.
         try {
             if (playground == null) {
@@ -875,7 +913,13 @@ public final class HomeScreen extends BorderPane {
         playgroundOpen = false;
         if (playground != null) playground.saveDraft();
         refreshNavigation();
+        refreshPlaygroundButton();
         if (current == null && !castShown) setCenter(emptyState());
+    }
+
+    private void refreshPlaygroundButton() {
+        playgroundButton.getStyleClass().remove("sidebar-playground-active");
+        if (playgroundOpen) playgroundButton.getStyleClass().add("sidebar-playground-active");
     }
 
     /** Tên bài theo mã, lấy từ danh sách bài bên trái. */
@@ -919,8 +963,6 @@ public final class HomeScreen extends BorderPane {
             node.setVisible(expanded);
             node.setManaged(expanded);
         }
-
-        // Thanh điều hướng thuộc sidebarBody, luôn ẩn gọn cùng nội dung sidebar.
 
         sidebar.getStyleClass().remove("sidebar-collapsed");
         if (!expanded) sidebar.getStyleClass().add("sidebar-collapsed");
@@ -994,7 +1036,8 @@ public final class HomeScreen extends BorderPane {
             // tài khoản học viên do quản trị tạo: giáo viên không nhập CSV
             if (li.role() == Role.ADMIN) bar.getChildren().add(importBtn);
         }
-        // Bấm vào tên mình: menu mật khẩu (ai cũng tự đổi được; giáo viên, quản trị đặt lại cho người khác)
+        // Bấm vào tên mình: menu mật khẩu (ai cũng tự đổi được; giáo viên, quản trị đặt
+        // lại cho người khác)
         HBox userChip = new HBox(10, avatar, who);
         userChip.setAlignment(Pos.CENTER_LEFT);
         MenuButton userMenu = new MenuButton();
@@ -1268,7 +1311,10 @@ public final class HomeScreen extends BorderPane {
         return box;
     }
 
-    /** {@code variant}: {@code ok}, {@code warn}, {@code error} hoặc null — màu ở labcast.css. */
+    /**
+     * {@code variant}: {@code ok}, {@code warn}, {@code error} hoặc null — màu ở
+     * labcast.css.
+     */
     private void setStatus(String text, String variant) {
         status.setText(text);
         status.getStyleClass().removeAll("ok", "warn", "error");
@@ -1284,6 +1330,7 @@ public final class HomeScreen extends BorderPane {
 
     /** Nút "Đóng bài": về màn chọn bài, thả khoá toàn màn hình. */
     public void closeLesson() {
+        if (practiceLocked) return;
         lessonRequestVersion++;
         if (current != null) {
             current.dispose();
@@ -1301,7 +1348,10 @@ public final class HomeScreen extends BorderPane {
         if (!loggedOut) loadLessons(); // Đồng bộ trạng thái MASTERED sau khi nộp bài
     }
 
-    /** Đăng xuất: đóng bài (nếu đang mở), giải phóng tài nguyên và quay về màn hình đăng nhập. */
+    /**
+     * Đăng xuất: đóng bài (nếu đang mở), giải phóng tài nguyên và quay về màn hình
+     * đăng nhập.
+     */
     public void logout() {
         if (loggedOut) {
             return;
@@ -1330,7 +1380,10 @@ public final class HomeScreen extends BorderPane {
         }
     }
 
-    /** Hộp thoại có chủ là cửa sổ app: không có chủ thì nó mở ra nằm sau cửa sổ toàn màn hình. */
+    /**
+     * Hộp thoại có chủ là cửa sổ app: không có chủ thì nó mở ra nằm sau cửa sổ toàn
+     * màn hình.
+     */
     private void alert(Alert.AlertType type, String msg) {
         Alert a = new Alert(type, msg);
         if (getScene() != null) {
@@ -1370,8 +1423,16 @@ public final class HomeScreen extends BorderPane {
         }
         // Chỉ bấm vào một bài mới gửi LESSON_FETCH. Code tự do không đi qua đây.
         if (playgroundOpen) hidePlayground();
-        if (activeNav == Nav.HOME) showLessonCategory(Nav.EXERCISES);
         if (activeNav != Nav.EXERCISES) return;
+        open(lessonId, false);
+    }
+
+    private void open(String lessonId, boolean practiceMode) {
+        // Chỉ bấm vào một bài mới gửi LESSON_FETCH. Code tự do không đi qua đây.
+        if (practiceLocked && !practiceMode) return;
+        if (playgroundOpen) hidePlayground();
+        if (!practiceMode && activeNav == Nav.HOME) showLessonCategory(Nav.EXERCISES);
+        if (!practiceMode && activeNav != Nav.EXERCISES) return;
         long requestVersion = ++lessonRequestVersion;
         LcpClient c = li.client();
         var reply = c.expect(MessageType.LESSON_DATA, MessageType.ERROR);
@@ -1379,7 +1440,6 @@ public final class HomeScreen extends BorderPane {
         setStatus("Đang mở bài…", null);
         reply.orTimeout(30, TimeUnit.SECONDS)
                 .whenComplete((f, err) -> Platform.runLater(() -> {
-                    // Không cho response bài học cũ ghi đè màn Code tự do.
                     if (loggedOut || playgroundOpen || requestVersion != lessonRequestVersion) return;
                     if (err != null || f.type() != MessageType.LESSON_DATA) {
                         setStatus("Không mở được bài " + lessonId, "error");
@@ -1395,10 +1455,18 @@ public final class HomeScreen extends BorderPane {
                             castShown = false;
                             castChip.setVisible(cast.active());
                         }
-                        if (playgroundOpen) hidePlayground();
-                        current = new LessonScreen(
-                                c, journal, lesson, li.role() == Role.STUDENT, this::closeLesson, cast);
                         exerciseCatalog.select(lessonId);
+                        Runnable onClose = practiceMode ? this::returnToPracticeLessons : this::closeLesson;
+                        current = new LessonScreen(
+                                c,
+                                journal,
+                                lesson,
+                                li.role() == Role.STUDENT,
+                                onClose,
+                                cast,
+                                practiceMode,
+                                practiceMode ? this::onPracticeSubmit : null,
+                                practiceMode ? this::finishPractice : null);
                         setCenter(current);
                         openLesson.set(lessonId);
                         reportActivity("Đang làm bài tập", lessonId);
@@ -1408,6 +1476,119 @@ public final class HomeScreen extends BorderPane {
                         setStatus("Bài hỏng: " + e.getMessage(), "error");
                     }
                 }));
+    }
+
+    private void showPractice() {
+        if (practiceLocked) return;
+        leaveActiveScreen();
+        if (practice != null) practice.dispose();
+        activeNav = Nav.PRACTICE_SESSIONS;
+        refreshNavigation();
+        practiceOpen = true;
+        practice = new PracticeScreen(
+                li.client(),
+                li.role(),
+                allLessons,
+                this::openPracticeLesson,
+                this::finishPractice,
+                this::finishPractice,
+                this::backFromPractice);
+        // Đợt thực hành tính giờ theo đồng hồ server đã đồng bộ, không theo giờ máy (các máy lệch giờ vẫn đóng ca đúng
+        // lúc)
+        practice.setClock(cast != null ? cast::serverNow : System::currentTimeMillis);
+        practice.setPracticeClasses(classSelector.getItems().stream()
+                .map(option -> new PracticeScreen.PracticeClass(option.id(), option.name()))
+                .toList());
+        practice.setOnDetailOpened(() -> {
+            setTop(null);
+            setLeft(null);
+        });
+        practice.setOnDetailClosed(() -> {
+            setTop(topbar);
+            setLeft(sidebarFrame);
+            sidebarUserChoice = null;
+            updateSidebar();
+        });
+        setTop(topbar);
+        setLeft(sidebarFrame);
+        setCenter(practice);
+        setStatus("", null);
+        updateSidebar();
+    }
+
+    private void openPracticeLesson(String lessonId) {
+        practiceLocked = true;
+        open(lessonId, true);
+    }
+
+    private void returnToPracticeLessons() {
+        lessonRequestVersion++;
+        if (current != null) {
+            current.dispose();
+            current = null;
+        }
+        openLesson.set(null);
+        if (practice != null) {
+            setTop(null);
+            setLeft(null);
+            setCenter(practice);
+        }
+    }
+
+    private void onPracticeSubmit(JsonNode result) {
+        if (practice != null) {
+            practice.updateLessonStatus(
+                    result.path("lessonId").asText(),
+                    "OK".equals(result.path("verdict").asText()));
+        }
+        returnToPracticeLessons();
+    }
+
+    private void finishPractice() {
+        finishPracticeSession();
+    }
+
+    private void backFromPractice() {
+        if (li.role() == Role.TEACHER && practice != null) {
+            practice.returnToList();
+            return;
+        }
+        lessonRequestVersion++;
+        if (current != null) {
+            current.dispose();
+            current = null;
+        }
+        if (practice != null) {
+            practice.dispose();
+            practice = null;
+        }
+        practiceOpen = false;
+        practiceLocked = false;
+        setCenter(emptyState());
+        setTop(topbar);
+        setLeft(sidebarFrame);
+        sidebarUserChoice = null;
+        updateSidebar();
+    }
+
+    private void finishPracticeSession() {
+        practiceLocked = false;
+        if (current != null) {
+            current.dispose();
+            current = null;
+        }
+        if (practice != null) {
+            practice.submitForStudent();
+            setCenter(practice);
+        } else {
+            setCenter(emptyState());
+        }
+        if (practice != null) {
+            setTop(topbar);
+            setLeft(sidebarFrame);
+            sidebarUserChoice = null;
+            updateSidebar();
+        }
     }
 
     private void importRoster() {
@@ -1455,7 +1636,10 @@ public final class HomeScreen extends BorderPane {
                 }));
     }
 
-    /** Danh sách lớp xuất từ phòng đào tạo (mã SV, họ tên, ngày sinh): xem trước rồi mới tạo tài khoản. */
+    /**
+     * Danh sách lớp xuất từ phòng đào tạo (mã SV, họ tên, ngày sinh): xem trước rồi
+     * mới tạo tài khoản.
+     */
     private void importRosterExcel(File file) {
         ClassOption target = classSelector.getValue();
         if (target == null || selectedClassId <= 0) {
