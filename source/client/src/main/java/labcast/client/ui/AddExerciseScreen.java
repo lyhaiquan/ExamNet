@@ -50,6 +50,7 @@ public final class AddExerciseScreen extends BorderPane {
     private final TextField title = new TextField();
     private final ComboBox<String> subject = new ComboBox<>();
     private final ComboBox<String> type = new ComboBox<>();
+    private final ComboBox<String> difficulty = new ComboBox<>();
     private final TextArea description = new TextArea();
     private final TextArea starter = new TextArea();
     private final TextArea solution = new TextArea();
@@ -87,6 +88,8 @@ public final class AddExerciseScreen extends BorderPane {
         subject.getSelectionModel().selectFirst();
         subject.setMaxWidth(Double.MAX_VALUE);
         type.getItems().addAll(TYPE_SAMPLE, TYPE_EXERCISE, TYPE_PRACTICE);
+        difficulty.getItems().addAll("Chưa phân loại", "Dễ", "Trung bình", "Khó");
+        difficulty.getSelectionModel().selectFirst();
         type.setValue(TYPE_EXERCISE);
         type.setMaxWidth(Double.MAX_VALUE);
         subject.valueProperty().addListener((obs, old, value) -> {
@@ -151,6 +154,7 @@ public final class AddExerciseScreen extends BorderPane {
         addGrid(meta, 1, 0, field("Loại bài", type));
         addGrid(meta, 0, 1, field("Chủ đề (chương)", chapterBox));
         addGrid(meta, 1, 1, field("Mã bài", slug));
+        addGrid(meta, 0, 2, field("Độ khó", difficulty));
         GridPane newChapter = twoColumnGrid();
         addGrid(newChapter, 0, 0, field("Tên chủ đề mới", newChapterName));
         addGrid(newChapter, 1, 0, field("Mã chủ đề", newChapterCode));
@@ -265,6 +269,10 @@ public final class AddExerciseScreen extends BorderPane {
         subject.setMinHeight(44);
         subject.setPrefHeight(44);
         subject.setMaxHeight(44);
+        difficulty.setMaxWidth(Double.MAX_VALUE);
+        difficulty.setMinHeight(44);
+        difficulty.setPrefHeight(44);
+        difficulty.setMaxHeight(44);
         type.setMinHeight(44);
         type.setPrefHeight(44);
         type.setMaxHeight(44);
@@ -638,9 +646,10 @@ public final class AddExerciseScreen extends BorderPane {
                             ten,
                             loai,
                             QUERY_DML.equals(queryKind.getValue()) ? "dml" : "select",
-                            ordered.isSelected())
+                            ordered.isSelected(),
+                            difficultyCode())
                     : LessonYaml.dsa(
-                            id, chuong, ten, loai, views, !testInput.getText().isEmpty());
+                            id, chuong, ten, loai, views, !testInput.getText().isEmpty(), difficultyCode());
             Files.createDirectories(folder);
             Path chapterName = folder.getParent().resolve("ten-chuong.txt");
             if (newChapter && !Files.exists(chapterName))
@@ -681,6 +690,16 @@ public final class AddExerciseScreen extends BorderPane {
         } catch (IOException | RuntimeException e) {
             error("Không lưu được file: " + e.getMessage());
         }
+    }
+
+    /** Độ khó đã chọn ở dạng ghi vào lesson.yaml; rỗng nếu chưa phân loại. */
+    private String difficultyCode() {
+        return switch (String.valueOf(difficulty.getValue())) {
+            case "Dễ" -> "de";
+            case "Trung bình" -> "vua";
+            case "Khó" -> "kho";
+            default -> "";
+        };
     }
 
     private static void write(Path path, String data) throws IOException {

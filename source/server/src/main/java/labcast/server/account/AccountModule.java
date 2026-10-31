@@ -33,6 +33,7 @@ public final class AccountModule implements ServerModule {
     private ServerContext ctx;
     private UserRepository users;
     private ClassRepository classes;
+    private NoticeBoard notices;
     private RosterImporter importer;
     /** Để tên đăng nhập không có thật cũng tốn đúng thời gian băm như sai mật khẩu. */
     private volatile PasswordHasher.Hashed dummy;
@@ -43,6 +44,7 @@ public final class AccountModule implements ServerModule {
         this.users = new UserRepository(ctx.db());
         this.classes = new ClassRepository(ctx.db());
         this.importer = new RosterImporter(users, classes);
+        this.notices = new NoticeBoard(ctx.db(), users, ctx.sessions());
         ctx.register(UserRepository.class, users);
         ctx.register(ClassRepository.class, classes);
         ctx.sessions().setClassLookup(userId -> {
@@ -64,7 +66,8 @@ public final class AccountModule implements ServerModule {
                 .on(MessageType.PASSWORD_CHANGE, this::changePassword)
                 .on(MessageType.PASSWORD_RESET, Role.STAFF, this::resetPassword)
                 .on(MessageType.PASSWORD_FORGOT, this::forgotPassword)
-                .on(MessageType.PASSWORD_REQUESTS_REQ, Role.STAFF, this::passwordRequests);
+                .on(MessageType.PASSWORD_REQUESTS_REQ, Role.STAFF, this::passwordRequests)
+                .on(MessageType.NOTICES_REQ, java.util.Set.of(Role.ADMIN), this::noticesRequest);
     }
 
     /** Mật khẩu mới hợp lệ không; {@code null} nếu được, ngược lại là lý do để báo người dùng. */
@@ -97,6 +100,7 @@ public final class AccountModule implements ServerModule {
         users.setMustChangePassword(u.id(), false);
         users.clearPasswordRequest(u.id());
         ctx.audit().record(u.username(), "PASSWORD_CHANGE", c.connection().remoteAddress());
+        notices.push("PASSWORD_CHANGE", u.username());
         c.reply(MessageType.ADMIN_OK, new PayloadWriter().str("Đã đổi mật khẩu").toBytes());
     }
 
@@ -278,6 +282,12 @@ public final class AccountModule implements ServerModule {
         if (u.isPresent()) {
             users.requestPasswordReset(u.get().id(), System.currentTimeMillis());
             ctx.audit().record(username, "PASSWORD_FORGOT", c.connection().remoteAddress());
+            notices.push("PASSWORD_FORGOT", username);
+        } else if (!username.isEmpty()) {
+            // người bấm vẫn nhận câu trả lời y hệt; chỉ quản trị thấy có người thử tên không tồn tại
+            String shown = username.length() > 64 ? username.substring(0, 64) : username;
+            ctx.audit().record(c.connection().remoteAddress(), "PASSWORD_FORGOT_UNKNOWN", shown);
+            notices.push("PASSWORD_FORGOT_UNKNOWN", shown);
         }
         c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(FORGOT_REPLY).toBytes());
     }
@@ -295,6 +305,16 @@ public final class AccountModule implements ServerModule {
                     .put("at", r.at());
         }
         c.reply(JsonPayload.frame(MessageType.PASSWORD_REQUESTS_DATA, root), Priority.NORMAL);
+    }
+
+    /** {@code NOTICES_REQ(bool markRead)} → {@code NOTICES_DATA}. Chỉ quản trị. */
+    private void noticesRequest(Ctx c, Frame f) throws Exception {
+        PayloadReader r = f.reader();
+        boolean markRead = r.hasRemaining() && r.bool();
+        c.reply(
+                JsonPayload.frame(
+                        MessageType.NOTICES_DATA, notices.snapshot(c.session().userId(), markRead)),
+                Priority.NORMAL);
     }
 
     private boolean verifyDummy(String password) {

@@ -72,4 +72,36 @@ class ExerciseCatalogTest {
         assertEquals(true, ExerciseCatalog.isWrong(moi));
         assertEquals(false, ExerciseCatalog.isWrong(KHO.get(0)));
     }
+
+    private static JsonNode voiDoKho(String id, String doKho) {
+        var n = (com.fasterxml.jackson.databind.node.ObjectNode)
+                DashboardStatsTest.bai(id, "NOT_STARTED", true).deepCopy();
+        n.put("doKho", doKho);
+        return n;
+    }
+
+    @Test
+    void locTheoDoKho_vaChuaPhanLoai() {
+        var kho = List.of(voiDoKho("dsa.a.1", "de"), voiDoKho("dsa.a.2", "kho"), voiDoKho("dsa.a.3", ""));
+        var de = new ExerciseCatalog.Query("", null, Set.of(), "Tất cả", "", "de");
+        assertEquals(List.of("dsa.a.1"), ids(ExerciseCatalog.select(kho, de, false)));
+        var chua = new ExerciseCatalog.Query("", null, Set.of(), "Tất cả", "", "-");
+        assertEquals(List.of("dsa.a.3"), ids(ExerciseCatalog.select(kho, chua, false)));
+        var moi = new ExerciseCatalog.Query("", null, Set.of(), "Tất cả", "", "*");
+        assertEquals(3, ExerciseCatalog.select(kho, moi, false).size());
+    }
+
+    @Test
+    void bamNhanDoKho_xoayVong() {
+        assertEquals("de", ExerciseCatalog.nextDoKho(""));
+        assertEquals("vua", ExerciseCatalog.nextDoKho("de"));
+        assertEquals("kho", ExerciseCatalog.nextDoKho("vua"));
+        assertEquals("", ExerciseCatalog.nextDoKho("kho"));
+    }
+
+    @Test
+    void doKhoLa_xemNhuChuaPhanLoai() {
+        assertEquals("", ExerciseCatalog.doKho(voiDoKho("dsa.a.9", "sieu-kho")));
+        assertEquals("Khó", ExerciseCatalog.doKhoLabel("kho"));
+    }
 }

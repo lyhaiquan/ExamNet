@@ -152,6 +152,20 @@ CREATE TABLE IF NOT EXISTS audit_log (
     detail        TEXT
 );
 
+-- Mốc "đã đọc" trang thông báo bảo mật của từng quản trị: sự kiện audit_log có id lớn hơn là chưa đọc
+CREATE TABLE IF NOT EXISTS notice_reads (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
+    last_audit_id INTEGER NOT NULL
+);
+
+-- Độ khó do giáo viên gán, ghi đè khoá do_kho trong lesson.yaml (không sửa file bài, không đổi content_hash)
+CREATE TABLE IF NOT EXISTS lesson_meta (
+    lesson_id     TEXT    PRIMARY KEY,  -- id gốc của bài (không kèm #ngôn-ngữ)
+    do_kho        TEXT    NOT NULL CHECK (do_kho IN ('de', 'vua', 'kho')),
+    updated_by    TEXT,
+    updated_at    INTEGER NOT NULL
+);
+
 -- ---------------------------------------------------------------------
 -- Bài học, tiến độ, đề biến thể, bài nộp — chủ: Người 3
 -- ---------------------------------------------------------------------

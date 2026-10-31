@@ -13,7 +13,40 @@ final class ExerciseCatalog {
     private ExerciseCatalog() {}
 
     /** Bộ lọc của bảng; {@code subject} rỗng là mọi môn, {@code chapter} null là mọi chương. */
-    record Query(String subject, String chapter, Set<String> kinds, String status, String text) {}
+    record Query(String subject, String chapter, Set<String> kinds, String status, String text, String doKho) {
+        /** Không lọc theo độ khó. */
+        Query(String subject, String chapter, Set<String> kinds, String status, String text) {
+            this(subject, chapter, kinds, status, text, "");
+        }
+    }
+
+    /** Mức độ khó theo thứ tự tăng dần; "" là chưa phân loại. */
+    static final List<String> DO_KHO = List.of("de", "vua", "kho");
+
+    /** Bộ lọc độ khó ở thanh công cụ: nhãn → mã ("*" là mọi mức, "-" là chưa phân loại). */
+    static final java.util.Map<String, String> DO_KHO_FILTERS =
+            java.util.Map.of("Mọi độ khó", "*", "Dễ", "de", "Trung bình", "vua", "Khó", "kho", "Chưa phân loại", "-");
+
+    static String doKhoLabel(String code) {
+        return switch (code) {
+            case "de" -> "Dễ";
+            case "vua" -> "Trung bình";
+            case "kho" -> "Khó";
+            default -> "Chưa phân loại";
+        };
+    }
+
+    /** Độ khó của bài: de | vua | kho, hoặc "" khi chưa phân loại. */
+    static String doKho(JsonNode l) {
+        String v = l.path("doKho").asText("");
+        return DO_KHO.contains(v) ? v : "";
+    }
+
+    /** Bấm vào nhãn độ khó: chưa phân loại → dễ → trung bình → khó → chưa phân loại. */
+    static String nextDoKho(String code) {
+        int i = DO_KHO.indexOf(code);
+        return i < 0 ? DO_KHO.get(0) : i + 1 < DO_KHO.size() ? DO_KHO.get(i + 1) : "";
+    }
 
     static final Comparator<JsonNode> ORDER = Comparator.comparing(
                     (JsonNode l) -> l.path("mon").asText())
@@ -52,6 +85,10 @@ final class ExerciseCatalog {
                     && !q.subject().equalsIgnoreCase(l.path("mon").asText())) continue;
             if (q.chapter() != null && !q.chapter().equals(l.path("chuong").asText())) continue;
             if (!q.kinds().isEmpty() && !q.kinds().contains(l.path("loai").asText())) continue;
+            if (!q.doKho().isEmpty() && !q.doKho().equals("*")) {
+                String want = q.doKho().equals("-") ? "" : q.doKho();
+                if (!want.equals(doKho(l))) continue;
+            }
             String st = l.path("status").asText("NOT_STARTED");
             boolean keep =
                     switch (q.status()) {

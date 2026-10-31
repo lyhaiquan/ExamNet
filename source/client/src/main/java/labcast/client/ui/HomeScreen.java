@@ -100,6 +100,15 @@ public final class HomeScreen extends BorderPane {
     // Mục Code tự do là chức năng độc lập nằm trong SIDEBAR (không thuộc bài học).
     private final Button homeButton = new Button("Trang chủ");
     private final Button playgroundButton = new Button("Code tự do");
+    private final Button noticesButton = new Button("Thông báo");
+    private NoticesScreen noticesScreen;
+    private javafx.animation.Timeline noticeTimer;
+
+    /** Quản trị không có "Code tự do": việc của họ là quản lý, không phải viết code. */
+    static boolean hasPlayground(Role role) {
+        return role != Role.ADMIN;
+    }
+
     private final Button exerciseButton = new Button("Bài tập");
     private final Button practiceButton = new Button("Thực hành");
     private final Button practiceSessionsButton = new Button("Thực hành");
@@ -137,7 +146,8 @@ public final class HomeScreen extends BorderPane {
         ADD_EXERCISE,
         STUDENTS,
         ACCOUNTS,
-        CLASSES
+        CLASSES,
+        NOTICES
     }
 
     private Nav activeNav = Nav.HOME;
@@ -192,7 +202,10 @@ public final class HomeScreen extends BorderPane {
         this.selectedClassId = li.classId();
         this.exerciseCatalog = new ExerciseCatalogPane(li.role() == Role.STUDENT, this::open);
         exerciseWorkspace.setCenter(exerciseCatalog);
-        if (li.role().isStaff()) exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
+        if (li.role().isStaff()) {
+            exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
+            exerciseCatalog.onDifficulty(this::setDifficulty);
+        }
         this.dashboard = new DashboardHome(
                 li,
                 new DashboardHome.Actions(
@@ -289,6 +302,12 @@ public final class HomeScreen extends BorderPane {
                 "M4 6 H20 V18 H4 Z M4 10 H20 M9 10 V18",
                 "Tạo lớp, giao giáo viên phụ trách, đổi tên, xoá lớp trống");
         classesButton.setOnAction(e -> showClasses());
+        noticesButton.setId("nav-notices");
+        configureNavButton(
+                noticesButton,
+                "M6 9 A6 6 0 0 1 18 9 C18 14 20 15 20 16 H4 C4 15 6 14 6 9 M10 19 A2 2 0 0 0 14 19",
+                "Ai quên mật khẩu, ai đổi mật khẩu, tài khoản bị khoá");
+        noticesButton.setOnAction(e -> showNotices());
         VBox menu = new VBox(4);
         if (li.role() == Role.ADMIN) {
             homeButton.setText("Tổng quan");
@@ -297,6 +316,7 @@ public final class HomeScreen extends BorderPane {
                     .addAll(
                             homeButton,
                             navSection("Quản lý"),
+                            noticesButton,
                             accountsButton,
                             classesButton,
                             manageStudentsButton,
@@ -304,9 +324,7 @@ public final class HomeScreen extends BorderPane {
                             practiceSessionsButton,
                             navSection("Nội dung"),
                             exerciseButton,
-                            addExerciseButton,
-                            navSection("Công cụ"),
-                            playgroundButton);
+                            addExerciseButton);
         } else if (li.role().isStaff()) {
             menu.getChildren()
                     .addAll(
@@ -341,7 +359,8 @@ public final class HomeScreen extends BorderPane {
             addExerciseButton,
             manageStudentsButton,
             accountsButton,
-            classesButton
+            classesButton,
+            noticesButton
         }) {
             b.setMaxWidth(Double.MAX_VALUE);
         }
@@ -480,6 +499,7 @@ public final class HomeScreen extends BorderPane {
             }
         });
         loadLessons();
+        if (li.role() == Role.ADMIN) startNoticeBadge();
         client.on(
                 MessageType.SUBMIT_RESULT,
                 f -> Platform.runLater(() -> {
@@ -566,7 +586,8 @@ public final class HomeScreen extends BorderPane {
             addExerciseButton,
             manageStudentsButton,
             accountsButton,
-            classesButton
+            classesButton,
+            noticesButton
         }) {
             b.getStyleClass().remove("sidebar-nav-active");
         }
@@ -581,6 +602,7 @@ public final class HomeScreen extends BorderPane {
                     case STUDENTS -> manageStudentsButton;
                     case ACCOUNTS -> accountsButton;
                     case CLASSES -> classesButton;
+                    case NOTICES -> noticesButton;
                 };
         selected.getStyleClass().add("sidebar-nav-active");
         lessonBrowser.setManaged(false);
@@ -589,6 +611,10 @@ public final class HomeScreen extends BorderPane {
 
     private void leaveActiveScreen() {
         lessonRequestVersion++;
+        if (noticesScreen != null) {
+            noticesScreen.stop();
+            noticesScreen = null;
+        }
         if (practiceRoomsScreen != null) {
             practiceRoomsScreen.close();
             practiceRoomsScreen = null;
@@ -667,6 +693,50 @@ public final class HomeScreen extends BorderPane {
         setCenter(new AccountsScreen(li.client()));
         refreshNavigation();
         updateSidebar();
+    }
+
+    private void showNotices() {
+        if (li.role() != Role.ADMIN) return;
+        leaveActiveScreen();
+        activeNav = Nav.NOTICES;
+        noticesScreen = new NoticesScreen(li.client(), this::setNoticeBadge);
+        setCenter(noticesScreen);
+        refreshNavigation();
+        updateSidebar();
+    }
+
+    /** Số đỏ trên nút Thông báo: yêu cầu quên mật khẩu đang chờ và sự kiện bảo mật chưa đọc. */
+    private void setNoticeBadge(int n) {
+        noticesButton.setText(n > 0 ? "Thông báo (" + n + ")" : "Thông báo");
+    }
+
+    /** Quản trị: hỏi số đỏ mỗi 10 giây và ngay khi server đẩy NOTICE_NEW (không đánh dấu đã đọc). */
+    private void startNoticeBadge() {
+        var client = li.client();
+        Runnable ask = () -> {
+            if (noticesScreen != null) return; // đang mở trang thì trang tự cập nhật
+            var reply = client.expect(MessageType.NOTICES_DATA, MessageType.ERROR);
+            client.send(
+                    MessageType.NOTICES_REQ,
+                    new labcast.common.protocol.PayloadWriter().bool(false).toBytes());
+            reply.orTimeout(10, java.util.concurrent.TimeUnit.SECONDS).whenComplete((f, err) -> {
+                if (err != null || f.type() != MessageType.NOTICES_DATA) return;
+                try {
+                    int n = labcast.common.protocol.JsonPayload.tree(f)
+                            .path("badge")
+                            .asInt();
+                    Platform.runLater(() -> setNoticeBadge(n));
+                } catch (Exception ignored) {
+                    // bỏ
+                }
+            });
+        };
+        client.on(MessageType.NOTICE_NEW, f -> ask.run());
+        noticeTimer = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.seconds(10), e -> ask.run()));
+        noticeTimer.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        noticeTimer.play();
+        ask.run();
     }
 
     private void showClasses() {
@@ -1288,6 +1358,8 @@ public final class HomeScreen extends BorderPane {
         }
         loggedOut = true;
         dashboard.close();
+        if (noticeTimer != null) noticeTimer.stop();
+        if (noticesScreen != null) noticesScreen.stop();
         if (practiceRoomsScreen != null) {
             practiceRoomsScreen.close();
             practiceRoomsScreen = null;
@@ -1588,6 +1660,34 @@ public final class HomeScreen extends BorderPane {
             if (studentManagementScreen != null) studentManagementScreen.reload();
             if (practiceRoomsScreen != null) practiceRoomsScreen.reload();
         });
+    }
+
+    /** Gán độ khó cho một hay nhiều bài (level rỗng: bỏ độ khó đã gán), rồi tải lại danh sách. */
+    private void setDifficulty(java.util.List<String> lessonIds, String level) {
+        LcpClient c = li.client();
+        var req = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        var arr = req.putArray("lessonIds");
+        lessonIds.forEach(arr::add);
+        req.put("doKho", level);
+        var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
+        c.send(labcast.common.protocol.JsonPayload.frame(MessageType.LESSON_META_SET, req));
+        reply.orTimeout(10, TimeUnit.SECONDS)
+                .whenComplete((f, err) -> Platform.runLater(() -> {
+                    try {
+                        if (err != null || f.type() != MessageType.ADMIN_OK) {
+                            alert(
+                                    Alert.AlertType.ERROR,
+                                    "Không đặt được độ khó: "
+                                            + (err != null
+                                                    ? err.getMessage()
+                                                    : ErrorMessage.from(f).message()));
+                            return;
+                        }
+                        loadLessons();
+                    } catch (Exception e) {
+                        alert(Alert.AlertType.ERROR, e.getMessage());
+                    }
+                }));
     }
 
     private void toggleLessonActive(String lessonId, boolean active) {

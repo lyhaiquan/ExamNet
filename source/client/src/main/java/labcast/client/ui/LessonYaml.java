@@ -9,7 +9,19 @@ final class LessonYaml {
     /** Bài DSA: {@code views} là biến → mã bộ vẽ; {@code sampleTest}: có test mẫu {@code mau-1}. */
     static String dsa(
             String id, String chuong, String ten, String loai, Map<String, String> views, boolean sampleTest) {
-        StringBuilder y = head(id, "dsa", chuong, ten, loai);
+        return dsa(id, chuong, ten, loai, views, sampleTest, "");
+    }
+
+    /** Như trên, kèm độ khó {@code de | vua | kho} (rỗng: chưa phân loại, không ghi khoá do_kho). */
+    static String dsa(
+            String id,
+            String chuong,
+            String ten,
+            String loai,
+            Map<String, String> views,
+            boolean sampleTest,
+            String doKho) {
+        StringBuilder y = head(id, "dsa", chuong, ten, loai, doKho);
         y.append("bac: [xem, code]\n");
         y.append("khung_nhin:").append(views.isEmpty() ? " []" : "").append('\n');
         views.forEach((bien, kieu) -> y.append("  - bien: ")
@@ -34,7 +46,12 @@ final class LessonYaml {
      * {@code dml}, {@code ordered}: so kết quả theo đúng thứ tự dòng (đề có ORDER BY).
      */
     static String sql(String id, String chuong, String ten, String loai, String loaiCau, boolean ordered) {
-        return head(id, "sql", chuong, ten, loai)
+        return sql(id, chuong, ten, loai, loaiCau, ordered, "");
+    }
+
+    static String sql(
+            String id, String chuong, String ten, String loai, String loaiCau, boolean ordered, String doKho) {
+        return head(id, "sql", chuong, ten, loai, doKho)
                 .append("bac: ")
                 .append("giang-giai".equals(loai) ? "[xem, code]" : "[code]")
                 .append('\n')
@@ -48,6 +65,13 @@ final class LessonYaml {
                 .append("gioi_han: { thoi_gian_ms: 2000 }\n")
                 .append("mo_khoa: []\n")
                 .toString();
+    }
+
+    private static StringBuilder head(String id, String mon, String chuong, String ten, String loai, String doKho) {
+        StringBuilder b = head(id, mon, chuong, ten, loai);
+        if (doKho != null && !doKho.isBlank())
+            b.append("do_kho: ").append(doKho).append('\n');
+        return b;
     }
 
     private static StringBuilder head(String id, String mon, String chuong, String ten, String loai) {

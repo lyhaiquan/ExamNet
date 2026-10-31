@@ -75,6 +75,8 @@ final class DashboardHome extends ScrollPane {
     private String lessonFilter = "Tất cả";
     /** Giáo viên, quản trị: ai bấm Quên mật khẩu thì hiện ngay trên trang chủ. Học viên: {@code null}. */
     private final PasswordRequestsBanner pwdRequests;
+    /** Tải lại khung yêu cầu quên mật khẩu mỗi 5 giây: quản trị ngồi nguyên ở trang chủ vẫn thấy yêu cầu mới. */
+    private final javafx.animation.Timeline pwdTimer;
 
     DashboardHome(LoginController.LoggedIn li, Actions actions) {
         this.li = li;
@@ -85,6 +87,16 @@ final class DashboardHome extends ScrollPane {
         setFitToWidth(true);
         setHbarPolicy(ScrollBarPolicy.NEVER);
         render();
+        if (pwdRequests != null) {
+            pwdTimer =
+                    new javafx.animation.Timeline(new javafx.animation.KeyFrame(javafx.util.Duration.seconds(5), e -> {
+                        if (!closed && getScene() != null) pwdRequests.reload();
+                    }));
+            pwdTimer.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+            pwdTimer.play();
+        } else {
+            pwdTimer = null;
+        }
     }
 
     void setLessons(List<JsonNode> all) {
@@ -113,6 +125,7 @@ final class DashboardHome extends ScrollPane {
 
     void close() {
         closed = true;
+        if (pwdTimer != null) pwdTimer.stop();
     }
 
     private void request(MessageType req, MessageType resp, Consumer<JsonNode> apply) {

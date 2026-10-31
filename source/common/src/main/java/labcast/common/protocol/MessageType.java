@@ -202,7 +202,24 @@ public enum MessageType {
     /** Quản trị tạo / sửa lớp: JSON {id, name, teacherId} → ADMIN_OK(str) hoặc ERROR. id 0: tạo mới. */
     ADMIN_CLASS_SAVE(0xB5),
     /** Quản trị xoá lớp chưa có học viên: i64 id → ADMIN_OK(str) hoặc ERROR. */
-    ADMIN_CLASS_DELETE(0xB6);
+    ADMIN_CLASS_DELETE(0xB6),
+    /**
+     * Quản trị: bool đánh dấu đã đọc → NOTICES_DATA. Đánh dấu đã đọc thì mốc đọc của người này dời tới sự kiện mới
+     * nhất.
+     */
+    NOTICES_REQ(0xB7),
+    /**
+     * JSON {badge, pending:[{username, fullName, role, at}], events:[{id, ts, actor, action, detail}]}: yêu cầu
+     * quên mật khẩu đang chờ và các sự kiện mật khẩu / khoá tài khoản gần đây. Không bao giờ chứa mật khẩu.
+     */
+    NOTICES_DATA(0xB8),
+    /** Server đẩy cho quản trị đang online khi có sự kiện cần xem: JSON {action, actor}. */
+    NOTICE_NEW(0xB9),
+    /**
+     * Giáo viên / quản trị gán độ khó hàng loạt: JSON {lessonIds:[…], doKho:"de|vua|kho"} (doKho rỗng: bỏ độ khó đã
+     * gán) → ADMIN_OK(str) hoặc ERROR. LESSON_DATA kind=list có thêm "doKho" ở từng bài ("" = chưa phân loại).
+     */
+    LESSON_META_SET(0xBA);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

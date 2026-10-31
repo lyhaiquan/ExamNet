@@ -62,4 +62,20 @@ class LessonYamlTest {
         assertEquals("ngan-xep", l.khungNhin().get(1).kieu());
         assertEquals(java.util.List.of("mau-1"), l.testXem());
     }
+
+    @Test
+    void doKho_ghiVaServerDocDuoc(@TempDir Path root) throws Exception {
+        String yaml = LessonYaml.sql("sql.dml.kho-1", "dml", "Bài khó", "bai-tap", "select", false, "kho");
+        assertEquals("kho", parse(root, "sql/dml/kho-1", yaml).doKho());
+        String dsa = LessonYaml.dsa("dsa.mang.de-1", "mang", "Bài dễ", "bai-tap", new LinkedHashMap<>(), false, "de");
+        assertEquals("de", parse(root, "dsa/mang/de-1", dsa).doKho());
+    }
+
+    @Test
+    void chuaPhanLoai_khongGhiKhoaDoKho() {
+        assertFalse(LessonYaml.sql("sql.dml.x", "dml", "X", "bai-tap", "select", false, "")
+                .contains("do_kho"));
+        assertFalse(LessonYaml.dsa("dsa.mang.x", "mang", "X", "bai-tap", new LinkedHashMap<>(), false)
+                .contains("do_kho"));
+    }
 }
