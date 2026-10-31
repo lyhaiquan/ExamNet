@@ -15,5 +15,15 @@
       <groupId>labcast</groupId>
       <artifactId>labcast-common</artifactId>
     </dependency>
+    <!-- server và app thật chạy trong cùng JVM: đo đúng code sẽ nộp, không viết lại client giả -->
+    <dependency>
+      <groupId>labcast</groupId>
+      <artifactId>labcast-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>labcast</groupId>
+      <artifactId>labcast-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>
