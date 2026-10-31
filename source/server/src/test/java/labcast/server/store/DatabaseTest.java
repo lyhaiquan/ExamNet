@@ -25,7 +25,7 @@ class DatabaseTest {
     void moTrongBoNho_coDu20Bang() throws Exception {
         try (Database db = Database.open(":memory:")) {
             assertEquals(
-                    23,
+                    25,
                     count(db, "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"));
         }
     }
