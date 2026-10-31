@@ -190,7 +190,10 @@ public final class HomeScreen extends BorderPane {
         this.selectedClassId = li.classId();
         this.exerciseCatalog = new ExerciseCatalogPane(li.role() == Role.STUDENT, this::open);
         exerciseWorkspace.setCenter(exerciseCatalog);
-        if (li.role().isStaff()) exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
+        if (li.role().isStaff()) {
+            exerciseCatalog.onTeacherActions(this::toggleLessonActive, this::deleteLesson);
+            exerciseCatalog.onDifficulty(this::setDifficulty);
+        }
         this.dashboard = new DashboardHome(
                 li,
                 new DashboardHome.Actions(
@@ -1473,6 +1476,34 @@ public final class HomeScreen extends BorderPane {
             if (studentManagementScreen != null) studentManagementScreen.reload();
             if (practiceRoomsScreen != null) practiceRoomsScreen.reload();
         });
+    }
+
+    /** Gán độ khó cho một hay nhiều bài (level rỗng: bỏ độ khó đã gán), rồi tải lại danh sách. */
+    private void setDifficulty(java.util.List<String> lessonIds, String level) {
+        LcpClient c = li.client();
+        var req = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        var arr = req.putArray("lessonIds");
+        lessonIds.forEach(arr::add);
+        req.put("doKho", level);
+        var reply = c.expect(MessageType.ADMIN_OK, MessageType.ERROR);
+        c.send(labcast.common.protocol.JsonPayload.frame(MessageType.LESSON_META_SET, req));
+        reply.orTimeout(10, TimeUnit.SECONDS)
+                .whenComplete((f, err) -> Platform.runLater(() -> {
+                    try {
+                        if (err != null || f.type() != MessageType.ADMIN_OK) {
+                            alert(
+                                    Alert.AlertType.ERROR,
+                                    "Không đặt được độ khó: "
+                                            + (err != null
+                                                    ? err.getMessage()
+                                                    : ErrorMessage.from(f).message()));
+                            return;
+                        }
+                        loadLessons();
+                    } catch (Exception e) {
+                        alert(Alert.AlertType.ERROR, e.getMessage());
+                    }
+                }));
     }
 
     private void toggleLessonActive(String lessonId, boolean active) {

@@ -31,7 +31,57 @@ public record Lesson(
         String loaiCau,
         boolean thuTu,
         List<Language> ngonNgu,
-        Map<String, List<String>> camTheoNgonNgu) {
+        Map<String, List<String>> camTheoNgonNgu,
+        String doKho) {
+
+    /** Mức độ khó hợp lệ trong {@code lesson.yaml} ({@code do_kho}) và {@code lesson_meta}. */
+    public static final List<String> DO_KHO = List.of("de", "vua", "kho");
+
+    /** Bài không khai độ khó: chưa phân loại. */
+    public Lesson(
+            String id,
+            String mon,
+            String chuong,
+            String ten,
+            String loai,
+            List<String> bac,
+            List<ViewSpec> khungNhin,
+            List<String> camDung,
+            int thoiGianMs,
+            List<String> testXem,
+            List<String> moKhoa,
+            Path dir,
+            String contentHash,
+            List<String> camImport,
+            List<String> camCuPhap,
+            int soTestAn,
+            String loaiCau,
+            boolean thuTu,
+            List<Language> ngonNgu,
+            Map<String, List<String>> camTheoNgonNgu) {
+        this(
+                id,
+                mon,
+                chuong,
+                ten,
+                loai,
+                bac,
+                khungNhin,
+                camDung,
+                thoiGianMs,
+                testXem,
+                moKhoa,
+                dir,
+                contentHash,
+                camImport,
+                camCuPhap,
+                soTestAn,
+                loaiCau,
+                thuTu,
+                ngonNgu,
+                camTheoNgonNgu,
+                "");
+    }
 
     /** Bài DSA cho cả bốn ngôn ngữ, bài SQL chỉ viết SQL. */
     public static List<Language> ngonNguMacDinh(String mon) {

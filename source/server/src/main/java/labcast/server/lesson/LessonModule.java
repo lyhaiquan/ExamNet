@@ -90,7 +90,8 @@ public final class LessonModule implements ServerModule {
                 .on(MessageType.LESSON_FETCH, this::fetch)
                 .on(MessageType.ADMIN_LESSON_DELETE, Role.STAFF, this::deleteLesson)
                 .on(MessageType.ADMIN_LESSON_TOGGLE, Role.STAFF, this::toggleLesson)
-                .on(MessageType.ADMIN_LESSON_UPLOAD, Role.STAFF, this::uploadLesson);
+                .on(MessageType.ADMIN_LESSON_UPLOAD, Role.STAFF, this::uploadLesson)
+                .on(MessageType.LESSON_META_SET, Role.STAFF, this::setDifficulty);
     }
 
     /**
@@ -127,6 +128,7 @@ public final class LessonModule implements ServerModule {
         });
         List<Map<String, Object>> items = new ArrayList<>();
         Map<Path, String> chapterNames = new HashMap<>();
+        Map<String, String> difficulty = difficultyOverrides();
         for (Lesson l : repo.all()) {
             boolean active = !inactiveLessons.contains(l.id());
             Map<String, Object> m = new LinkedHashMap<>();
@@ -135,6 +137,7 @@ public final class LessonModule implements ServerModule {
             m.put("chuong", l.chuong());
             m.put("ten", l.ten());
             m.put("loai", l.loai());
+            m.put("doKho", difficulty.getOrDefault(l.id(), l.doKho()));
             m.put("active", active);
             Map<String, Object> state = progress.get(l.id());
             m.put("status", !active && !isTeacher ? "LOCKED" : (state == null ? "NOT_STARTED" : state.get("status")));
@@ -303,6 +306,68 @@ public final class LessonModule implements ServerModule {
             }
             return null;
         });
+    }
+
+    /** Độ khó giáo viên đã gán (ghi đè {@code do_kho} trong lesson.yaml): bài → de | vua | kho. */
+    private Map<String, String> difficultyOverrides() throws SQLException {
+        return ctx.db().read(conn -> {
+            Map<String, String> out = new HashMap<>();
+            try (var ps = conn.prepareStatement("SELECT lesson_id, do_kho FROM lesson_meta");
+                    var rs = ps.executeQuery()) {
+                while (rs.next()) out.put(rs.getString(1), rs.getString(2));
+            }
+            return out;
+        });
+    }
+
+    /**
+     * {@code LESSON_META_SET} JSON {@code {lessonIds:[…], doKho:"de|vua|kho|"}} → {@code ADMIN_OK(str)}. Chuỗi rỗng:
+     * bỏ độ khó đã gán, trở về giá trị trong lesson.yaml. Giáo viên và quản trị.
+     */
+    private void setDifficulty(Ctx c, Frame f) throws Exception {
+        JsonNode req = JsonPayload.tree(f);
+        String level = req.path("doKho").asText("").strip();
+        if (!level.isEmpty() && !Lesson.DO_KHO.contains(level)) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Độ khó phải là de, vua hoặc kho");
+        }
+        List<String> ids = new ArrayList<>();
+        for (JsonNode n : req.path("lessonIds")) {
+            String id = n.asText();
+            if (repo.get(id).isEmpty()) {
+                throw new ProtocolException(ErrorCode.NOT_FOUND, "Không có bài " + id);
+            }
+            ids.add(id);
+        }
+        if (ids.isEmpty()) {
+            throw new ProtocolException(ErrorCode.BAD_FRAME, "Chọn ít nhất một bài");
+        }
+        long now = System.currentTimeMillis();
+        String who = c.session().username();
+        ctx.db().tx(conn -> {
+            String sql = level.isEmpty()
+                    ? "DELETE FROM lesson_meta WHERE lesson_id = ?"
+                    : "INSERT INTO lesson_meta (lesson_id, do_kho, updated_by, updated_at) VALUES (?, ?, ?, ?)"
+                            + " ON CONFLICT(lesson_id) DO UPDATE SET do_kho = excluded.do_kho,"
+                            + " updated_by = excluded.updated_by, updated_at = excluded.updated_at";
+            try (var ps = conn.prepareStatement(sql)) {
+                for (String id : ids) {
+                    ps.setString(1, id);
+                    if (!level.isEmpty()) {
+                        ps.setString(2, level);
+                        ps.setString(3, who);
+                        ps.setLong(4, now);
+                    }
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+            return null;
+        });
+        String msg = level.isEmpty()
+                ? "Đã bỏ độ khó đã gán của " + ids.size() + " bài"
+                : "Đã đặt độ khó " + level + " cho " + ids.size() + " bài";
+        ctx.audit().record(who, "LESSON_META_SET", msg);
+        c.reply(MessageType.ADMIN_OK, new PayloadWriter().str(msg).toBytes());
     }
 
     /** {@code ADMIN_LESSON_TOGGLE(str lessonId, bool active)} → {@code ADMIN_OK(str message)}. */
@@ -499,6 +564,10 @@ public final class LessonModule implements ServerModule {
                     ps.setString(1, lessonId);
                     ps.setInt(2, lessonId.length() + 1);
                     ps.setString(3, lessonId + "#");
+                    ps.executeUpdate();
+                }
+                try (var ps = conn.prepareStatement("DELETE FROM lesson_meta WHERE lesson_id = ?")) {
+                    ps.setString(1, lessonId);
                     ps.executeUpdate();
                 }
                 return null;

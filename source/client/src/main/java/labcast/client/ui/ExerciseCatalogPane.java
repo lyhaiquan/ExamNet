@@ -42,6 +42,8 @@ public final class ExerciseCatalogPane extends ScrollPane {
     private final boolean student;
     private BiConsumer<String, Boolean> onToggle = (id, on) -> {};
     private BiConsumer<String, String> onDelete = (id, name) -> {};
+    private BiConsumer<List<String>, String> onDifficulty = (ids, level) -> {};
+    private final ComboBox<String> difficultyBox = new ComboBox<>();
 
     private final ComboBox<String> subjectBox = new ComboBox<>();
     private final TextField search = new TextField();
@@ -144,7 +146,19 @@ public final class ExerciseCatalogPane extends ScrollPane {
         });
         Label statusLabel = new Label("Trạng thái");
         statusLabel.getStyleClass().add("dash-row-meta");
-        HBox toolbar = new HBox(10, search, statusLabel, statusBox);
+        difficultyBox.getItems().addAll("Mọi độ khó", "Dễ", "Trung bình", "Khó", "Chưa phân loại");
+        difficultyBox.getSelectionModel().selectFirst();
+        difficultyBox.getStyleClass().add("catalog-select");
+        difficultyBox.setOnAction(e -> {
+            page = 0;
+            render();
+        });
+        Button setAll = new Button("Đặt độ khó cho các bài đang lọc");
+        setAll.getStyleClass().add("students-refresh");
+        setAll.setVisible(!student);
+        setAll.setManaged(!student);
+        setAll.setOnAction(e -> setDifficultyOfFiltered());
+        HBox toolbar = new HBox(10, search, statusLabel, statusBox, difficultyBox, setAll);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         pager.setAlignment(Pos.CENTER_LEFT);
         VBox main = new VBox(12, toolbar, table, pager);
@@ -183,6 +197,38 @@ public final class ExerciseCatalogPane extends ScrollPane {
     public void onTeacherActions(BiConsumer<String, Boolean> toggle, BiConsumer<String, String> delete) {
         onToggle = toggle;
         onDelete = delete;
+    }
+
+    /** Gán độ khó: (danh sách mã bài, de | vua | kho, "" là bỏ độ khó đã gán). */
+    public void onDifficulty(BiConsumer<List<String>, String> handler) {
+        onDifficulty = handler;
+    }
+
+    private String difficultyFilter() {
+        String code = ExerciseCatalog.DO_KHO_FILTERS.get(difficultyBox.getValue());
+        return code == null ? "*" : code;
+    }
+
+    private ExerciseCatalog.Query query() {
+        return new ExerciseCatalog.Query(
+                subject(), chapter, Set.copyOf(kinds), statusBox.getValue(), search.getText(), difficultyFilter());
+    }
+
+    /** Hỏi mức rồi gán cho mọi bài đang hiện theo bộ lọc (không chỉ trang đang xem). */
+    private void setDifficultyOfFiltered() {
+        List<String> ids = ExerciseCatalog.select(lessons, query(), student).stream()
+                .map(l -> l.path("id").asText())
+                .toList();
+        if (ids.isEmpty()) return;
+        var choice = new javafx.scene.control.ChoiceDialog<>("Dễ", "Dễ", "Trung bình", "Khó", "Bỏ độ khó đã gán");
+        choice.setTitle("Đặt độ khó");
+        choice.setHeaderText("Đặt độ khó cho " + ids.size() + " bài đang lọc");
+        choice.setContentText("Mức:");
+        if (getScene() != null) choice.initOwner(getScene().getWindow());
+        choice.showAndWait().ifPresent(label -> {
+            String code = ExerciseCatalog.DO_KHO_FILTERS.getOrDefault(label, "");
+            onDifficulty.accept(ids, code.equals("*") || code.equals("-") ? "" : code);
+        });
     }
 
     public void update(List<JsonNode> items) {
@@ -376,11 +422,7 @@ public final class ExerciseCatalogPane extends ScrollPane {
     }
 
     private void renderTable() {
-        List<JsonNode> rows = ExerciseCatalog.select(
-                lessons,
-                new ExerciseCatalog.Query(
-                        subject(), chapter, Set.copyOf(kinds), statusBox.getValue(), search.getText()),
-                student);
+        List<JsonNode> rows = ExerciseCatalog.select(lessons, query(), student);
         table.getChildren().clear();
         HBox head = row(
                 new javafx.scene.layout.StackPane(th("#")),
@@ -467,6 +509,20 @@ public final class ExerciseCatalogPane extends ScrollPane {
         sub.setTextOverrun(OverrunStyle.ELLIPSIS);
         HBox subLine = new HBox(8, sub);
         subLine.setAlignment(Pos.CENTER_LEFT);
+        String level = ExerciseCatalog.doKho(l);
+        if (!level.isEmpty() || !student) {
+            Label diff = new Label(ExerciseCatalog.doKhoLabel(level));
+            diff.getStyleClass().addAll("catalog-diff", "catalog-diff-" + (level.isEmpty() ? "chua" : level));
+            diff.setMinWidth(Region.USE_PREF_SIZE);
+            if (!student) {
+                diff.setTooltip(new Tooltip("Bấm để đổi độ khó"));
+                diff.setOnMouseClicked(e -> {
+                    e.consume();
+                    onDifficulty.accept(List.of(id), ExerciseCatalog.nextDoKho(level));
+                });
+            }
+            subLine.getChildren().add(diff);
+        }
         int talk = l.path("discuss").asInt(0);
         if (talk > 0) {
             int fresh = l.path("discussNew").asInt(0);

@@ -178,7 +178,12 @@ public enum MessageType {
      */
     NOTICES_DATA(0xB8),
     /** Server đẩy cho quản trị đang online khi có sự kiện cần xem: JSON {action, actor}. */
-    NOTICE_NEW(0xB9);
+    NOTICE_NEW(0xB9),
+    /**
+     * Giáo viên / quản trị gán độ khó hàng loạt: JSON {lessonIds:[…], doKho:"de|vua|kho"} (doKho rỗng: bỏ độ khó đã
+     * gán) → ADMIN_OK(str) hoặc ERROR. LESSON_DATA kind=list có thêm "doKho" ở từng bài ("" = chưa phân loại).
+     */
+    LESSON_META_SET(0xBA);
 
     private static final MessageType[] BY_CODE = new MessageType[256];
 

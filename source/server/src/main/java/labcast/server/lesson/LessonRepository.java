@@ -322,7 +322,17 @@ public final class LessonRepository {
                 loaiCau,
                 "co".equals(String.valueOf(y.get("thu_tu"))),
                 ngonNgu,
-                Map.copyOf(camTheoNgonNgu));
+                Map.copyOf(camTheoNgonNgu),
+                doKho(id, y.get("do_kho")));
+    }
+
+    /** {@code do_kho} trong lesson.yaml: de | vua | kho. Thiếu hoặc sai thì chưa phân loại, không làm hỏng bài. */
+    static String doKho(String id, Object raw) {
+        if (raw == null) return "";
+        String v = raw.toString().strip().toLowerCase(java.util.Locale.ROOT);
+        if (Lesson.DO_KHO.contains(v)) return v;
+        LOG.warning("Bài " + id + ": do_kho phải là de, vua hoặc kho; có \"" + raw + "\" nên coi như chưa phân loại");
+        return "";
     }
 
     private static String str(Map<String, Object> y, String k) throws IOException {
