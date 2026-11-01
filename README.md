@@ -8,9 +8,67 @@ Hệ thống client/server cho buổi thực hành trong phòng máy: giáo viê
 - Kế hoạch triển khai: [`docs/specs/labcast-ke-hoach.md`](docs/specs/labcast-ke-hoach.md)
 - Phân công: [`docs/PHAN-CONG.md`](docs/PHAN-CONG.md)
 
-**Trạng thái:** giai đoạn 0 — đã có khung dự án, CI/CD và luật commit; đề tài đang chờ giảng viên xác nhận. Code hệ thống do nhóm viết từ giai đoạn 1.
+**Trạng thái:** đã chạy được đầy đủ: đăng nhập 3 vai trò, 207 bài DSA/SQL, chạy và chấm bài, chiếu animation multicast, lưu code liên tục, ca thực hành có đồng bộ giờ. Ba thí nghiệm TN1–TN3 đã đo (mục 13–14).
 
-Các mục ghi *(giai đoạn N)* sẽ được điền khi làm tới giai đoạn đó.
+---
+
+# Chạy nhanh (5 phút, Windows)
+
+Dành cho người mới clone về, muốn mở app lên thử ngay trên **một máy**.
+
+**Cần cài:** [JDK 17 trở lên](https://adoptium.net) (17 → 26 đều được) và Git. Kiểm tra: `java -version`.
+Không cần Maven, không cần database, không cần Docker để chạy thử.
+
+**1. Lấy code và build** (PowerShell, lần đầu mất 2–5 phút để tải thư viện):
+
+```powershell
+git clone https://github.com/lyhaiquan/ExamNet.git LabCast
+cd LabCast\source
+.\mvnw.cmd -q package -DskipTests
+```
+
+**2. Bật server** (giữ cửa sổ này mở):
+
+```powershell
+java -jar server/target/labcast-server.jar --content ../content --khong-sandbox --tao-admin "ad:admin123:Quan tri" --tao-giao-vien "gv:gv123:Giao vien"
+```
+
+Thấy dòng `LabCast nghe TCP 7000` là server đã chạy. Họ tên trong lệnh viết **không dấu** (Windows làm hỏng chữ có dấu trên dòng lệnh; đổi lại họ tên có dấu trong app sau). `--khong-sandbox` cho chạy code bài Python bằng Python trên máy (cần cài Python 3); có Docker thì bỏ cờ này và xem mục 12.1.
+
+**3. Mở app** (mở **cửa sổ PowerShell thứ hai**, cũng đứng ở `LabCast\source`):
+
+```powershell
+java -jar client/target/labcast-client.jar
+```
+
+App tự tìm thấy lớp trong máy/mạng LAN → chọn → đăng nhập.
+
+**4. Tài khoản:**
+
+| Vai trò | Tài khoản | Mật khẩu | Ghi chú |
+| --- | --- | --- | --- |
+| Quản trị | `ad` | `admin123` | tạo ở bước 2 (`--tao-admin`) |
+| Giáo viên | `gv` | `gv123` | tạo ở bước 2 (`--tao-giao-vien`) |
+| Học viên | tự đặt | mật khẩu tạm | đăng nhập `ad` → **Tài khoản** → *Thêm tài khoản* → chọn vai trò học viên, lớp **Lớp thực hành** (server tạo sẵn lớp này). Lần đầu đăng nhập học viên phải đổi mật khẩu. Cách khác: giáo viên nhập danh sách CSV ở **Quản lý sinh viên** |
+
+Mật khẩu ở trên chỉ là ví dụ. Tài khoản chỉ được tạo **lần chạy đầu** (đã có thì bỏ qua); database nằm ở file `labcast.db` trong `source/` — xoá file đó là về trạng thái trắng.
+
+**5. Thử nhiều máy (giáo viên chiếu cho học viên):** các máy cùng một Wi-Fi/LAN; máy khác chỉ cần chép `client/target/labcast-client.jar` (hoặc build như bước 1) rồi chạy bước 3. Lần đầu Windows hỏi tường lửa cho Java → **Allow**.
+
+**Lỗi hay gặp**
+
+| Hiện tượng | Cách xử lý |
+| --- | --- |
+| `java` không phải lệnh | Chưa cài JDK hoặc chưa mở lại PowerShell sau khi cài |
+| Build lỗi `Unsupported class file major version` | JDK quá mới với một plugin: cài thêm JDK 17, đặt `$env:JAVA_HOME` trỏ tới nó rồi build lại |
+| App không thấy lớp nào | Nhập IP máy server bằng tay; kiểm tra cùng mạng. Wi-Fi trường thường cách ly các máy — dùng Wi-Fi nhà hoặc hotspot điện thoại |
+| Đăng nhập báo sai mật khẩu | Tài khoản đã tạo từ lần chạy trước với mật khẩu khác: xoá `labcast.db` rồi chạy lại bước 2 |
+| `Address already in use` / cổng 7000 | Đang có server khác chạy: tắt cửa sổ server cũ |
+| Học viên không thấy animation chiếu | Tường lửa chặn UDP 7001: cho Java qua tường lửa (cả mạng **Public** nếu Wi-Fi bị xếp là Public). Không cho thì sau vài giây server tự chuyển máy đó sang nhận qua TCP |
+| Chữ tiếng Việt thành `?` trong tham số | Ghi cấu hình vào file UTF-8 và chạy `--cau-hinh lop.conf` (mục 12.1) |
+| Chạy/nộp bài báo lỗi sandbox | Chưa bật Docker: thêm `--khong-sandbox` (bước 2) hoặc bật Docker Desktop |
+
+Mọi tham số server: `java -jar server/target/labcast-server.jar --help`. Cấu hình lớp thật, nhiều lớp, Docker, dashboard: mục 12.
 
 ---
 
@@ -71,12 +129,12 @@ Server chạy trên máy giáo viên, kèm Docker để chạy code học viên 
 
 | Kênh | Cổng | Dùng cho |
 | --- | --- | --- |
-| TCP — protocol tự thiết kế LCP/1.0 | 7000 | Phiên làm việc: đăng nhập, bài học, dòng code, chạy và nộp, câu hỏi nhanh, trợ giúp |
+| TCP — protocol tự thiết kế LCP/1.0 | 7000 | Phiên làm việc: đăng nhập, bài học, dòng code, chạy và nộp, đồng bộ giờ, trợ giúp |
 | UDP multicast `239.255.70.1` | 7001 | Chiếu animation cho cả phòng, có lớp tin cậy và tự chuyển sang TCP |
 | UDP broadcast | 7002 | App tự tìm server trong phòng máy |
-| TLS (tùy chọn) | bọc 7000 | Mã hoá phiên làm việc |
+| HTTP | 8080 | `/version` (máy nào cũng gọi được) và dashboard (chỉ mở trên chính máy server) |
 
-Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành trên VPS: bước deploy gọi vào để xác nhận đúng commit.
+Chưa có TLS: dữ liệu trên cổng 7000 đi dạng rõ trong LAN (mật khẩu lưu trên server bằng PBKDF2, không lưu bản rõ).
 
 ---
 
@@ -90,7 +148,7 @@ Ngoài ra cổng **8080** (`/version`) chỉ dùng cho vận hành trên VPS: b�
 
 | Thành phần | Công nghệ |
 | --- | --- |
-| Ngôn ngữ | Java 17 — `java.net`, `javax.net.ssl`, `java.util.concurrent`. Bài làm của học viên: Python 3.12 (có animation), C, C++, Java ([spec đa ngôn ngữ](docs/specs/labcast-da-ngon-ngu.md)) |
+| Ngôn ngữ | Java 17 — `java.net`, `java.nio`, `java.util.concurrent`. Bài làm của học viên: Python 3.12 (có animation), C, C++, Java ([spec đa ngôn ngữ](docs/specs/labcast-da-ngon-ngu.md)) |
 | Build | Maven (multi-module, Maven Wrapper `./mvnw`) |
 | Giao diện | JavaFX 21, RichTextFX (ô soạn code) |
 | Lưu trữ | SQLite qua `sqlite-jdbc` |
@@ -109,12 +167,21 @@ Bốn đóng góp, mỗi cái có baseline và thí nghiệm đo được (spec 
 
 | # | Cách làm thông thường | LabCast |
 | --- | --- | --- |
-| ĐG1 | Phần mềm phòng máy chiếu **hình ảnh** màn hình giáo viên tới từng máy | Phát **sự kiện** animation một lần qua multicast, mỗi máy tự vẽ, phát hẹn giờ; máy thiếu gói xin lại qua TCP |
-| ĐG2 | Code nằm trên máy học viên, mất khi máy treo; giáo viên phải đi tới tận máy | Mỗi thay đổi được ghi trước rồi gửi lên kèm số thứ tự; đổi máy làm tiếp; giáo viên xem code đang gõ |
-| ĐG3 | Mỗi máy tin đồng hồ của chính nó | Đồng bộ kiểu NTP, giữ mẫu RTT nhỏ nhất, bù trôi, chỉnh dần |
-| ĐG4 | Hạn chót tính theo lúc gói tin đến, máy mạng chậm bị thiệt | Bù độ trễ theo RTT do server tự đo, có trần |
+| # | Cách làm thông thường | LabCast | Trạng thái |
+| --- | --- | --- | --- |
+| ĐG1 | Phần mềm phòng máy chiếu **hình ảnh** màn hình giáo viên tới từng máy | Phát **sự kiện** animation một lần qua multicast, mỗi máy tự vẽ theo giờ hẹn; gói thiếu xin lại bằng NACK (gộp NACK, phát lại cho nhóm), khung khoá 2 s cho máy vào muộn, tự chuyển sang TCP khi multicast bị chặn | Đã làm, TN2 |
+| ĐG2 | Code nằm trên máy học viên, mất khi máy treo hay rớt mạng | Mỗi thay đổi gửi lên kèm số thứ tự, server xác nhận; client giữ phần chưa xác nhận và gửi lại khi nối lại; server áp đúng một lần, đúng thứ tự; đổi máy làm tiếp | Đã làm, TN3 (phần chưa xác nhận mới giữ trong RAM) |
+| ĐG3 | Mỗi máy tin đồng hồ của chính nó | Đồng bộ kiểu NTP: 5 mẫu lúc vào lớp, giữ mẫu RTT nhỏ nhất; giờ ca thực hành và giờ hẹn chiếu tính theo đồng hồ server | Đã làm, TN1 (chưa đồng bộ lại định kỳ, chưa bù trôi) |
+| ĐG4 | Hạn chót tính theo lúc gói tin đến, máy mạng chậm bị thiệt | Bù độ trễ theo RTT do server tự đo, có trần | Chưa làm (mới khai báo mã thông điệp) |
 
-*(giai đoạn 4 — bảng so sánh số liệu Baseline vs Proposed)*
+**Baseline so với LabCast (số đo thật, chi tiết mục 13–14):**
+
+| | Baseline | LabCast |
+| --- | --- | --- |
+| ĐG1 băng thông chiếu | Chiếu video màn hình: ~1–2 Mbit/s mỗi máy (ước lượng, không đo) | **~1,3 kbit/s** cho cả lớp (đo, bài Dijkstra 156 bước) |
+| ĐG1 độ lệch giữa 2 máy, mạng tốt | — | **≤ 2,5 ms** (cận trên, 35/35 lệnh) |
+| ĐG2 rút dây 2–30 s giữa lúc gõ | Không gửi lại: mất toàn bộ phần gõ khi mất mạng | **38/40 lần không mất phím nào**, đồng bộ lại sau ~2–5 s |
+| ĐG3 sai số giờ khi đồng hồ máy lệch 5 phút | 300 000 ms | **≤ 3 ms** (trễ mạng đối xứng tới 100 ms) |
 
 ---
 
@@ -160,10 +227,15 @@ Máy học viên trong phòng máy **không cần cài gì**: bộ cài đã kè
 
 ```bash
 git clone https://github.com/lyhaiquan/ExamNet.git LabCast
-cd LabCast
-npm install          # bật hook kiểm commit
-cd source
-./mvnw verify        # build + test + kiểm định dạng; Windows: mvnw.cmd verify
+cd LabCast/source
+./mvnw -q package -DskipTests   # chỉ build ra jar; Windows: .\mvnw.cmd -q package -DskipTests
+```
+
+Người viết code cho dự án thêm hai bước:
+
+```bash
+cd ..  && npm install             # bật hook kiểm commit (cần Node.js)
+cd source && ./mvnw verify       # build + toàn bộ test + kiểm định dạng (dùng JDK 17–21; JDK mới hơn có thể lỗi bước định dạng)
 ```
 
 ---
@@ -172,16 +244,16 @@ cd source
 
 | Biến môi trường | Mặc định | Ý nghĩa |
 | --- | --- | --- |
-| `LABCAST_DB` | *(giai đoạn 1)* | Đường dẫn file SQLite. Trong Docker là `/data/labcast.db`, nằm trên volume |
+| `LABCAST_DB` | `labcast.db` | Đường dẫn file SQLite. Trong Docker là `/data/labcast.db`, nằm trên volume |
 | `LABCAST_COMMIT` | `dev` | Mã commit hiện ở `/version`. CI tự gài vào image |
 
-*(giai đoạn 1 trở đi — cổng, card mạng LAN, TLS, đường dẫn `content/`…)*
+Các tham số còn lại (tên lớp, môn, cổng, card mạng LAN, thư mục `content/`, tài khoản tạo sẵn) đặt bằng dòng lệnh, file cấu hình hoặc biến môi trường — xem mục 12.1.
 
 ---
 
 # 11. Database Setup
 
-Lược đồ ở [`source/server/src/main/resources/schema.sql`](source/server/src/main/resources/schema.sql) — 15 bảng, mỗi nhóm bảng ghi rõ người phụ trách (spec §15). Server tự tạo database ở lần chạy đầu *(giai đoạn 1)*.
+Lược đồ ở [`source/server/src/main/resources/schema.sql`](source/server/src/main/resources/schema.sql) — 28 bảng, mỗi nhóm bảng ghi rõ người phụ trách (spec §15). **Không cần cài hay khởi tạo gì:** server tự tạo file database ở lần chạy đầu và tự nâng lược đồ khi mở database của bản cũ (`PRAGMA user_version`).
 
 ---
 
@@ -278,44 +350,94 @@ python -m pytest runner
 
 # 13. Experimental Setup
 
-Định nghĩa đầy đủ ở spec §14. Kết quả ghi vào `statics/results/exp<số>_<tên>.csv`.
+Ba thí nghiệm, code ở `source/bench/src/main/java/labcast/bench/exp/`, số liệu và biểu đồ ở [`statics/results/`](statics/results/).
 
-| # | Thí nghiệm | Chứng minh | Người |
-| - | ---------- | ---------- | ----- |
-| 1 | Băng thông chiếu: multicast sự kiện, TCP từng máy, video màn hình | ★ĐG1 | 4 |
-| 2 | Sai số đồng hồ và độ lệch giữa các màn hình | ★ĐG3 | 3 |
-| 3 | Mất gói multicast, NACK, máy vào lớp muộn | ★ĐG1 | 4 |
-| 4 | Rút dây, tắt app, đổi máy giữa lúc gõ | ★ĐG2 | 1 |
-| 5 | Độ trễ phản chiếu code, có và không gộp thay đổi | ★ĐG2 | 1 |
-| 6 | Một máy spam 1000 thông điệp/giây | Giới hạn tốc độ | 3 |
-| 7 | 40 lượt chạy thử dồn trong 10 giây | Hàng đợi chạy | 3 |
-| 8 | Câu hỏi nhanh với nhóm máy chậm thêm 200 ms | ★ĐG4 | 2 |
-| 9 | Heartbeat thích nghi so với cố định *(tuỳ chọn)* | Phát hiện máy rớt | 2 |
-| 10 | Chi phí TLS *(tuỳ chọn)* | Cái giá của mã hoá | 2 |
+| TN | Chứng minh | Môi trường | Lặp |
+| --- | --- | --- | --- |
+| TN1 đồng bộ giờ (`Exp1DongBoGio`) | ĐG3 | 1 máy, server và client cùng JVM qua loopback; `DelayProxy` cấy trễ mỗi chiều 0/0, 25/25, 100/100, 20/180 ms; đồng hồ học viên giả lệch 0, +30 s, −60 s, +5 phút | 4 × 4 × 10 = 160 lần |
+| TN2 chiếu multicast (`Exp2Chieu`, `Exp2Nghe`, `tn2/tn2.py`) | ĐG1 | **2 máy thật** qua Wi-Fi (hotspot điện thoại, RTT ≈ 5 ms); bài `dsa.do-thi.dijkstra` 156 bước, nén còn 1078 byte; 4 lượt: bình thường, bỏ 10 % gói, bỏ 30 % gói (giả lập phía học viên), chặn multicast 1 máy | 5 lần chiếu × 7 lệnh = 35 lệnh / lượt / máy |
+| TN3 mất mạng (`Exp3MatMang`) | ĐG2 | 1 máy, loopback; học viên ảo gõ 20 phím/giây; `DelayProxy` rút dây 0/2/5/10/30 s; tắt app khi mất mạng / khi có mạng | 10 lần mỗi cấu hình |
+
+Máy đo: Intel Core i5-12500H (16 luồng), 15,7 GB RAM, Windows 11, OpenJDK 17.0.19. Máy học viên thứ hai ở TN2: desktop Windows, JDK 26.
+
+Chạy lại (đứng ở thư mục gốc repo, đã build ở mục 9):
+
+```powershell
+cd source; .\mvnw.cmd -q dependency:build-classpath -pl bench "-Dmdep.outputFile=../cp.txt"; cd ..
+java -cp "source/bench/target/classes;$(Get-Content cp.txt)" labcast.bench.exp.Exp1DongBoGio 10
+java -cp "source/bench/target/classes;$(Get-Content cp.txt)" labcast.bench.exp.Exp3MatMang 5
+python statics/ve_bieu_do.py statics/results          # vẽ lại biểu đồ TN1, TN3
+```
+
+TN2 cần nhiều máy: hướng dẫn từng bước trong [`tn2/HUONG-DAN.txt`](tn2/HUONG-DAN.txt) (một máy `python tn2.py giao-vien`, mỗi máy còn lại `python tn2.py hoc-vien <IP>`).
 
 ---
 
 # 14. Experimental Results
 
-*(giai đoạn 4 — chỉ số đo thật, mỗi cấu hình lặp nhiều lần, báo cáo trung bình ± độ lệch chuẩn)*
+**TN1 — đồng bộ giờ** (sai số so với giờ thật của server, n = 10 mỗi ô)
+
+| Trễ lên/xuống | Không đồng bộ | LabCast |
+| --- | --- | --- |
+| 0/0 ms | = độ lệch đồng hồ (tới 300 000 ms) | 0,0–0,2 ms, tối đa 1 ms |
+| 25/25 ms | như trên | tối đa 1 ms |
+| 100/100 ms | như trên | tối đa 3 ms |
+| 20/180 ms (lệch hai chiều) | như trên | ≈ −80 ms, đúng bằng (lên − xuống)/2 theo lý thuyết |
+
+Đo thật ở TN2: đồng hồ máy học viên nhanh hơn máy giáo viên **101,4 s**, ClockSync bù với RTT 5 ms.
+
+**TN2 — chiếu multicast** (2 máy, 35 lệnh mỗi lượt mỗi máy)
+
+| Lượt | Lệnh nhận | Lệnh tới sau giờ hẹn | Độ lệch giữa 2 máy (cận trên) p50 / p95 |
+| --- | --- | --- | --- |
+| A bình thường | 35/35 cả 2 máy | 0 | 2,5 / 2,5 ms |
+| B bỏ 10 % gói | 35/35 | 3 + 3 | 2,5 ms / 1,8 s |
+| C bỏ 30 % gói | 35/35 | 14 + 9 | 0,4 / 3,5 s |
+| D chặn multicast máy 1 | 35/35 (máy 1 qua TCP) | 6 | 2,5 ms / 6,1 s |
+
+Băng thông server phát: **~1,3 kbit/s** ở mọi lượt.
+
+**TN3 — mất mạng giữa lúc gõ** (n = 10 mỗi cấu hình)
+
+| Tình huống | Phím mất | Đồng bộ lại sau khi có mạng |
+| --- | --- | --- |
+| Rút dây 2 / 5 / 10 / 30 s | 0 ở 38/40 lần; 2 lần kẹt (5 s, 10 s) | trung vị 2,6 / 2,6 / 2,8 / 3,9 s |
+| Tắt app khi đang mất mạng 2 / 5 / 10 s | 32 / 80 / 160 (toàn bộ phần gõ lúc mất mạng), 10/10 lần | — |
+| Tắt app đột ngột khi có mạng | 0, 10/10 lần | — |
+
+Code trên server luôn khớp từng ký tự với phần đầu tương ứng trên máy học viên.
+
+Biểu đồ: `statics/results/tn1_*.png`, `tn2_*.png`, `tn3_*.png`.
 
 ---
 
 # 15. Discussion
 
-*(giai đoạn 4)*
+- **ĐG1:** gửi sự kiện thay vì hình ảnh giảm băng thông khoảng ba bậc độ lớn so với chiếu video (video là ước lượng). Khi mạng tốt các máy khớp nhau vài ms. Khi mất gói, lệnh **không mất** nhưng có thể tới muộn tới vài giây: gói điều khiển mất chỉ được phát hiện khi có gói sau hoặc khung khoá (2 s), và chuyển sang TCP cần vài heartbeat.
+- **ĐG2:** số thứ tự + xác nhận + gửi lại giữ đủ code qua các lần rút dây; server không bao giờ áp sai thứ tự hay trùng. Phần chưa xác nhận chỉ nằm trong RAM nên tắt app lúc mất mạng thì mất đúng phần đó.
+- **ĐG3:** sai số nhỏ hơn nhiều so với độ lệch đồng hồ thật giữa các máy (101 s đo được), đủ cho giờ ca thực hành và giờ hẹn chiếu; giới hạn là trễ không đối xứng.
+- Quan sát thêm trên mạng thật: tường lửa Windows chặn UDP multicast đi vào khi mạng bị xếp loại *Public* → mọi lệnh đi qua TCP; khi Wi-Fi máy giáo viên chập, server không phát multicast lại được nữa (chỉ còn TCP).
 
 ---
 
 # 16. Limitations
 
-Xem spec §19. *(giai đoạn 5 — cập nhật theo hệ thống thật)*
+- Chưa có TLS; dữ liệu đi dạng rõ trong LAN.
+- TN2 mới đo 2 máy qua hotspot, chưa đo phòng máy 50 máy mạng dây; mất gói ở lượt B, C là giả lập.
+- Mất gói multicast làm lệnh tới muộn tới vài giây (p95 1,8–6 s), vượt mục tiêu 50 ms.
+- Socket multicast của server không tự mở lại sau khi card mạng chập.
+- Delta chưa xác nhận chỉ giữ trong RAM; 2/40 lần rút dây bị kẹt nối lại chưa rõ nguyên nhân.
+- Đồng bộ giờ chỉ đo lúc vào lớp, chưa đồng bộ lại định kỳ, chưa bù trôi.
+- Câu hỏi nhanh công bằng (ĐG4) và phản chiếu code cho giáo viên mới có mã thông điệp, chưa làm.
 
 ---
 
 # 17. Future Work
 
-*(giai đoạn 5)*
+- Gửi lặp mỗi lệnh điều khiển 2–3 lần và rút chu kỳ khung khoá để giảm thời gian phục hồi khi mất gói.
+- Tự mở lại socket multicast khi card mạng đổi; đo TN2 trên phòng máy thật nhiều máy.
+- Ghi nhật ký delta xuống đĩa phía client; tìm nguyên nhân 2 lần kẹt nối lại.
+- Đồng bộ giờ định kỳ, bù trôi; làm ĐG4; thêm TLS.
 
 ---
 
