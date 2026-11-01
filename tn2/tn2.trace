@@ -1,0 +1,158 @@
+{"t": "hdr", "lesson": "dsa.do-thi.dijkstra", "views": [{"v": "g", "kieu": "do-thi"}, {"v": "d", "kieu": "mang"}], "source": ""}
+{"t": "snap", "n": 0, "state": {"g": {"kieu": "do-thi", "co_huong": false, "dinh": [0, 1, 2, 3, 4, 5], "canh": [], "mau": [], "mau_canh": [], "nhan": [], "vt": []}}}
+{"t": "edge", "a": 0, "b": 1, "x": 7, "v": "g"}
+{"t": "edge", "a": 0, "b": 2, "x": 9, "v": "g"}
+{"t": "edge", "a": 0, "b": 5, "x": 14, "v": "g"}
+{"t": "edge", "a": 1, "b": 2, "x": 10, "v": "g"}
+{"t": "edge", "a": 1, "b": 3, "x": 15, "v": "g"}
+{"t": "edge", "a": 2, "b": 3, "x": 11, "v": "g"}
+{"t": "edge", "a": 2, "b": 5, "x": 2, "v": "g"}
+{"t": "edge", "a": 3, "b": 4, "x": 6, "v": "g"}
+{"t": "edge", "a": 4, "b": 5, "x": 9, "v": "g"}
+{"t": "snap", "n": 9, "state": {"g": {"kieu": "do-thi", "co_huong": false, "dinh": [0, 1, 2, 3, 4, 5], "canh": [[0, 1, 7], [0, 2, 9], [0, 5, 14], [1, 2, 10], [1, 3, 15], [2, 3, 11], [2, 5, 2], [3, 4, 6], [4, 5, 9]], "mau": [], "mau_canh": [], "nhan": [], "vt": []}, "d": [-1, -1, -1, -1, -1, -1]}}
+{"t": "set", "v": "d", "i": 0, "x": 0}
+{"t": "set", "id": 0, "x": "0", "v": "g"}
+{"t": "set", "id": 1, "x": "∞", "v": "g"}
+{"t": "set", "id": 2, "x": "∞", "v": "g"}
+{"t": "set", "id": 3, "x": "∞", "v": "g"}
+{"t": "set", "id": 4, "x": "∞", "v": "g"}
+{"t": "set", "id": 5, "x": "∞", "v": "g"}
+{"t": "key", "s": "d[0] = 0, các đỉnh khác chưa có đường (∞, trong mảng ghi -1)"}
+{"t": "read", "v": "d", "i": 0}
+{"t": "read", "v": "d", "i": 1}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 5}
+{"t": "ptr", "v": "d", "n": "u", "i": 0}
+{"t": "read", "v": "d", "i": 0}
+{"t": "key", "s": "Chốt đỉnh 0: d[0] = 0 nhỏ nhất trong các đỉnh chưa chốt"}
+{"t": "mark", "id": 0, "m": "xong", "v": "g"}
+{"t": "read", "id": 0, "v": "g"}
+{"t": "read", "a": 0, "b": 1, "v": "g"}
+{"t": "read", "v": "d", "i": 0}
+{"t": "read", "v": "d", "i": 1}
+{"t": "read", "v": "d", "i": 0}
+{"t": "say", "s": "Qua 0 tới 1: 0 + 7 = 7"}
+{"t": "set", "v": "d", "i": 1, "x": 7}
+{"t": "set", "id": 1, "x": "7", "v": "g"}
+{"t": "read", "a": 0, "b": 2, "v": "g"}
+{"t": "read", "v": "d", "i": 0}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 0}
+{"t": "say", "s": "Qua 0 tới 2: 0 + 9 = 9"}
+{"t": "set", "v": "d", "i": 2, "x": 9}
+{"t": "set", "id": 2, "x": "9", "v": "g"}
+{"t": "read", "a": 0, "b": 5, "v": "g"}
+{"t": "read", "v": "d", "i": 0}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 0}
+{"t": "say", "s": "Qua 0 tới 5: 0 + 14 = 14"}
+{"t": "set", "v": "d", "i": 5, "x": 14}
+{"t": "set", "id": 5, "x": "14", "v": "g"}
+{"t": "read", "v": "d", "i": 1}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 1}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 1}
+{"t": "ptr", "v": "d", "n": "u", "i": 1}
+{"t": "read", "v": "d", "i": 1}
+{"t": "key", "s": "Chốt đỉnh 1: d[1] = 7 nhỏ nhất trong các đỉnh chưa chốt"}
+{"t": "mark", "id": 1, "m": "xong", "v": "g"}
+{"t": "mark", "a": 0, "b": 1, "m": "xong", "v": "g"}
+{"t": "read", "id": 1, "v": "g"}
+{"t": "read", "a": 1, "b": 0, "v": "g"}
+{"t": "read", "a": 1, "b": 2, "v": "g"}
+{"t": "read", "v": "d", "i": 1}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 1}
+{"t": "say", "s": "Qua 1 tới 2: 7 + 10 = 17, không ngắn hơn 9"}
+{"t": "read", "a": 1, "b": 3, "v": "g"}
+{"t": "read", "v": "d", "i": 1}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 1}
+{"t": "say", "s": "Qua 1 tới 3: 7 + 15 = 22"}
+{"t": "set", "v": "d", "i": 3, "x": 22}
+{"t": "set", "id": 3, "x": "22", "v": "g"}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 2}
+{"t": "ptr", "v": "d", "n": "u", "i": 2}
+{"t": "read", "v": "d", "i": 2}
+{"t": "key", "s": "Chốt đỉnh 2: d[2] = 9 nhỏ nhất trong các đỉnh chưa chốt"}
+{"t": "mark", "id": 2, "m": "xong", "v": "g"}
+{"t": "mark", "a": 0, "b": 2, "m": "xong", "v": "g"}
+{"t": "read", "id": 2, "v": "g"}
+{"t": "read", "a": 2, "b": 0, "v": "g"}
+{"t": "read", "a": 2, "b": 1, "v": "g"}
+{"t": "read", "a": 2, "b": 3, "v": "g"}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 2}
+{"t": "say", "s": "Qua 2 tới 3: 9 + 11 = 20, ngắn hơn 22"}
+{"t": "set", "v": "d", "i": 3, "x": 20}
+{"t": "set", "id": 3, "x": "20", "v": "g"}
+{"t": "read", "a": 2, "b": 5, "v": "g"}
+{"t": "read", "v": "d", "i": 2}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 2}
+{"t": "say", "s": "Qua 2 tới 5: 9 + 2 = 11, ngắn hơn 14"}
+{"t": "set", "v": "d", "i": 5, "x": 11}
+{"t": "set", "id": 5, "x": "11", "v": "g"}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 3}
+{"t": "ptr", "v": "d", "n": "u", "i": 5}
+{"t": "read", "v": "d", "i": 5}
+{"t": "key", "s": "Chốt đỉnh 5: d[5] = 11 nhỏ nhất trong các đỉnh chưa chốt"}
+{"t": "mark", "id": 5, "m": "xong", "v": "g"}
+{"t": "mark", "a": 2, "b": 5, "m": "xong", "v": "g"}
+{"t": "read", "id": 5, "v": "g"}
+{"t": "read", "a": 5, "b": 0, "v": "g"}
+{"t": "read", "a": 5, "b": 2, "v": "g"}
+{"t": "read", "a": 5, "b": 4, "v": "g"}
+{"t": "read", "v": "d", "i": 5}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 5}
+{"t": "say", "s": "Qua 5 tới 4: 11 + 9 = 20"}
+{"t": "set", "v": "d", "i": 4, "x": 20}
+{"t": "set", "id": 4, "x": "20", "v": "g"}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 3}
+{"t": "ptr", "v": "d", "n": "u", "i": 3}
+{"t": "read", "v": "d", "i": 3}
+{"t": "key", "s": "Chốt đỉnh 3: d[3] = 20 nhỏ nhất trong các đỉnh chưa chốt"}
+{"t": "mark", "id": 3, "m": "xong", "v": "g"}
+{"t": "mark", "a": 2, "b": 3, "m": "xong", "v": "g"}
+{"t": "read", "id": 3, "v": "g"}
+{"t": "read", "a": 3, "b": 1, "v": "g"}
+{"t": "read", "a": 3, "b": 2, "v": "g"}
+{"t": "read", "a": 3, "b": 4, "v": "g"}
+{"t": "read", "v": "d", "i": 3}
+{"t": "read", "v": "d", "i": 4}
+{"t": "read", "v": "d", "i": 3}
+{"t": "say", "s": "Qua 3 tới 4: 20 + 6 = 26, không ngắn hơn 20"}
+{"t": "read", "v": "d", "i": 4}
+{"t": "ptr", "v": "d", "n": "u", "i": 4}
+{"t": "read", "v": "d", "i": 4}
+{"t": "key", "s": "Chốt đỉnh 4: d[4] = 20 nhỏ nhất trong các đỉnh chưa chốt"}
+{"t": "mark", "id": 4, "m": "xong", "v": "g"}
+{"t": "mark", "a": 5, "b": 4, "m": "xong", "v": "g"}
+{"t": "read", "id": 4, "v": "g"}
+{"t": "read", "a": 4, "b": 3, "v": "g"}
+{"t": "read", "a": 4, "b": 5, "v": "g"}
+{"t": "key", "s": "Không còn đỉnh chưa chốt đi tới được: xong. Cạnh tô xanh là cây đường đi ngắn nhất"}
+{"t": "end", "truncated": false}
