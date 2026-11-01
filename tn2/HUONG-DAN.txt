@@ -1,0 +1,40 @@
+THÍ NGHIỆM 2 — CHIẾU ANIMATION MULTICAST (LabCast)
+==================================================
+
+CHUẨN BỊ (mọi máy)
+  1. Cài JDK 17 trở lên (JDK 26 cũng được) và Python 3.9+. Kiểm tra: java -version, python --version
+  2. Giải nén tn2.zip ra một thư mục, ví dụ D:\tn2
+  3. Tất cả máy nối CHUNG một Wi-Fi (Wi-Fi nhà / hotspot điện thoại; Wi-Fi trường thường chặn các máy thấy nhau)
+  4. Lần đầu chạy, Windows hỏi tường lửa cho Java và Python: tick "Private networks" -> Allow
+
+MÁY GIÁO VIÊN (1 máy)
+  cd D:\tn2
+  python tn2.py giao-vien --hoc-vien 2 --so-lan 10
+    --hoc-vien  = số máy học viên sẽ vào (2 laptop học viên thì ghi 2)
+    --so-lan    = số lần chiếu mỗi lượt (10 lần ~ 2 phút/lượt, 4 lượt ~ 10 phút)
+  Màn hình in ra dòng: python tn2.py hoc-vien 192.168.x.y  -> gõ đúng dòng đó trên máy học viên.
+  Nếu học viên báo không vào được: chạy lại với --ip <IP Wi-Fi của máy giáo viên> (xem bằng lệnh ipconfig).
+
+MÁY HỌC VIÊN (mỗi máy còn lại)
+  cd D:\tn2
+  python tn2.py hoc-vien 192.168.x.y
+  Rồi để yên. Máy tự đi theo 4 lượt và tự gửi kết quả về máy giáo viên khi xong.
+
+4 LƯỢT ĐO (tự chạy liên tiếp)
+  A  bình thường
+  B  mỗi máy học viên bỏ ngẫu nhiên 10% gói multicast (giả lập Wi-Fi xấu)
+  C  bỏ 30% gói
+  D  máy sv1 không nhận được multicast (như tường lửa chặn) -> server phải tự chuyển máy đó sang TCP
+  Trong lượt A có thể để các máy gần router; ngoài giả lập, mất gói thật trên Wi-Fi cũng được đếm.
+
+KẾT QUẢ
+  Nằm trên máy giáo viên, thư mục ket-qua\ :
+    tn2_tong-hop.csv, tn2_lech-giua-may.csv, tn2_giao-vien.csv, tn2_sv*.csv, *.png (nếu có matplotlib)
+  Nén cả thư mục ket-qua gửi lại để đưa vào báo cáo.
+  Phân tích lại bất cứ lúc nào: python tn2.py phan-tich
+
+LỖI THƯỜNG GẶP
+  "Không thấy lệnh java"           -> cài JDK, hoặc: set JAVA=C:\...\bin\java.exe
+  Học viên kẹt ở "Đang đợi..."     -> sai IP / khác Wi-Fi / tường lửa chặn cổng 7000, 7900
+  Cột TCP = số lệnh ở lượt A cao   -> multicast không tới máy đó (Wi-Fi chặn multicast); vẫn chạy được qua TCP,
+                                     ghi lại hiện tượng này vào báo cáo
